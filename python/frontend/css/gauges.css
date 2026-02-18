@@ -1,0 +1,10 @@
+/* Wellness ring gauge styles — light warm theme */
+
+.gauge { display: block; margin: 0 auto; }
+.gauge-bg { fill: none; stroke: #e0dbd3; stroke-width: 8; }
+.gauge-progress { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+.gauge-progress.calm { stroke: #5a9a6e; }
+.gauge-progress.steady { stroke: #b5a84a; }
+.gauge-progress.tense { stroke: #d4943a; }
+.gauge-progress.stressed { stroke: #c4584c; }
+.gauge-progress.default { stroke: #b8975c; }

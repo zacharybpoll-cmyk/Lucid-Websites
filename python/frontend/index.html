@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attune</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css?v=21">
+    <link rel="stylesheet" href="css/gauges.css?v=16">
+    <link rel="stylesheet" href="css/anxiety_timeline.css?v=16">
+    <link rel="stylesheet" href="css/trends.css?v=15">
+    <link rel="stylesheet" href="css/engagement.css?v=15">
+    <link rel="stylesheet" href="css/correlation.css?v=15">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+    <!-- Background layer -->
+    <div class="bg-layer"></div>
+
+    <!-- Sanctuary overlay (micro-celebrations) -->
+    <div id="sanctuary-overlay" class="sanctuary-overlay" style="display: none;">
+        <div class="sanctuary-message" id="sanctuary-message"></div>
+        <div class="sanctuary-particles" id="sanctuary-particles"></div>
+    </div>
+
+    <!-- Loading overlay (skeleton screen) -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-skeleton">
+            <!-- Skeleton gauge -->
+            <div class="skeleton-gauge">
+                <svg viewBox="0 0 200 200" width="200" height="200">
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(184,151,92,0.25)" stroke-width="8"
+                        stroke-dasharray="180 373" stroke-linecap="round" transform="rotate(-90 100 100)">
+                        <animate attributeName="stroke-dashoffset" values="0;-553" dur="3s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(184,151,92,0.12)" stroke-width="2"
+                        filter="url(#glow)"/>
+                    <!-- Needle silhouette -->
+                    <line x1="100" y1="100" x2="100" y2="30" stroke="rgba(250,246,238,0.15)" stroke-width="2" stroke-linecap="round"/>
+                    <text x="100" y="115" text-anchor="middle" fill="rgba(250,246,238,0.3)" font-family="'Playfair Display', serif" font-size="14">Score</text>
+                    <defs>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="6" result="blur"/>
+                            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                    </defs>
+                </svg>
+            </div>
+
+            <!-- Skeleton timeline card -->
+            <div class="skeleton-timeline-card">
+                <div class="skeleton-tick" style="left: 6%"><span>Jan</span></div>
+                <div class="skeleton-tick" style="left: 18%"><span>Feb</span></div>
+                <div class="skeleton-tick" style="left: 31%"><span>Mar</span></div>
+                <div class="skeleton-tick" style="left: 43%"><span>Apr</span></div>
+                <div class="skeleton-tick" style="left: 56%"><span>May</span></div>
+                <div class="skeleton-tick" style="left: 68%"><span>Jun</span></div>
+                <div class="skeleton-tick" style="left: 81%"><span>Jul</span></div>
+                <div class="skeleton-tick" style="left: 93%"><span>Aug</span></div>
+                <div class="skeleton-timeline-sweep" id="skeleton-timeline-sweep"></div>
+            </div>
+
+            <!-- Skeleton metrics row -->
+            <div class="skeleton-metrics-row">
+                <div class="skeleton-metric-card">
+                    <div class="skeleton-bars">
+                        <div class="skeleton-bar" style="height: 40%"></div>
+                        <div class="skeleton-bar" style="height: 70%"></div>
+                        <div class="skeleton-bar" style="height: 55%"></div>
+                        <div class="skeleton-bar" style="height: 85%"></div>
+                        <div class="skeleton-bar" style="height: 35%"></div>
+                    </div>
+                </div>
+                <div class="skeleton-metric-card">
+                    <svg class="skeleton-line" viewBox="0 0 200 80" preserveAspectRatio="none">
+                        <path d="M10,60 Q40,20 70,45 T130,25 T190,50" fill="none" stroke="rgba(250,246,238,0.25)" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="skeleton-progress-track">
+                <div class="skeleton-progress-fill" id="skeleton-progress-bar"></div>
+            </div>
+
+            <!-- Status text -->
+            <p class="skeleton-status" id="loading-status">Preparing your dashboard...</p>
+
+            <!-- Diamond sparkle -->
+            <div class="skeleton-sparkle"></div>
+        </div>
+    </div>
+
+    <!-- Morning Summary Overlay -->
+    <div id="morning-summary-overlay" class="morning-summary-overlay" style="display: none;">
+        <div class="morning-summary-content">
+            <div class="morning-greeting" id="morning-greeting">Good morning</div>
+
+            <div class="morning-split">
+                <!-- Left column: Concentric ring gauge -->
+                <div class="morning-left">
+                    <svg id="morning-rings-svg" class="morning-rings-svg" viewBox="0 0 340 340">
+                        <!-- Track circles -->
+                        <circle cx="170" cy="170" r="155" class="morning-ring-track"/>
+                        <circle cx="170" cy="170" r="130" class="morning-ring-track"/>
+                        <circle cx="170" cy="170" r="105" class="morning-ring-track"/>
+                        <circle cx="170" cy="170" r="75" class="morning-ring-track"/>
+                        <!-- Progress circles -->
+                        <circle id="morning-ring-calm" cx="170" cy="170" r="155" class="morning-ring-progress" stroke="#5a9a6e"
+                            stroke-dasharray="973.9" stroke-dashoffset="973.9" transform="rotate(-90 170 170)"/>
+                        <circle id="morning-ring-mood" cx="170" cy="170" r="130" class="morning-ring-progress" stroke="#b8975c"
+                            stroke-dasharray="816.8" stroke-dashoffset="816.8" transform="rotate(-90 170 170)"/>
+                        <circle id="morning-ring-energy" cx="170" cy="170" r="105" class="morning-ring-progress" stroke="#b5a84a"
+                            stroke-dasharray="659.7" stroke-dashoffset="659.7" transform="rotate(-90 170 170)"/>
+                        <circle id="morning-ring-stress" cx="170" cy="170" r="75" class="morning-ring-progress" stroke="#c4584c"
+                            stroke-dasharray="471.2" stroke-dashoffset="471.2" transform="rotate(-90 170 170)"/>
+                        <!-- Center text -->
+                        <text x="170" y="142" text-anchor="middle" class="morning-ring-center-label">CANOPY SCORE</text>
+                        <text x="170" y="184" text-anchor="middle" class="morning-ring-score-text" id="morning-ring-score">--</text>
+                        <text x="170" y="214" text-anchor="middle" class="morning-ring-verdict-text" id="morning-ring-verdict"></text>
+                    </svg>
+                    <div class="morning-ring-legend">
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#5a9a6e"></span>Calm <span class="morning-ring-val" id="morning-legend-calm">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b8975c"></span>Mood <span class="morning-ring-val" id="morning-legend-mood">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b5a84a"></span>Energy <span class="morning-ring-val" id="morning-legend-energy">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#c4584c"></span>Stress <span class="morning-ring-val" id="morning-legend-stress">--</span></span>
+                    </div>
+                    <div class="morning-date" id="morning-date"></div>
+                </div>
+
+                <!-- Right column: Bars + Timeline + Highlights + Coach -->
+                <div class="morning-right">
+                    <div class="morning-bars" id="morning-bars"></div>
+                    <div class="morning-timeline" id="morning-timeline">
+                        <div class="morning-timeline-bar" id="morning-timeline-bar"></div>
+                        <div class="morning-timeline-labels">
+                            <span>6AM</span><span>12PM</span><span>6PM</span><span>12AM</span>
+                        </div>
+                    </div>
+                    <div class="morning-highlights" id="morning-highlights">
+                        <ul class="morning-highlights-list" id="morning-highlights-list"></ul>
+                    </div>
+                    <div class="morning-coach" id="morning-coach">
+                        <blockquote class="morning-coach-text" id="morning-coach-text"></blockquote>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom section (full width) -->
+            <div class="morning-bottom">
+                <div class="morning-weather" id="morning-weather" style="display: none;">
+                    <div class="morning-weather-label">VOICE WEATHER</div>
+                    <div class="morning-weather-content" id="morning-weather-content"></div>
+                </div>
+                <button class="morning-dismiss-btn" id="morning-dismiss-btn" onclick="dismissMorningSummary()">Start Your Day</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- App layout -->
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <button class="sidebar-icon active" data-view="today" title="Dashboard">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    <polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="trends" title="Trends">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="history" title="History">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="waypoints" title="Waypoints">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+                    <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+            </button>
+            <div class="sidebar-spacer"></div>
+            <button class="sidebar-icon" data-view="faq" title="FAQ">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            </button>
+            <!-- Layout edit button (Voice Garden) -->
+            <button class="sidebar-icon" id="layout-edit-btn" title="Customize Layout" onclick="layoutManager && layoutManager.toggleEditMode()">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" id="settings-btn" title="Settings">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </nav>
+
+        <!-- Main content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="app-header">
+                <h1>Attune</h1>
+                <span class="header-tagline">Attuned to you.</span>
+                <div class="header-right">
+                    <span id="current-date"></span>
+                    <!-- Echo notification dot -->
+                    <div class="echo-dot-wrap" id="echo-dot-wrap" style="display: none;" title="New pattern discovered">
+                        <span class="echo-dot"></span>
+                    </div>
+                    <div class="mic-status" id="mic-indicator">
+                        <span id="mic-dot" class="mic-dot idle"></span>
+                    </div>
+                    <span id="mic-label" class="header-mic-label">Listening...</span>
+                    <div class="header-avatar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Science Banner -->
+            <div class="science-banner" id="science-banner" onclick="openScienceModal()">
+                <span class="science-banner-text">
+                    <em>Powered by Kintsugi DAM</em> — validated on 14,898 participants (<em>Annals of Family Medicine</em>, 2025) | 35,000 training voices | 100% on-device
+                </span>
+                <span class="science-banner-link">Learn more</span>
+            </div>
+
+            <!-- Views -->
+            <div id="view-container">
+
+                <!-- TODAY VIEW -->
+                <div id="today-view" class="view active">
+
+                    <!-- Mic progress row (top of dashboard) -->
+                    <div class="mic-progress-row">
+                        <span id="mic-seconds" class="mic-seconds"></span>
+                        <div class="mic-progress-track">
+                            <div id="mic-progress-bar" class="mic-progress-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Enrollment Required Banner -->
+                    <div id="enrollment-required-banner" class="enrollment-required-banner" style="display: none;">
+                        <div class="enrollment-required-content">
+                            <strong>Voice profile required</strong>
+                            <p>Set up your voice profile so Attune only analyzes your voice — not coworkers, TV, or other speakers.</p>
+                            <button class="btn btn-primary" onclick="startEnrollment()">Set Up Voice Profile</button>
+                        </div>
+                    </div>
+
+                    <!-- First Spark — Journey Card (removed per user request) -->
+
+                    <!-- Calibration Banner (legacy fallback) -->
+                    <div id="calibration-banner" class="calibration-banner" style="display: none;">
+                        <strong>Calibrating...</strong> Building your personal baseline.
+                        <span id="calibration-progress"></span>
+                    </div>
+
+                    <!-- Canopy Score (Feature #1) — Intraday Wellness -->
+                    <div class="dashboard-card" data-card-id="canopy">
+                        <div class="canopy-score-section">
+                            <span class="canopy-label" id="canopy-label" style="position: relative;">CANOPY SCORE
+                                <button class="info-btn" data-info="canopy">i</button>
+                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), built from today's voice readings. Combines stress, calm, mood, energy, and recovery. Updates with each new reading throughout the day.</div>
+                            </span>
+
+                            <!-- Progress state: shown until 3 readings are complete -->
+                            <div class="canopy-progress-state" id="canopy-progress-state">
+                                <div class="canopy-reading-count" id="canopy-reading-count">0 of 3 readings</div>
+                                <div class="canopy-progress-bar-wrap">
+                                    <div class="canopy-progress-bar" id="canopy-progress-bar"></div>
+                                </div>
+                                <div class="canopy-progress-msg">Get 3 readings to unlock your Canopy Score for the day</div>
+                            </div>
+
+                            <!-- Score state: shown once 3+ readings exist -->
+                            <span class="canopy-number" id="canopy-score" style="display: none;">--</span>
+                            <span class="canopy-profile" id="canopy-profile"></span>
+                        </div>
+                    </div>
+
+                    <!-- Score Circles Row (Oura-style) -->
+                    <div class="dashboard-card" data-card-id="circles">
+                        <div class="score-circles-row">
+                            <div class="score-circle" id="circle-calm">
+                                <div class="circle-svg-wrap">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
+                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="calm" stroke="var(--calm-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
+                                    </svg>
+                                    <span class="circle-value" id="circle-calm-value">--</span>
+                                </div>
+                                <span class="circle-label">Calmness</span>
+                            </div>
+                            <div class="score-circle" id="circle-energy">
+                                <div class="circle-svg-wrap">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
+                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="energy" stroke="var(--energy-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
+                                    </svg>
+                                    <span class="circle-value" id="circle-energy-value">--</span>
+                                </div>
+                                <span class="circle-label">Energy</span>
+                            </div>
+                            <div class="score-circle" id="circle-stress">
+                                <div class="circle-svg-wrap">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
+                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="stress" stroke="var(--stressed-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
+                                    </svg>
+                                    <span class="circle-value" id="circle-stress-value">--</span>
+                                </div>
+                                <span class="circle-label">Stress</span>
+                            </div>
+                            <div class="score-circle" id="circle-depression">
+                                <div class="circle-svg-wrap">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
+                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="depression" stroke="var(--depression-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
+                                    </svg>
+                                    <span class="circle-value" id="circle-depression-value">--</span>
+                                </div>
+                                <span class="circle-label">Depression</span>
+                            </div>
+                            <div class="score-circle" id="circle-anxiety">
+                                <div class="circle-svg-wrap">
+                                    <svg viewBox="0 0 72 72">
+                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
+                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="anxiety" stroke="var(--anxiety-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
+                                    </svg>
+                                    <span class="circle-value" id="circle-anxiety-value">--</span>
+                                </div>
+                                <span class="circle-label">Anxiety</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rhythm Rings (Feature #5) -->
+                    <div class="dashboard-card" data-card-id="rings">
+                        <div class="rhythm-rings-section">
+                            <h3 class="section-label" style="position: relative;">RHYTHM RINGS
+                                <button class="info-btn" data-info="rings">i</button>
+                                <div class="info-popover" id="info-rings">Three daily goals: minutes of speech, minutes in the calm zone, and number of check-ins. Try to close all three rings each day.</div>
+                            </h3>
+                            <div class="rings-container" id="rings-container">
+                                <svg viewBox="0 0 200 200" class="rings-svg" id="rings-svg">
+                                    <!-- Outer: Speak Ring -->
+                                    <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="12"/>
+                                    <circle id="ring-speak" cx="100" cy="100" r="90" fill="none" stroke="var(--forest)" stroke-width="12" stroke-linecap="round"
+                                        stroke-dasharray="565.5" stroke-dashoffset="565.5" transform="rotate(-90 100 100)"/>
+                                    <!-- Middle: Calm Ring -->
+                                    <circle cx="100" cy="100" r="72" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="12"/>
+                                    <circle id="ring-calm" cx="100" cy="100" r="72" fill="none" stroke="var(--calm-color)" stroke-width="12" stroke-linecap="round"
+                                        stroke-dasharray="452.4" stroke-dashoffset="452.4" transform="rotate(-90 100 100)"/>
+                                    <!-- Inner: Check-in Ring -->
+                                    <circle cx="100" cy="100" r="54" fill="none" stroke="rgba(0,0,0,0.08)" stroke-width="12"/>
+                                    <circle id="ring-checkin" cx="100" cy="100" r="54" fill="none" stroke="var(--gold)" stroke-width="12" stroke-linecap="round"
+                                        stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 100 100)"/>
+                                </svg>
+                                <div class="rings-legend">
+                                    <div class="ring-legend-item"><span class="ring-dot" style="background: var(--forest)"></span><span id="ring-speak-label">Speak: --</span></div>
+                                    <div class="ring-legend-item"><span class="ring-dot" style="background: var(--calm-color)"></span><span id="ring-calm-label">Calm: --</span></div>
+                                    <div class="ring-legend-item"><span class="ring-dot" style="background: var(--gold)"></span><span id="ring-checkin-label">Check-in: --</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stress Throughout Day (dot timeline) — moved above zone bar -->
+                    <div class="dashboard-card" data-card-id="stressdots">
+                        <div class="stress-dot-timeline-section">
+                            <h3 class="section-label">STRESS THROUGHOUT DAY</h3>
+                            <div id="stress-dot-timeline" class="stress-dot-timeline"></div>
+                        </div>
+                    </div>
+
+                    <!-- Zone Bar -->
+                    <div class="dashboard-card" data-card-id="zonebar">
+                        <div class="zone-bar-section">
+                            <h3 class="section-label">ZONE BAR</h3>
+                            <div id="zone-bar" class="zone-bar">
+                                <div class="zone-bar-empty">Collecting data...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coach Insight (full-width) -->
+                    <div class="dashboard-card" data-card-id="coach">
+                        <div class="coach-insight-section">
+                            <h3 class="section-label">COACH INSIGHT</h3>
+                            <div id="briefing-morning" class="briefing-card glass-card">
+                                <div class="briefing-header">
+                                    <div class="briefing-header-left">
+                                        <strong>Your Coach Insight</strong>
+                                    </div>
+                                    <div class="briefing-header-actions">
+                                        <button class="briefing-toggle">&#9650;</button>
+                                    </div>
+                                </div>
+                                <div class="briefing-body briefing-expanded">
+                                    <div class="briefing-legacy" style="display: none;"></div>
+                                    <div class="briefing-structured" style="display: none;">
+                                        <div class="briefing-score-row">
+                                            <div class="briefing-score-badge">
+                                                <span class="briefing-score-number">--</span>
+                                                <span class="briefing-score-label">--</span>
+                                            </div>
+                                            <div class="briefing-score-date"></div>
+                                        </div>
+                                        <div class="briefing-metrics-grid"></div>
+                                        <div class="briefing-zones">
+                                            <div class="briefing-zone-bar"></div>
+                                            <div class="briefing-zone-legend"></div>
+                                        </div>
+                                        <div class="briefing-activity"></div>
+                                        <div class="briefing-highlights">
+                                            <ul class="briefing-highlights-list"></ul>
+                                        </div>
+                                        <div class="briefing-coach">
+                                            <blockquote class="briefing-coach-text"></blockquote>
+                                        </div>
+                                    </div>
+                                    <div class="briefing-nodata" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Echoes (Feature #6) -->
+                    <div class="dashboard-card" data-card-id="echoes">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">ECHOES
+                                <button class="info-btn" data-info="echoes">i</button>
+                                <div class="info-popover" id="info-echoes">Pattern discoveries found in your data over time. New insights appear as Attune learns your vocal habits.</div>
+                            </h3>
+                            <div id="echoes-container" class="echoes-list">
+                                <div class="echoes-empty">Patterns will appear after 7+ days of data</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compass (Feature #7) -->
+                    <div class="dashboard-card" data-card-id="compass">
+                        <div class="compass-section glass-card">
+                            <h3 class="section-label" style="position: relative;">COMPASS
+                                <button class="info-btn" data-info="compass">i</button>
+                                <div class="info-popover" id="info-compass">Your weekly wellness direction — ascending, holding, or descending. Set a personal intention to stay on track.</div>
+                            </h3>
+                            <div id="compass-container" class="compass-content">
+                                <div class="compass-empty">Weekly direction updates on Mondays</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Wrapped (Your Week in Voice) -->
+                    <div id="weekly-wrapped-card" class="dashboard-card" data-card-id="wrapped" style="display: none;">
+                        <div class="wrapped-section glass-card">
+                            <h3 class="section-label" style="position: relative;">YOUR WEEK IN VOICE
+                                <button class="info-btn" data-info="wrapped">i</button>
+                                <div class="info-popover" id="info-wrapped">A weekly summary of your voice wellness data. Updated every Monday with last week's highlights.</div>
+                                <button class="wrapped-toggle" title="Collapse/Expand">&#9650;</button>
+                            </h3>
+                            <div class="wrapped-content wrapped-expanded"></div>
+                        </div>
+                    </div>
+
+                    <!-- Time Capsule (Feature #9) -->
+                    <div class="dashboard-card" data-card-id="capsules">
+                        <div class="capsules-section glass-card" id="capsules-section" style="display: none;">
+                            <h3 class="section-label">TIME CAPSULE</h3>
+                            <div id="capsules-container" class="capsules-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Zone Summary (compact) -->
+                    <div class="dashboard-card" data-card-id="zones">
+                        <div class="zones-summary glass-card">
+                            <h3>Zones Today</h3>
+                            <div class="zone-stats">
+                                <div class="zone-stat"><span class="zone-color calm"></span><span>Calm:</span><strong id="calm-time">0 min</strong></div>
+                                <div class="zone-stat"><span class="zone-color steady"></span><span>Steady:</span><strong id="steady-time">0 min</strong></div>
+                                <div class="zone-stat"><span class="zone-color tense"></span><span>Tense:</span><strong id="tense-time">0 min</strong></div>
+                                <div class="zone-stat"><span class="zone-color stressed"></span><span>Stressed:</span><strong id="stressed-time">0 min</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grove (Feature #2) -->
+                    <div class="dashboard-card" data-card-id="grove">
+                        <div class="grove-section glass-card">
+                            <h3 class="section-label" style="position: relative;">GROVE
+                                <button class="info-btn" data-info="grove">i</button>
+                                <div class="info-popover" id="info-grove">Your streak forest. Each day of use grows a tree. Miss a day and one wilts. Use Rainfall points to revive wilted trees.</div>
+                            </h3>
+                            <div id="grove-container" class="grove-content"></div>
+                        </div>
+                    </div>
+
+                    <!-- Meetings -->
+                    <div class="dashboard-card meetings-section glass-card" data-card-id="meetings" style="display: none;">
+                        <h3>Meetings Detected: <span id="meeting-count">0</span></h3>
+                        <div id="meetings-list"></div>
+                    </div>
+                </div>
+
+                <!-- TRENDS VIEW -->
+                <div id="trends-view" class="view"></div>
+
+                <!-- HISTORY VIEW -->
+                <div id="history-view" class="view"></div>
+
+                <!-- WAYPOINTS VIEW -->
+                <div id="waypoints-view" class="view"></div>
+
+                <!-- FAQ VIEW -->
+                <div id="faq-view" class="view">
+                    <div class="faq-section">
+                        <h2 class="faq-title">Frequently Asked Questions</h2>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>Why doesn't the speech timer exactly match how long I talk?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Speaker verification checks every ~1.2 seconds to ensure only YOUR voice is being captured. This privacy-first approach means some speech at the boundaries of each segment isn't counted. The timer shows verified speech only — not all detected audio.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>How does the analysis work? When does it trigger?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Once 30 seconds of verified speech accumulates, a grace period begins. Attune keeps collecting up to 60 seconds, then auto-triggers the analysis. If you stop speaking between 30-60 seconds, the analysis auto-triggers after 15 seconds of silence.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>What is the Canopy Score?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Your daily wellness score from 0-100, calculated each morning from yesterday's voice data. It combines stress levels, calm time, mood, energy, and recovery patterns into a single number. Think of it as your vocal wellness GPA.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>How does Attune protect my privacy?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>100% on-device. Zero bytes leave your Mac. There are no cloud servers, no data collection, and no third parties. The full 244M-parameter AI model runs locally. Your raw voice audio is never stored — only the derived wellness scores are kept in a local database.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>What are Rhythm Rings?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Three daily goals displayed as concentric rings: minutes of speech (Speak), minutes in the calm zone (Calm), and number of check-ins. Try to close all three rings each day — like Apple's Activity Rings but for vocal wellness.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>What is the Zone Bar?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>A color-coded timeline showing your stress zones throughout the day. Green = Calm, Yellow = Steady, Orange = Tense, Red = Stressed. It gives you an at-a-glance view of how your day has unfolded emotionally.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>How does voice analysis detect stress and mood?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Attune uses the Kintsugi DAM model — a 244M-parameter transformer trained on 35,000 diverse subjects. It was clinically validated in a 14,898-participant study published in Annals of Family Medicine (2025), achieving 71.3% sensitivity and 73.5% specificity from just 25 seconds of natural speech.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>What is calibration and why does it take a few days?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Attune needs about 3 days of voice data to build your personal baseline. Everyone's voice is different — what sounds "stressed" for you might be "normal" for someone else. Calibration learns YOUR patterns so scores are personalized, not generic.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>Can Attune hear other people's voices?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>No. Attune uses ECAPA-TDNN speaker verification to check every ~1.2-second audio segment against your enrolled voice profile. Segments that don't match you are rejected. This means coworkers on calls, TV audio, and other speakers are filtered out.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>What are Echoes and Compass?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p><strong>Echoes</strong> are pattern discoveries — insights Attune finds in your data over time (e.g., "Your stress peaks on Wednesdays"). They appear after 7+ days of use. <strong>Compass</strong> is your weekly wellness direction — ascending, holding, or descending — updated every Monday with a personal intention you can set.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip" style="display: none;"></div>
+
+    <!-- Settings Panel -->
+    <div id="settings-panel" class="settings-panel" style="display: none;">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button id="settings-close-btn" class="icon-btn">&times;</button>
+            </div>
+            <div class="settings-section">
+                <h3>Voice Profile</h3>
+                <p class="settings-desc">Enroll your voice so Attune only analyzes you — not coworkers, TV, or other speakers.</p>
+                <div id="speaker-status" class="speaker-status">
+                    <div id="speaker-status-badge" class="speaker-badge speaker-badge-inactive">Not Set Up</div>
+                </div>
+                <button id="speaker-setup-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;">Set Up Voice Profile</button>
+                <button id="speaker-delete-btn" class="btn btn-secondary" style="width: 100%; display: none; color: #C44E52;">Delete Voice Profile</button>
+            </div>
+            <div class="settings-section">
+                <h3>Notifications</h3>
+                <p class="settings-desc">Control which notifications Attune sends you.</p>
+                <div id="notification-settings" class="notification-settings"></div>
+            </div>
+            <div class="settings-section">
+                <h3>Export Data</h3>
+                <p class="settings-desc">Download your data for analysis or backup.</p>
+                <button id="export-readings-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Readings (CSV)</button>
+                <button id="export-summaries-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Summaries (CSV)</button>
+                <button id="export-json-btn" class="btn btn-secondary" style="width: 100%;">Export All Data (JSON)</button>
+            </div>
+            <div class="settings-section">
+                <h3>API Access</h3>
+                <p class="settings-desc">Use your API token to access Attune data from external tools.</p>
+                <button class="btn btn-secondary" style="width: 100%;" onclick="showApiToken()">Show API Token</button>
+                <pre id="api-token-display" style="display: none; word-break: break-all; padding: 8px; margin-top: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 12px;"></pre>
+            </div>
+        </div>
+    </div>
+    <!-- Speaker Enrollment Overlay -->
+    <div id="enrollment-overlay" class="enrollment-overlay" style="display: none;">
+        <div class="enrollment-modal">
+            <div class="enrollment-header">
+                <h2>Voice Profile Setup</h2>
+                <button id="enrollment-close-btn" class="icon-btn">&times;</button>
+            </div>
+            <div id="enrollment-steps" class="enrollment-steps">
+                <!-- Step indicators -->
+                <div class="step-indicators">
+                    <div class="step-dot active" data-step="1">1</div>
+                    <div class="step-line"></div>
+                    <div class="step-dot" data-step="2">2</div>
+                    <div class="step-line"></div>
+                    <div class="step-dot" data-step="3">3</div>
+                    <div class="step-line"></div>
+                    <div class="step-dot" data-step="4">4</div>
+                    <div class="step-line"></div>
+                    <div class="step-dot" data-step="5">5</div>
+                </div>
+
+                <!-- Step 1: Neutral -->
+                <div id="enrollment-step-1" class="enrollment-step active">
+                    <h3>Normal Voice</h3>
+                    <p>Speak naturally for 10 seconds. Describe your morning, or read this aloud:</p>
+                    <blockquote class="enrollment-prompt">"I'm setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day."</blockquote>
+                </div>
+
+                <!-- Step 2: Animated -->
+                <div id="enrollment-step-2" class="enrollment-step">
+                    <h3>Animated Voice</h3>
+                    <p>Now speak with more energy. Tell a short story, or read this with enthusiasm:</p>
+                    <blockquote class="enrollment-prompt">"Something really exciting happened today — I discovered a new tool that actually understands how I feel just by listening to my voice!"</blockquote>
+                </div>
+
+                <!-- Step 3: Calm -->
+                <div id="enrollment-step-3" class="enrollment-step">
+                    <h3>Calm Voice</h3>
+                    <p>Speak softly and slowly, as if winding down for the evening:</p>
+                    <blockquote class="enrollment-prompt">"After a long day, it's nice to slow down and reflect. I'm grateful for the quiet moments and the chance to recharge."</blockquote>
+                </div>
+
+                <!-- Step 4: Reading Aloud -->
+                <div id="enrollment-step-4" class="enrollment-step">
+                    <h3>Reading Aloud</h3>
+                    <p>Read this passage aloud in your normal reading voice:</p>
+                    <blockquote class="enrollment-prompt">"The voice carries more information than we realize. Subtle changes in pitch, rhythm, and tone reveal how we truly feel beneath the surface."</blockquote>
+                </div>
+
+                <!-- Step 5: On a Call -->
+                <div id="enrollment-step-5" class="enrollment-step">
+                    <h3>On a Call</h3>
+                    <p>Speak as if you're on a video call with a colleague:</p>
+                    <blockquote class="enrollment-prompt">"Hey, thanks for jumping on. I just wanted to sync up on the project timeline and see if there's anything blocking you on your end."</blockquote>
+                </div>
+
+                <!-- Recording UI -->
+                <div id="enrollment-recorder" class="enrollment-recorder">
+                    <div id="enrollment-waveform" class="enrollment-waveform">
+                        <canvas id="enrollment-canvas" width="300" height="60"></canvas>
+                    </div>
+                    <div id="enrollment-countdown" class="enrollment-countdown">10</div>
+                    <button id="enrollment-record-btn" class="btn btn-primary enrollment-record-btn">Start Recording</button>
+                </div>
+
+                <!-- Processing -->
+                <div id="enrollment-processing" class="enrollment-processing" style="display: none;">
+                    <div class="enrollment-spinner"></div>
+                    <p>Creating your voice profile...</p>
+                </div>
+
+                <!-- Done -->
+                <div id="enrollment-done" class="enrollment-done" style="display: none;">
+                    <div class="enrollment-checkmark">&#10003;</div>
+                    <h3>Voice Profile Active</h3>
+                    <p>Attune will now analyze only your voice.</p>
+                    <button id="enrollment-finish-btn" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function showApiToken() {
+        const display = document.getElementById('api-token-display');
+        if (display.style.display !== 'none') { display.style.display = 'none'; return; }
+        try {
+            const data = await API.getApiToken();
+            display.textContent = data.token;
+            display.style.display = 'block';
+        } catch (e) { display.textContent = 'Failed to load token'; display.style.display = 'block'; }
+    }
+    </script>
+
+    <!-- Metric Detail Modal -->
+    <div id="metric-detail-modal" class="metric-detail-modal" style="display:none;">
+        <div class="metric-detail-backdrop"></div>
+        <div class="metric-detail-content">
+            <button class="metric-detail-close">&times;</button>
+            <h2 id="metric-detail-title"></h2>
+            <p id="metric-detail-description"></p>
+            <div id="metric-detail-current"></div>
+            <h3 class="metric-detail-tiers-heading">Score Ranges</h3>
+            <div id="metric-detail-tiers"></div>
+            <div id="metric-detail-note"></div>
+        </div>
+    </div>
+
+    <!-- About the Science Modal (Rec #2) -->
+    <div id="science-modal" class="science-modal" style="display:none;">
+        <div class="science-modal-backdrop" onclick="closeScienceModal()"></div>
+        <div class="science-modal-content">
+            <button class="metric-detail-close" onclick="closeScienceModal()">&times;</button>
+            <h2 class="science-modal-title">About the Science</h2>
+
+            <div class="science-section">
+                <h3>Clinical Validation</h3>
+                <p>14,898 participants in a double-blind study published in <em>Annals of Family Medicine</em> (January 2025). 71.3% sensitivity and 73.5% specificity from just 25 seconds of natural speech.</p>
+            </div>
+
+            <div class="science-section">
+                <h3>The AI</h3>
+                <p>244M-parameter transformer (Whisper-Small architecture) trained on 35,000 diverse subjects — 110x larger than the next-best voice biomarker dataset. Backed by $30M in R&D from Kintsugi Health.</p>
+            </div>
+
+            <div class="science-section">
+                <h3>How It Compares</h3>
+                <table class="science-comparison-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Attune</th>
+                            <th>Self-Report Surveys</th>
+                            <th>Therapist Assessment</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Time to result</td>
+                            <td><strong>25 seconds</strong></td>
+                            <td>10-15 minutes</td>
+                            <td>6 wk – 14 mo wait</td>
+                        </tr>
+                        <tr>
+                            <td>Objectivity</td>
+                            <td><strong>Voice biomarkers (involuntary)</strong></td>
+                            <td>51% disagree with own scores</td>
+                            <td>28% inter-rater agreement beyond chance</td>
+                        </tr>
+                        <tr>
+                            <td>Cost per assessment</td>
+                            <td><strong>~$0.03</strong></td>
+                            <td>Free but inaccurate</td>
+                            <td>$150-$500/session</td>
+                        </tr>
+                        <tr>
+                            <td>Continuous monitoring</td>
+                            <td><strong>Every 5 min</strong></td>
+                            <td>Once per visit</td>
+                            <td>Once per session</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="science-section">
+                <h3>Your Privacy</h3>
+                <p>Zero bytes leave your device. All voice analysis runs locally on your Mac using the full 244M-parameter model. No cloud. No servers. No third parties. Your voice data is never stored — only the derived wellness scores are kept.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/bridge.js?v=15"></script>
+    <script src="js/gauges.js?v=16"></script>
+    <script src="js/anxiety_timeline.js?v=15"></script>
+    <script src="js/trends.js?v=14"></script>
+    <script src="js/engagement.js?v=14"></script>
+    <script src="js/correlation.js?v=14"></script>
+    <script src="js/grove.js?v=14"></script>
+    <script src="js/layout.js?v=14"></script>
+    <script src="js/app.js?v=20"></script>
+
+    <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
+    <div id="speaker-debug" class="speaker-debug" style="display:block;">
+        <div class="speaker-debug-header">
+            Speaker Gate Debug
+            <span class="speaker-debug-close" id="speaker-debug-close">×</span>
+        </div>
+        <div id="speaker-debug-stats">Waiting for data...</div>
+        <div id="speaker-debug-log"></div>
+    </div>
+</body>
+</html>

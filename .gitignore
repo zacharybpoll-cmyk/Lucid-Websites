@@ -1,0 +1,18 @@
+# Python virtual environment (1.1GB, not tracked)
+python/venv/
+python/__pycache__/
+python/**/__pycache__/
+python/**/*.pyc
+
+# Electron build output
+dist/
+node_modules/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# User data
+*.db
+*.sqlite
+python/dam

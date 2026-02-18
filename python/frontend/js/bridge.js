@@ -1,0 +1,147 @@
+/**
+ * API bridge
+ * Provides API wrapper functions using relative URLs
+ */
+
+const API_BASE = window.location.origin + '/api';
+
+// API helper function
+async function apiCall(endpoint, options = {}) {
+    try {
+        const response = await fetch(`${API_BASE}${endpoint}`, options);
+        if (!response.ok) {
+            throw new Error(`API error: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`API call failed for ${endpoint}:`, error);
+        throw error;
+    }
+}
+
+// API functions
+const API = {
+    async getHealth() { return await apiCall('/health'); },
+    async getStatus() { return await apiCall('/status'); },
+    async getToday() { return await apiCall('/today'); },
+    async getInsight() { return await apiCall('/insight'); },
+    async getReadings(limit = 100) { return await apiCall(`/readings?limit=${limit}`); },
+    async getSummaries(days = 14) { return await apiCall(`/summaries?days=${days}`); },
+    async getTrends(days = 14) { return await apiCall(`/trends?days=${days}`); },
+
+    async getBriefing(type = 'morning', force = false) {
+        const params = `type=${type}${force ? '&force=true' : ''}`;
+        return await apiCall(`/briefing?${params}`);
+    },
+
+    async addTag(timestamp, label, notes = '') {
+        return await apiCall('/tag', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ timestamp, label, notes })
+        });
+    },
+
+    async toggleMeeting(active) {
+        return await apiCall('/meeting/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active })
+        });
+    },
+
+    async pause() { return await apiCall('/pause', { method: 'POST' }); },
+    async resume() { return await apiCall('/resume', { method: 'POST' }); },
+    async getEngagement() { return await apiCall('/engagement'); },
+    async getHistory(days = 30) { return await apiCall(`/history?days=${days}`); },
+
+    // New Feature APIs
+    async getCanopy() { return await apiCall('/canopy'); },
+    async getGrove() { return await apiCall('/grove'); },
+    async reviveTree(dateStr) {
+        return await apiCall('/grove/revive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: dateStr })
+        });
+    },
+    async getWaypoints() { return await apiCall('/waypoints'); },
+    async getRings() { return await apiCall('/rings'); },
+    async getEchoes() { return await apiCall('/echoes'); },
+    async getCompass() { return await apiCall('/compass'); },
+    async setIntention(intention) {
+        return await apiCall('/compass/intention', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ intention })
+        });
+    },
+    async getCapsules() { return await apiCall('/capsules'); },
+    async getLayout() { return await apiCall('/layout'); },
+    async setLayout(cards) {
+        return await apiCall('/layout', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cards })
+        });
+    },
+
+    // The Beacon
+    async getBeacon() { return await apiCall('/beacon'); },
+
+    // Weekly Wrapped
+    async getWeeklyWrapped() { return await apiCall('/weekly-wrapped'); },
+
+    // First Spark
+    async getFirstSpark() { return await apiCall('/first-spark'); },
+
+    // Notification Preferences
+    async getNotifPrefs() { return await apiCall('/notifications/prefs'); },
+    async setNotifPref(key, value) {
+        return await apiCall('/notifications/prefs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key, value })
+        });
+    },
+    async getNotifLog(limit = 50) { return await apiCall(`/notifications/log?limit=${limit}`); },
+
+    // The Bridge — Export & Webhooks
+    async exportJson(days = 30) { return await apiCall(`/export/json?days=${days}`); },
+    async getWebhooks() { return await apiCall('/webhooks'); },
+    async addWebhook(url, trigger_type, condition_field, condition_op, condition_value) {
+        return await apiCall('/webhooks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, trigger_type, condition_field, condition_op, condition_value })
+        });
+    },
+    async deleteWebhook(id) {
+        return await apiCall(`/webhooks/${id}`, { method: 'DELETE' });
+    },
+    async getApiToken() { return await apiCall('/v1/token'); },
+
+    // Morning Summary
+    async getMorningSummary() { return await apiCall('/morning-summary'); },
+
+    // Speaker Verification
+    async getSpeakerStatus() { return await apiCall('/speaker/status'); },
+    async enrollSpeakerSample(audioBlob, moodLabel) {
+        const response = await fetch(`${API_BASE}/speaker/enroll?mood_label=${moodLabel}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: audioBlob,
+        });
+        if (!response.ok) throw new Error(`Enroll failed: ${response.statusText}`);
+        return await response.json();
+    },
+    async completeSpeakerEnrollment() {
+        return await apiCall('/speaker/enroll/complete', { method: 'POST' });
+    },
+    async resetSpeakerEnrollment() {
+        return await apiCall('/speaker/enroll/reset', { method: 'POST' });
+    },
+    async deleteSpeakerProfile() {
+        return await apiCall('/speaker/profile', { method: 'DELETE' });
+    },
+};

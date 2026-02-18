@@ -1,0 +1,17 @@
+{
+  "name": "attune",
+  "version": "1.0.0",
+  "description": "Attune — Attuned to you. Voice wellness monitor.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "setup": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && ./venv/bin/pip install -r dam/requirements.txt"
+  },
+  "author": "Attune",
+  "license": "UNLICENSED",
+  "private": true,
+  "devDependencies": {
+    "@electron/packager": "^19.0.5",
+    "electron": "^35.0.0"
+  }
+}

@@ -1,0 +1,85 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500&display=swap');
+
+body {
+  background: transparent;
+  -webkit-app-region: drag;
+  user-select: none;
+  overflow: hidden;
+}
+
+.splash-container {
+  width: 400px;
+  height: 300px;
+  background: linear-gradient(145deg, #2c3e2d 0%, #1a2a1c 40%, #0f1a10 100%);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle forest texture overlay */
+.splash-container::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(90, 154, 110, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(90, 154, 110, 0.1) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.wordmark {
+  font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
+  font-size: 48px;
+  font-weight: 600;
+  color: #faf6ee;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.tagline {
+  font-family: 'Inter', -apple-system, sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: rgba(250, 246, 238, 0.6);
+  font-style: italic;
+  letter-spacing: 1px;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.progress-track {
+  width: 200px;
+  height: 2px;
+  background: rgba(250, 246, 238, 0.15);
+  border-radius: 1px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, #b8975c, transparent);
+  border-radius: 1px;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(400%); opacity: 0; }
+}

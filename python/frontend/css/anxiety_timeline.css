@@ -1,0 +1,68 @@
+/* Stress Area Chart — transparent, floats on forest canopy */
+
+.stress-dot-timeline-section .section-label {
+    color: var(--text-primary);
+}
+
+.stress-dot-timeline {
+    min-height: 160px;
+    position: relative;
+}
+
+.stress-dot-timeline .stress-empty {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding: 60px 0;
+    font-style: italic;
+}
+
+.stress-dot-timeline svg {
+    width: 100%;
+    display: block;
+}
+
+.stress-dot-timeline .dot-tooltip {
+    position: fixed;
+    background: rgba(42, 42, 42, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 200px;
+    white-space: nowrap;
+}
+
+/* Click popup anchored near dot */
+.stress-dot-popup {
+    position: absolute;
+    background: rgba(42, 42, 42, 0.92);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: 'Inter', sans-serif;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    transform: translateX(-50%);
+    pointer-events: auto;
+}
+
+/* Y-axis and gridline labels */
+.stress-dot-timeline .axis-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    fill: rgba(0, 0, 0, 0.5);
+}
+
+.stress-dot-timeline .gridline {
+    stroke: rgba(0, 0, 0, 0.12);
+    stroke-width: 1;
+}

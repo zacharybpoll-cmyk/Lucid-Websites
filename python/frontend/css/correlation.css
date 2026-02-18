@@ -1,0 +1,32 @@
+/* Correlation Explorer Styles — light warm theme */
+
+.correlation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+.correlation-header h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 600; color: #2a2a2a; }
+
+.chart-type-buttons { display: flex; gap: 8px; }
+.chart-btn {
+    background: rgba(250,248,245,0.8); border: 1px solid rgba(0,0,0,0.08); padding: 6px 14px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 12px; color: #5a5a5a; border-radius: 8px; transition: all 0.2s ease;
+}
+.chart-btn:hover { background: #f0eade; color: #2a2a2a; }
+.chart-btn.active { background: rgba(184,151,92,0.2); color: #8b7340; border-color: rgba(184,151,92,0.3); }
+
+.correlation-controls { margin-bottom: 20px; display: flex; gap: 20px; }
+.correlation-controls label { font-size: 13px; color: #2a2a2a; }
+.chart-select { margin-left: 10px; padding: 5px 10px; font-family: 'Inter', sans-serif; border: 1px solid rgba(0,0,0,0.1); background: #faf6ee; color: #2a2a2a; font-size: 13px; border-radius: 6px; }
+
+.correlation-chart-container {
+    border: 1px solid rgba(255,255,255,0.4); padding: 20px; border-radius: 12px;
+    background: rgba(250, 248, 245, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); min-height: 500px;
+}
+#plotly-chart { width: 100%; min-height: 500px; }
+
+.correlation-empty { text-align: center; padding: 60px 20px; }
+.correlation-empty h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #2a2a2a; }
+.correlation-empty p { color: #8a8a8a; font-style: italic; font-size: 13px; }
+
+@media (max-width: 768px) {
+    .correlation-header { flex-direction: column; align-items: flex-start; }
+    .chart-type-buttons { flex-wrap: wrap; margin-top: 10px; }
+    .correlation-controls { flex-direction: column; }
+}
