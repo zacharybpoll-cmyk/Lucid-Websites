@@ -40,6 +40,9 @@ let lastBeaconZone = 'idle';
 // Morning summary state
 let morningSummaryShown = false;
 
+// Evening summary state
+let eveningSummaryShown = false;
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Attune initialized');
@@ -109,6 +112,9 @@ function waitForBackend() {
                     initFirstLight();
                     if (shouldShowMorningSummary()) {
                         loadMorningSummary();
+                    }
+                    if (shouldShowEveningSummary()) {
+                        loadEveningSummary();
                     }
                 } else {
                     pollCount++;
@@ -216,7 +222,7 @@ function updateSpeakerDebug(status) {
     const passRate = typeof stats.pass_rate === 'number' ? stats.pass_rate.toFixed(0) : '—';
     const sandwich = stats.segments_sandwich_recovered || 0;
     const momentumTag = stats.momentum_active ? ' <span style="color:#5B8DB8;">[momentum]</span>' : '';
-    const thresholdDisplay = stats.momentum_active ? '0.30' : '0.35';
+    const thresholdDisplay = stats.momentum_active ? '0.24' : '0.28';
     document.getElementById('speaker-debug-stats').innerHTML =
         `Pass rate: <strong style="color:#fff">${passRate}%</strong> &nbsp;|&nbsp; ` +
         `✓ ${stats.segments_verified} verified &nbsp;|&nbsp; ✗ ${stats.segments_rejected} rejected` +
@@ -370,6 +376,11 @@ async function loadTodayData() {
         if (now - lastFeatureUpdate > 30000) {
             lastFeatureUpdate = now;
             loadFeatures();
+        }
+
+        // Evening summary trigger
+        if (shouldShowEveningSummary()) {
+            loadEveningSummary();
         }
 
     } catch (error) {
@@ -1692,6 +1703,200 @@ function dismissMorningSummary() {
         const oldKey = `attune_morning_seen_${old.toISOString().slice(0, 10)}`;
         localStorage.removeItem(oldKey);
     }
+}
+
+// ========== Evening Summary Overlay ==========
+
+function shouldShowEveningSummary() {
+    const hour = new Date().getHours();
+    if (hour < 20) return false; // Only 8 PM or later
+
+    const todayKey = `attune_evening_seen_${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(todayKey)) return false;
+
+    return true;
+}
+
+async function loadEveningSummary() {
+    if (eveningSummaryShown) return;
+    try {
+        const data = await API.getEveningSummary();
+        if (data.has_data) {
+            renderEveningSummary(data);
+        }
+    } catch (e) {
+        console.error('Failed to load evening summary:', e);
+    }
+}
+
+function renderEveningSummary(data) {
+    const overlay = document.getElementById('evening-summary-overlay');
+    if (!overlay) return;
+    eveningSummaryShown = true;
+
+    // Date header
+    const now = new Date();
+    document.getElementById('evening-date').textContent =
+        now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+    // Canopy ring + score
+    const canopy = data.canopy;
+    const scoreEl = document.getElementById('evening-canopy-score');
+    const verdictEl = document.getElementById('evening-canopy-verdict');
+    const arcEl = document.getElementById('evening-ring-arc');
+    const deltaEl = document.getElementById('evening-canopy-delta');
+
+    if (canopy && canopy.has_data) {
+        const score = Math.round(canopy.score);
+        animateEveningScore(scoreEl, score, 2000);
+        // Animate arc (circumference = 2π × 110 ≈ 691.2)
+        const offset = 691.2 * (1 - score / 100);
+        setTimeout(() => { arcEl.style.strokeDashoffset = offset; }, 200);
+        // Verdict
+        let verdict = 'Needs Attention';
+        if (score >= 80) verdict = 'Excellent';
+        else if (score >= 65) verdict = 'Good';
+        else if (score >= 50) verdict = 'Fair';
+        verdictEl.textContent = verdict;
+        // Delta vs yesterday
+        if (data.canopy_delta != null) {
+            deltaEl.style.display = 'block';
+            const sign = data.canopy_delta >= 0 ? '+' : '';
+            deltaEl.textContent = `${sign}${data.canopy_delta} pts vs yesterday`;
+            deltaEl.className = 'evening-canopy-delta ' +
+                (data.canopy_delta > 0 ? 'positive' : data.canopy_delta < 0 ? 'negative' : 'neutral');
+        }
+    } else {
+        scoreEl.textContent = '--';
+        verdictEl.textContent = 'Not enough data';
+    }
+
+    // Stats row 1
+    const calmMin = data.time_in_calm_min || 0;
+    const calmH = Math.floor(calmMin / 60);
+    const calmM = calmMin % 60;
+    document.getElementById('evening-calm-time').textContent =
+        calmH > 0 ? `${calmH}h ${calmM}m` : `${calmM}m`;
+
+    const avgStressEl = document.getElementById('evening-avg-stress');
+    avgStressEl.textContent = data.avg_stress != null ? data.avg_stress : '--';
+
+    const stressDeltaEl = document.getElementById('evening-stress-delta');
+    if (data.stress_delta != null) {
+        const sign = data.stress_delta >= 0 ? '+' : '';
+        stressDeltaEl.textContent = `${sign}${data.stress_delta}`;
+        // Lower stress = better (green if negative delta)
+        stressDeltaEl.className = 'evening-stat-value ' +
+            (data.stress_delta < 0 ? 'positive' : data.stress_delta > 0 ? 'negative' : '');
+    } else {
+        stressDeltaEl.textContent = '—';
+    }
+
+    // Stats row 2
+    const speechMin = data.total_speech_min || 0;
+    const speechH = Math.floor(speechMin / 60);
+    const speechM = speechMin % 60;
+    document.getElementById('evening-voice-time').textContent =
+        speechH > 0 ? `${speechH}h ${speechM}m` : `${speechM}m`;
+
+    document.getElementById('evening-peak-hour').textContent = data.peak_stress_hour || '—';
+    document.getElementById('evening-reading-count').textContent = data.reading_count || '—';
+
+    // Mini timeline SVG
+    renderEveningTimeline(data.timeline || []);
+
+    // Insight
+    const insightEl = document.getElementById('evening-insight');
+    if (data.insight) {
+        insightEl.textContent = `"${data.insight}"`;
+        insightEl.style.display = 'block';
+    }
+
+    overlay.style.display = 'flex';
+
+    // Mark seen
+    const todayKey = `attune_evening_seen_${new Date().toISOString().slice(0, 10)}`;
+    localStorage.setItem(todayKey, '1');
+
+    // Clean up old keys (>7 days)
+    for (let i = 8; i <= 30; i++) {
+        const old = new Date();
+        old.setDate(old.getDate() - i);
+        localStorage.removeItem(`attune_evening_seen_${old.toISOString().slice(0, 10)}`);
+    }
+}
+
+function animateEveningScore(el, target, duration) {
+    const start = Date.now();
+    const tick = () => {
+        const progress = Math.min((Date.now() - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(ease * target);
+        if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+}
+
+function renderEveningTimeline(timeline) {
+    const svg = document.getElementById('evening-timeline-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    const W = 520, H = 70;
+    const pad = { left: 10, right: 10, top: 12, bottom: 12 };
+    const innerW = W - pad.left - pad.right;
+    const innerH = H - pad.top - pad.bottom;
+
+    // Baseline
+    const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    baseline.setAttribute('x1', pad.left); baseline.setAttribute('x2', W - pad.right);
+    baseline.setAttribute('y1', H - pad.bottom); baseline.setAttribute('y2', H - pad.bottom);
+    baseline.setAttribute('stroke', 'rgba(255,255,255,0.1)'); baseline.setAttribute('stroke-width', '1');
+    svg.appendChild(baseline);
+
+    if (!timeline.length) return;
+
+    const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
+
+    // Connect dots with a soft polyline (behind dots)
+    if (timeline.length >= 2) {
+        const pts = timeline.map(pt => {
+            const x = pad.left + ((pt.hour - 6) / 14) * innerW;
+            const y = pad.top + innerH * (1 - pt.stress / 100);
+            return `${x},${y}`;
+        }).join(' ');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        poly.setAttribute('points', pts);
+        poly.setAttribute('fill', 'none');
+        poly.setAttribute('stroke', 'rgba(255,255,255,0.15)');
+        poly.setAttribute('stroke-width', '1.5');
+        poly.setAttribute('stroke-linecap', 'round');
+        poly.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(poly);
+    }
+
+    // Dots on top
+    timeline.forEach(pt => {
+        const x = pad.left + ((pt.hour - 6) / 14) * innerW;
+        const y = pad.top + innerH * (1 - pt.stress / 100);
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', x);
+        circle.setAttribute('cy', y);
+        circle.setAttribute('r', 5);
+        circle.setAttribute('fill', zoneColors[pt.zone] || '#b5a84a');
+        circle.setAttribute('opacity', '0.9');
+        svg.appendChild(circle);
+    });
+}
+
+function dismissEveningSummary() {
+    const overlay = document.getElementById('evening-summary-overlay');
+    if (!overlay) return;
+    overlay.classList.add('fade-out');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.classList.remove('fade-out');
+    }, 500);
 }
 
 // ========== Notification Settings ==========

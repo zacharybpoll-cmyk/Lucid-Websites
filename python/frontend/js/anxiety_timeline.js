@@ -10,8 +10,8 @@ class StressDotTimeline {
         this.readings = [];
         this.height = 180;
         this.margin = { top: 16, right: 20, bottom: 32, left: 40 };
-        this.workStart = 8;
-        this.workEnd = 18;
+        this.workStart = 6;
+        this.workEnd = 22;
 
         // Color stops for continuous interpolation
         this.colorStops = [

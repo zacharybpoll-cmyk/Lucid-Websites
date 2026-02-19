@@ -196,16 +196,16 @@ class CorrelationExplorer {
 
         const metric = selectEl.value;
 
-        // Group by hour of day (8am-6pm only)
+        // Group by hour of day (6am-10pm only)
         const hourMap = {};
-        for (let h = 8; h <= 18; h++) {
+        for (let h = 6; h <= 22; h++) {
             hourMap[h] = [];
         }
 
         this.data.readings.forEach(r => {
             const timestamp = new Date(r.timestamp);
             const hour = timestamp.getHours();
-            if (hour >= 8 && hour <= 18 && hourMap[hour]) {
+            if (hour >= 6 && hour <= 22 && hourMap[hour]) {
                 hourMap[hour].push(r[metric] || 0);
             }
         });

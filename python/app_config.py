@@ -65,7 +65,7 @@ WORK_END_HOUR = 17             # 5pm
 
 # Speaker Verification (ECAPA-TDNN)
 SPEAKER_MODEL_SOURCE = "speechbrain/spkrec-ecapa-voxceleb"
-SPEAKER_VERIFICATION_THRESHOLD = 0.35   # Cosine similarity threshold for accept/reject
+SPEAKER_VERIFICATION_THRESHOLD = 0.28   # Cosine similarity threshold for accept/reject
 SPEAKER_HIGH_CONFIDENCE = 0.75          # Above this, update centroid via EMA
 SPEAKER_ADAPTIVE_ALPHA = 0.02           # EMA alpha for centroid drift
 SPEAKER_ENROLLMENT_DURATION_SEC = 10    # Duration per enrollment sample
@@ -75,14 +75,14 @@ SPEAKER_RMS_MINIMUM = 0.005             # Reject audio chunks below this RMS ene
 
 # Speaker Gate — segment-level verification (Phase 2)
 SPEAKER_GATE_SEGMENT_SEC = 1.2          # Mini-buffer duration before verifying a segment
-SPEAKER_GATE_THRESHOLD = 0.35           # Verification threshold for segments (matches buffer-level)
+SPEAKER_GATE_THRESHOLD = 0.28           # Verification threshold for segments (matches buffer-level)
 
 # Speaker Gate — sandwich/continuity recovery
-SPEAKER_GATE_SANDWICH_THRESHOLD = 0.30  # Borderline segments above this can be recovered if sandwiched
+SPEAKER_GATE_SANDWICH_THRESHOLD = 0.24  # Borderline segments above this can be recovered if sandwiched
 
 # Speaker Gate — momentum (adaptive threshold during sustained speech)
 SPEAKER_GATE_MOMENTUM_WINDOW = 3        # Consecutive verified segments to activate momentum
-SPEAKER_GATE_MOMENTUM_THRESHOLD = 0.30  # Lowered threshold while momentum is active
+SPEAKER_GATE_MOMENTUM_THRESHOLD = 0.24  # Lowered threshold while momentum is active
 SPEAKER_GATE_MOMENTUM_DECAY = 2         # Consecutive rejections to deactivate momentum
 
 # VAD Settings

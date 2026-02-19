@@ -1922,6 +1922,273 @@ body {
     }
 }
 
+/* ═══════════════════════════════════════
+   EVENING SUMMARY OVERLAY
+═══════════════════════════════════════ */
+.evening-summary-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(12, 22, 32, 0.97);
+    z-index: 9500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: evenFadeIn 0.7s ease;
+}
+
+@keyframes evenFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes evenFadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.evening-summary-overlay.fade-out {
+    animation: evenFadeOut 0.5s ease forwards;
+}
+
+.evening-summary-card {
+    max-width: 560px;
+    width: 100%;
+    margin: 24px;
+    background: rgba(255, 253, 248, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 32px 36px 36px;
+    color: #faf6ee;
+    animation: evenCardIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow-y: auto;
+    max-height: 90vh;
+}
+
+@keyframes evenCardIn {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Header */
+.evening-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 28px;
+}
+
+.evening-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    color: rgba(250, 246, 238, 0.45);
+    flex: 1;
+}
+
+.evening-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    color: rgba(250, 246, 238, 0.5);
+    margin-right: 16px;
+}
+
+.evening-close-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(250, 246, 238, 0.6);
+    transition: background 0.2s, color 0.2s;
+}
+.evening-close-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #faf6ee;
+}
+
+/* Canopy Ring Hero */
+.evening-canopy-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.evening-canopy-ring {
+    display: block;
+}
+
+.evening-ring-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 16;
+}
+
+.evening-ring-progress {
+    fill: none;
+    stroke: #d4b87a;
+    stroke-width: 16;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 10px rgba(212, 184, 122, 0.5));
+    transition: stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.evening-canopy-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    fill: rgba(250, 246, 238, 0.4);
+}
+
+.evening-canopy-score {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 68px;
+    font-weight: 700;
+    fill: #d4b87a;
+}
+
+.evening-canopy-verdict {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    fill: rgba(250, 246, 238, 0.6);
+}
+
+.evening-canopy-delta {
+    margin-top: -8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.evening-canopy-delta.positive { color: #5a9a6e; }
+.evening-canopy-delta.negative { color: #c4584c; }
+.evening-canopy-delta.neutral { color: rgba(250, 246, 238, 0.5); }
+
+/* Mini Timeline */
+.evening-timeline-section {
+    margin-bottom: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 20px;
+}
+
+.evening-timeline-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(250, 246, 238, 0.35);
+    margin-bottom: 12px;
+}
+
+.evening-timeline-svg {
+    width: 100%;
+    height: 70px;
+    display: block;
+}
+
+.evening-timeline-axis {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    color: rgba(250, 246, 238, 0.3);
+    margin-top: 4px;
+}
+
+/* Stats */
+.evening-stats {
+    display: flex;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 20px 0;
+}
+
+.evening-stats-row2 {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0;
+}
+
+.evening-stat {
+    flex: 1;
+    text-align: center;
+}
+
+.evening-stat-value {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #faf6ee;
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+
+.evening-stat-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: rgba(250, 246, 238, 0.4);
+}
+
+.evening-stat-divider {
+    width: 1px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.evening-stat-value.positive { color: #5a9a6e; }
+.evening-stat-value.negative { color: #c4584c; }
+
+/* Insight */
+.evening-insight {
+    text-align: center;
+    font-family: 'Playfair Display', Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    color: rgba(250, 246, 238, 0.55);
+    line-height: 1.5;
+    padding: 20px 0 4px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    margin-top: 4px;
+}
+
+/* Dismiss button */
+.evening-dismiss-btn {
+    display: block;
+    margin: 28px auto 0;
+    padding: 13px 40px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 100px;
+    color: rgba(250, 246, 238, 0.8);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.evening-dismiss-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #faf6ee;
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 480px) {
+    .evening-summary-card { margin: 12px; padding: 24px 20px 28px; border-radius: 20px; }
+    .evening-canopy-ring { width: 200px; height: 200px; }
+    .evening-canopy-score { font-size: 52px; }
+    .evening-stat-value { font-size: 22px; }
+}
+
 /* ============ Speaker Verification ============ */
 
 .speaker-status {

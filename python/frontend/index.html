@@ -160,6 +160,88 @@
         </div>
     </div>
 
+    <!-- Evening Summary Overlay -->
+    <div id="evening-summary-overlay" class="evening-summary-overlay" style="display: none;">
+        <div class="evening-summary-card">
+            <!-- Header -->
+            <div class="evening-header">
+                <span class="evening-label">EVENING REFLECTION</span>
+                <span class="evening-date" id="evening-date"></span>
+                <button class="evening-close-btn" onclick="dismissEveningSummary()" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Canopy Ring Hero -->
+            <div class="evening-canopy-hero">
+                <svg class="evening-canopy-ring" viewBox="0 0 260 260" width="260" height="260">
+                    <circle cx="130" cy="130" r="110" class="evening-ring-track"/>
+                    <circle cx="130" cy="130" r="110" class="evening-ring-progress" id="evening-ring-arc"
+                        stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
+                    <text x="130" y="110" text-anchor="middle" class="evening-canopy-label">AVG CANOPY SCORE</text>
+                    <text x="130" y="160" text-anchor="middle" class="evening-canopy-score" id="evening-canopy-score">--</text>
+                    <text x="130" y="185" text-anchor="middle" class="evening-canopy-verdict" id="evening-canopy-verdict"></text>
+                </svg>
+                <div class="evening-canopy-delta" id="evening-canopy-delta" style="display:none;"></div>
+            </div>
+
+            <!-- Mini Stress Timeline -->
+            <div class="evening-timeline-section">
+                <div class="evening-timeline-label">STRESS THROUGHOUT YOUR DAY</div>
+                <svg id="evening-timeline-svg" class="evening-timeline-svg" viewBox="0 0 520 70" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="evening-timeline-axis">
+                    <span>6 AM</span>
+                    <span>12 PM</span>
+                    <span>8 PM</span>
+                </div>
+            </div>
+
+            <!-- Stats Grid Row 1 -->
+            <div class="evening-stats">
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-calm-time">--</div>
+                    <div class="evening-stat-label">IN CALM</div>
+                </div>
+                <div class="evening-stat-divider"></div>
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-avg-stress">--</div>
+                    <div class="evening-stat-label">AVG STRESS</div>
+                </div>
+                <div class="evening-stat-divider"></div>
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-stress-delta">--</div>
+                    <div class="evening-stat-label">VS YESTERDAY</div>
+                </div>
+            </div>
+
+            <!-- Stats Grid Row 2 -->
+            <div class="evening-stats evening-stats-row2">
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-voice-time">--</div>
+                    <div class="evening-stat-label">VOICE TIME</div>
+                </div>
+                <div class="evening-stat-divider"></div>
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-peak-hour">--</div>
+                    <div class="evening-stat-label">PEAK STRESS HOUR</div>
+                </div>
+                <div class="evening-stat-divider"></div>
+                <div class="evening-stat">
+                    <div class="evening-stat-value" id="evening-reading-count">--</div>
+                    <div class="evening-stat-label">READINGS TODAY</div>
+                </div>
+            </div>
+
+            <!-- Insight -->
+            <div class="evening-insight" id="evening-insight" style="display:none;"></div>
+
+            <!-- Dismiss -->
+            <button class="evening-dismiss-btn" onclick="dismissEveningSummary()">Good Night</button>
+        </div>
+    </div>
+
     <!-- App layout -->
     <div class="app-layout">
         <!-- Sidebar -->

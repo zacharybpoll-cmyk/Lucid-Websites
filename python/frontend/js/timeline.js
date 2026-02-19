@@ -36,9 +36,9 @@ class Timeline {
         svg.setAttribute('height', this.height);
         svg.setAttribute('viewBox', `0 0 ${this.width} ${this.height}`);
 
-        // Define time range (work hours: 8am to 6pm)
-        const workStart = 8; // 8am
-        const workEnd = 18;  // 6pm
+        // Define time range (work hours: 6am to 10pm)
+        const workStart = 6; // 6am
+        const workEnd = 22;  // 10pm
         const totalHours = workEnd - workStart;
 
         // Calculate x-scale

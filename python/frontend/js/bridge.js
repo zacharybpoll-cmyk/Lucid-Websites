@@ -137,6 +137,9 @@ const API = {
     // Morning Summary
     async getMorningSummary() { return await apiCall('/morning-summary'); },
 
+    // Evening Summary
+    async getEveningSummary() { return await apiCall('/evening-summary'); },
+
     // Speaker Verification
     async getSpeakerStatus() { return await apiCall('/speaker/status'); },
     async enrollSpeakerSample(audioBlob, moodLabel) {

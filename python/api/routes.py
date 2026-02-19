@@ -451,6 +451,117 @@ async def get_morning_summary():
     }
 
 
+@app.get("/api/evening-summary")
+async def get_evening_summary():
+    """Bundle today's stats for the 8 PM evening summary overlay"""
+    if db is None or insight_engine is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+
+    today_str = date.today().isoformat()
+    yesterday = date.today() - timedelta(days=1)
+
+    # 1. Today's aggregate
+    today_summary = db.compute_daily_summary()
+
+    # 2. Canopy score (intraday)
+    canopy = insight_engine.compute_intraday_canopy_score(db)
+
+    # 3. Yesterday for comparison
+    yesterday_summary = db.get_summary_for_date(yesterday)
+    canopy_yesterday = db.get_canopy_score(yesterday.isoformat())
+
+    # 4. Compact readings for mini-timeline (stress per 30-min bucket, 6 AM - 8 PM)
+    today_readings = db.get_today_readings()
+    buckets = {}
+    for r in today_readings:
+        try:
+            ts = datetime.fromisoformat(r['timestamp'])
+            hour_bucket = ts.hour + (0.5 if ts.minute >= 30 else 0)
+            if 6 <= hour_bucket < 20:
+                if hour_bucket not in buckets:
+                    buckets[hour_bucket] = []
+                buckets[hour_bucket].append({
+                    'stress': r.get('stress_score', 50) or 50,
+                    'zone': r.get('zone', 'steady') or 'steady'
+                })
+        except Exception:
+            pass
+    timeline = [
+        {
+            'hour': h,
+            'stress': round(sum(v['stress'] for v in vs) / len(vs)),
+            'zone': max(set(v['zone'] for v in vs), key=lambda z: ['calm','steady','tense','stressed'].index(z) if z in ['calm','steady','tense','stressed'] else 0)
+        }
+        for h, vs in sorted(buckets.items())
+    ]
+
+    # 5. Peak stress hour
+    peak_hour = None
+    peak_stress = 0
+    for r in today_readings:
+        s = r.get('stress_score', 0) or 0
+        if s > peak_stress:
+            peak_stress = s
+            try:
+                ts = datetime.fromisoformat(r['timestamp'])
+                peak_hour = ts.strftime('%-I %p')
+            except Exception:
+                peak_hour = None
+
+    # 6. Calm peak hour (lowest avg stress hour with data)
+    hourly_stress = {}
+    for r in today_readings:
+        try:
+            ts = datetime.fromisoformat(r['timestamp'])
+            h = ts.hour
+            if h not in hourly_stress:
+                hourly_stress[h] = []
+            hourly_stress[h].append(r.get('stress_score', 50) or 50)
+        except Exception:
+            pass
+    calm_hour = None
+    if hourly_stress:
+        best_h = min(hourly_stress, key=lambda h: sum(hourly_stress[h])/len(hourly_stress[h]))
+        calm_hour = f"{best_h % 12 or 12}–{(best_h+1) % 12 or 12} {'AM' if best_h < 12 else 'PM'}"
+
+    # 7. Comparison deltas
+    canopy_delta = None
+    stress_delta = None
+    if canopy.get('has_data') and canopy_yesterday:
+        canopy_delta = round(canopy['score'] - canopy_yesterday['score'])
+    if today_summary and yesterday_summary:
+        today_stress = today_summary.get('avg_stress') or 0
+        yest_stress = yesterday_summary.get('avg_stress') or 0
+        if today_stress and yest_stress:
+            stress_delta = round(today_stress - yest_stress)
+
+    # 8. Insight line
+    insight = None
+    if calm_hour and peak_hour:
+        insight = f"Your calmest hour was {calm_hour}. Stress peaked around {peak_hour}."
+    elif calm_hour:
+        insight = f"Your calmest period was {calm_hour}."
+    elif today_summary:
+        calm_min = today_summary.get('time_in_calm_min', 0) or 0
+        if calm_min >= 60:
+            insight = f"You spent {round(calm_min / 60, 1)} hours in a calm state today."
+
+    return {
+        'has_data': len(today_readings) >= 1,
+        'canopy': canopy,
+        'canopy_delta': canopy_delta,
+        'avg_stress': round(today_summary.get('avg_stress') or 0) if today_summary else None,
+        'stress_delta': stress_delta,
+        'time_in_calm_min': round(today_summary.get('time_in_calm_min') or 0) if today_summary else 0,
+        'total_speech_min': round(today_summary.get('total_speech_min') or 0) if today_summary else 0,
+        'reading_count': len(today_readings),
+        'peak_stress_hour': peak_hour,
+        'calm_peak_hour': calm_hour,
+        'timeline': timeline,
+        'insight': insight,
+    }
+
+
 @app.get("/api/canopy")
 async def get_canopy_score():
     """Get today's intraday Canopy Score (requires 3+ readings today)"""
