@@ -60,6 +60,9 @@ class AnalysisOrchestrator:
         # Thread lock for meeting state
         self.meeting_lock = threading.Lock()
 
+        # Analysis-in-progress flag (read by frontend via status poll)
+        self._is_analyzing = False
+
         # Grace period checker thread
         self._grace_thread = None
         self._grace_stop = threading.Event()
@@ -223,6 +226,7 @@ class AnalysisOrchestrator:
         if not self.models_ready.is_set():
             return
 
+        self._is_analyzing = True
         print(f"[Orchestrator] Starting analysis of {duration_sec:.1f}s speech segment "
               f"(VAD confidence: {vad_confidence:.2f})")
 
@@ -236,6 +240,7 @@ class AnalysisOrchestrator:
             if not verified:
                 print(f"[Orchestrator] Speaker rejected at buffer level "
                       f"(similarity={similarity:.3f}), skipping segment")
+                self._is_analyzing = False
                 return
             print(f"[Orchestrator] Speaker verified (similarity={similarity:.3f})")
 
@@ -245,6 +250,7 @@ class AnalysisOrchestrator:
 
             if dam_output is None:
                 print("[Orchestrator] DAM analysis returned None (error), skipping this segment")
+                self._is_analyzing = False
                 return
 
             # Extract acoustic features (includes shimmer + voice_breaks)
@@ -312,7 +318,10 @@ class AnalysisOrchestrator:
                 except Exception as ne:
                     print(f"[Orchestrator] Notification error: {ne}")
 
+            self._is_analyzing = False
+
         except Exception as e:
+            self._is_analyzing = False
             print(f"[Orchestrator] Error during analysis: {e}")
             import traceback
             traceback.print_exc()
@@ -420,6 +429,7 @@ class AnalysisOrchestrator:
             'buffered_speech_sec': self.speech_buffer.get_current_duration(),
             'buffered_vad_confidence': self.speech_buffer.get_mean_confidence(),
             'calibration_status': self.calibrator.get_calibration_status(),
+            'is_analyzing': self._is_analyzing,
             'speaker_enrolled': enrolled,
             'enrollment_required': config.SPEAKER_ENROLLMENT_REQUIRED,
             'speaker_gate_stats': gate_stats,

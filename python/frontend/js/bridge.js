@@ -121,6 +121,19 @@ const API = {
     },
     async getApiToken() { return await apiCall('/v1/token'); },
 
+    // First Light Quest
+    async getFirstLightQuest() { return await apiCall('/quest/first-light'); },
+    async completeFirstLightTask(task) {
+        return await apiCall('/quest/first-light/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task })
+        });
+    },
+
+    // Recovery Pulse
+    async getRecoveryPulse() { return await apiCall('/recovery-pulse'); },
+
     // Morning Summary
     async getMorningSummary() { return await apiCall('/morning-summary'); },
 

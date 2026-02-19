@@ -72,6 +72,7 @@ class StatusResponse(BaseModel):
     is_running: bool
     is_paused: bool
     meeting_active: bool
+    is_analyzing: bool = False
     buffered_speech_sec: float
     buffered_vad_confidence: Optional[float] = None
     calibration_status: Dict[str, Any]

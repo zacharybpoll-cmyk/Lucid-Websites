@@ -77,7 +77,7 @@ class EngagementTracker:
                     if check_date <= today.isoformat():
                         self.db.add_grove_tree(check_date, 'wilted', 0)
 
-        # Update growth stages based on streak length
+        # Update growth stages based on streak length (never downgrade bonus stages)
         trees = self.db.get_grove_trees(limit=90)
         for tree in trees:
             if tree['tree_state'] == 'growing':
@@ -91,6 +91,8 @@ class EngagementTracker:
                     stage = 2  # Growing
                 else:
                     stage = 1  # Seedling
+                # Never downgrade a tree (bonus trees from quests may have higher stages)
+                stage = max(stage, tree['growth_stage'])
                 if stage != tree['growth_stage']:
                     self.db.update_grove_tree(tree['date'], stage=stage)
 

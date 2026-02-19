@@ -25,9 +25,14 @@ let previousZone = null;
 
 // Canopy score reveal state
 let canopyRevealed = false;
+let prevCanopyScore = 0;
 
 // First Spark state
 let firstSparkLoaded = false;
+
+// First Light quest state
+let firstLightState = null;
+const FIRST_LIGHT_TASKS = ['canopy', 'rings', 'grove', 'faq', 'trends'];
 
 // Beacon state
 let lastBeaconZone = 'idle';
@@ -101,6 +106,7 @@ function waitForBackend() {
                     startPolling();
                     loadTodayData();
                     loadFeatures();
+                    initFirstLight();
                     if (shouldShowMorningSummary()) {
                         loadMorningSummary();
                     }
@@ -127,7 +133,11 @@ function setupNavigation() {
     const sidebarIcons = document.querySelectorAll('.sidebar-icon[data-view]');
     sidebarIcons.forEach(icon => {
         icon.addEventListener('click', () => {
-            switchView(icon.dataset.view);
+            const view = icon.dataset.view;
+            switchView(view);
+            // First Light quest tracking
+            if (view === 'faq') completeFirstLightTask('faq');
+            if (view === 'trends') completeFirstLightTask('trends');
         });
     });
 }
@@ -178,6 +188,14 @@ async function pollStatus() {
         const status = await API.getStatus();
         updateMicIndicator(status);
         updateSpeakerDebug(status);
+        // Start progress circle when backend begins analyzing
+        if (status.is_analyzing && !canopyIsAnalyzing) {
+            startCanopyProgress();
+        }
+        // Finish progress circle when backend stops analyzing
+        if (!status.is_analyzing && canopyIsAnalyzing) {
+            finishCanopyProgress();
+        }
     } catch (e) {
         updateMicIndicator(null);
     }
@@ -288,13 +306,13 @@ function updateMicIndicator(status) {
         dot.className = 'mic-dot idle';
         label.textContent = 'Not running';
     } else if (buffered < prevBufferedSec && prevBufferedSec > 5) {
-        dot.className = 'mic-dot analyzing';
+        dot.className = 'mic-dot hearing';
         label.textContent = 'Analyzing...';
     } else if (buffered > 0 && buffered > prevBufferedSec) {
         dot.className = 'mic-dot hearing';
         label.textContent = 'Hearing speech...';
     } else if (buffered >= SPEECH_THRESHOLD_SEC) {
-        dot.className = 'mic-dot analyzing';
+        dot.className = 'mic-dot hearing';
         label.textContent = 'Analyzing...';
     } else if (buffered > 0) {
         dot.className = 'mic-dot hearing';
@@ -365,6 +383,7 @@ async function loadFeatures() {
     // Load features in parallel
     Promise.allSettled([
         loadRhythmRings(),
+        loadRecoveryPulse(),
         loadEchoes(),
         loadCompass(),
         loadCapsules(),
@@ -396,26 +415,27 @@ async function loadCanopyScore() {
             if (profileEl) profileEl.textContent = '';
             canopyRevealed = false; // Reset so animation fires on score unlock
         } else {
-            // Show score
+            // Show score (but not while progress circle is active)
             if (progressState) progressState.style.display = 'none';
-            if (scoreEl) scoreEl.style.display = '';
+            if (!canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
             if (!canopyRevealed) {
                 canopyRevealed = true;
                 animateCountUp(scoreEl, data.score, 3000);
-                if (profileEl) profileEl.textContent = data.profile || '';
-            } else {
-                if (scoreEl) scoreEl.textContent = data.score;
-                if (profileEl) profileEl.textContent = data.profile || '';
+            } else if (data.score !== prevCanopyScore) {
+                scoreEl.textContent = '0';
+                animateCountUp(scoreEl, data.score, 1500);
             }
+            prevCanopyScore = data.score;
+            if (profileEl) profileEl.textContent = data.profile || '';
         }
     } catch (e) {
         console.error('Failed to load canopy score:', e);
     }
 }
 
-function animateCountUp(el, target, duration) {
-    const start = 0;
+function animateCountUp(el, target, duration, fromValue = 0) {
+    const start = fromValue;
     const startTime = performance.now();
 
     function tick(now) {
@@ -448,6 +468,89 @@ function addLeafParticles(container) {
         container.appendChild(leaf);
         setTimeout(() => leaf.remove(), 3000);
     }
+}
+
+// ========== Canopy Progress Circle ==========
+
+let canopyIsAnalyzing = false;
+let canopyProgressRAF = null;
+let canopyProgressStart = 0;
+let canopyProgressSafetyTimer = null;
+
+function startCanopyProgress() {
+    const circle = document.getElementById('canopy-progress-circle');
+    const arc = document.getElementById('canopy-progress-arc');
+    const scoreEl = document.getElementById('canopy-score');
+    if (!circle || !arc) return;
+
+    canopyIsAnalyzing = true;
+    circle.style.display = 'flex';
+    if (scoreEl) scoreEl.style.display = 'none';
+
+    arc.style.transition = 'none';
+    arc.style.strokeDashoffset = '326.7';
+
+    canopyProgressStart = performance.now();
+    if (canopyProgressRAF) cancelAnimationFrame(canopyProgressRAF);
+
+    // Safety timeout: auto-dismiss after 25s no matter what
+    if (canopyProgressSafetyTimer) clearTimeout(canopyProgressSafetyTimer);
+    canopyProgressSafetyTimer = setTimeout(() => {
+        if (canopyIsAnalyzing) finishCanopyProgress();
+    }, 25000);
+
+    function tick(now) {
+        const elapsed = now - canopyProgressStart;
+        // Phase 1: Linear to 80% over 8s
+        // Phase 2: Slow crawl from 80% to 95% over next 17s
+        let progress;
+        if (elapsed < 8000) {
+            progress = (elapsed / 8000) * 0.80;
+        } else {
+            const extra = (elapsed - 8000) / 17000;
+            progress = 0.80 + Math.min(extra, 1) * 0.15;
+        }
+        const offset = 326.7 * (1 - progress);
+        arc.style.transition = 'none';
+        arc.style.strokeDashoffset = offset;
+
+        if (canopyIsAnalyzing) {
+            canopyProgressRAF = requestAnimationFrame(tick);
+        }
+    }
+
+    canopyProgressRAF = requestAnimationFrame(tick);
+}
+
+function finishCanopyProgress() {
+    const circle = document.getElementById('canopy-progress-circle');
+    const arc = document.getElementById('canopy-progress-arc');
+    const scoreEl = document.getElementById('canopy-score');
+    if (!arc) return;
+
+    // Keep canopyIsAnalyzing true during the 500ms close transition
+    // so loadCanopyScore() won't prematurely show the score element
+    if (canopyProgressRAF) {
+        cancelAnimationFrame(canopyProgressRAF);
+        canopyProgressRAF = null;
+    }
+    if (canopyProgressSafetyTimer) {
+        clearTimeout(canopyProgressSafetyTimer);
+        canopyProgressSafetyTimer = null;
+    }
+
+    // Snap to 100%
+    arc.style.transition = 'stroke-dashoffset 0.4s ease-out';
+    arc.style.strokeDashoffset = '0';
+
+    // After transition: hide circle, show score, refresh canopy data
+    setTimeout(() => {
+        canopyIsAnalyzing = false;
+        if (circle) circle.style.display = 'none';
+        if (scoreEl) scoreEl.style.display = '';
+        // Force a fresh canopy score fetch so count-up fires immediately
+        loadCanopyScore();
+    }, 500);
 }
 
 // ========== Rhythm Rings (Feature #5) ==========
@@ -485,6 +588,101 @@ function updateRing(id, pct, circumference) {
     const offset = circumference - (Math.min(100, pct) / 100) * circumference;
     ring.style.transition = 'stroke-dashoffset 0.8s ease';
     ring.setAttribute('stroke-dashoffset', offset);
+}
+
+// ========== Recovery Pulse ==========
+
+async function loadRecoveryPulse() {
+    try {
+        const data = await API.getRecoveryPulse();
+
+        if (!data.has_data || data.readings.length < 2) {
+            // Empty state
+            const insightEl = document.getElementById('rp-insight');
+            if (insightEl) insightEl.textContent = data.insight || 'Collecting data...';
+            return;
+        }
+
+        // 1. Draw sparkline SVG
+        drawRecoverySparkline(data.readings);
+
+        // 2. Update big number
+        const numEl = document.getElementById('rp-number');
+        if (numEl) numEl.textContent = Math.round(data.avg_recovery_speed);
+
+        // 3. Update trend
+        const trendEl = document.getElementById('rp-trend');
+        if (trendEl) {
+            const arrowEl = trendEl.querySelector('.rp-trend-arrow');
+            const labelEl = trendEl.querySelector('.rp-trend-label');
+            if (arrowEl) {
+                arrowEl.textContent = data.trend === 'improving' ? '\u2197' :
+                                      data.trend === 'declining' ? '\u2198' : '\u2192';
+            }
+            if (labelEl) labelEl.textContent = data.trend;
+            trendEl.className = 'rp-trend rp-trend-' + data.trend;
+        }
+
+        // 4. Update insight
+        const insightEl = document.getElementById('rp-insight');
+        if (insightEl) insightEl.textContent = data.insight;
+    } catch (e) {
+        console.error('Failed to load recovery pulse:', e);
+    }
+}
+
+function drawRecoverySparkline(readings) {
+    const svg = document.getElementById('rp-sparkline');
+    if (!svg || readings.length < 2) return;
+
+    const W = 300, H = 80;
+    const stressValues = readings.map(r => r.stress);
+    const minS = Math.max(0, Math.min(...stressValues) - 5);
+    const maxS = Math.min(100, Math.max(...stressValues) + 5);
+    const range = maxS - minS || 1;
+
+    // Map readings to SVG coordinates (higher stress = higher y visually, so invert)
+    const points = readings.map((r, i) => ({
+        x: (i / (readings.length - 1)) * W,
+        y: H - ((r.stress - minS) / range) * (H - 8) - 4,
+    }));
+
+    // Build smooth path
+    let pathD = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        const cpx = (prev.x + curr.x) / 2;
+        pathD += ` C ${cpx} ${prev.y}, ${cpx} ${curr.y}, ${curr.x} ${curr.y}`;
+    }
+
+    // Build gradient fill areas for each segment
+    let fills = '';
+    for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const isRecovery = readings[i].stress > readings[i + 1].stress;
+        const color = isRecovery ? 'rgba(90,154,110,0.25)' : 'rgba(184,151,92,0.2)';
+        const cpx = (p1.x + p2.x) / 2;
+
+        fills += `<path d="M ${p1.x} ${p1.y} C ${cpx} ${p1.y}, ${cpx} ${p2.y}, ${p2.x} ${p2.y} L ${p2.x} ${H} L ${p1.x} ${H} Z" fill="${color}"/>`;
+    }
+
+    // Average baseline
+    const avgStress = stressValues.reduce((a, b) => a + b, 0) / stressValues.length;
+    const baselineY = H - ((avgStress - minS) / range) * (H - 8) - 4;
+
+    svg.innerHTML = `
+        ${fills}
+        <line x1="0" y1="${baselineY}" x2="${W}" y2="${baselineY}" stroke="rgba(0,0,0,0.12)" stroke-width="1" stroke-dasharray="4,3"/>
+        <path d="${pathD}" fill="none" stroke="var(--text-secondary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        ${points.map((p, i) => {
+            const isRecovery = i > 0 && readings[i].stress < readings[i - 1].stress;
+            const isSpike = i > 0 && readings[i].stress > readings[i - 1].stress;
+            const dotColor = isRecovery ? 'var(--calm-color)' : isSpike ? 'var(--gold)' : 'var(--text-muted)';
+            return `<circle cx="${p.x}" cy="${p.y}" r="3" fill="${dotColor}" stroke="white" stroke-width="1"/>`;
+        }).join('')}
+    `;
 }
 
 // ========== Echoes (Feature #6) ==========
@@ -991,6 +1189,12 @@ function setupInfoButtons() {
             });
 
             popover.classList.toggle('visible');
+
+            // First Light quest tracking
+            const infoKey = btn.dataset.info;
+            if (infoKey && FIRST_LIGHT_TASKS.includes(infoKey)) {
+                completeFirstLightTask(infoKey);
+            }
             return;
         }
 
@@ -1925,4 +2129,125 @@ function drawEnrollmentWaveform() {
     }
 
     draw();
+}
+
+// ========== First Light — Interactive Discovery Quest ==========
+
+async function initFirstLight() {
+    try {
+        const data = await API.getFirstLightQuest();
+        if (!data.show) return;
+
+        firstLightState = data;
+        const panel = document.getElementById('first-light-panel');
+        if (!panel) return;
+
+        panel.style.display = 'block';
+
+        // Restore collapsed state from localStorage
+        const isCollapsed = localStorage.getItem('attune_first_light_collapsed') === 'true';
+        if (isCollapsed || data.completed) {
+            panel.classList.add('collapsed');
+        }
+
+        // Wire collapse toggle
+        const header = document.getElementById('first-light-header');
+        if (header) {
+            header.addEventListener('click', () => {
+                panel.classList.toggle('collapsed');
+                localStorage.setItem('attune_first_light_collapsed',
+                    panel.classList.contains('collapsed') ? 'true' : 'false');
+            });
+        }
+
+        renderFirstLightPanel(data);
+    } catch (e) {
+        console.error('Failed to init First Light:', e);
+    }
+}
+
+function renderFirstLightPanel(data) {
+    const tasks = data.tasks;
+    const completedCount = Object.values(tasks).filter(Boolean).length;
+    const total = FIRST_LIGHT_TASKS.length;
+
+    // Update progress bar
+    const bar = document.getElementById('first-light-progress-bar');
+    if (bar) bar.style.width = ((completedCount / total) * 100) + '%';
+
+    // Update progress label
+    const label = document.getElementById('first-light-progress-label');
+    if (label) label.textContent = `${completedCount} / ${total}`;
+
+    // Update task checkmarks
+    document.querySelectorAll('.first-light-task').forEach(li => {
+        const taskKey = li.dataset.questTask;
+        if (tasks[taskKey]) {
+            li.classList.add('completed');
+            li.querySelector('.first-light-check').innerHTML = '&#9679;';
+        } else {
+            li.classList.remove('completed');
+            li.querySelector('.first-light-check').innerHTML = '&#9675;';
+        }
+    });
+
+    // Update reward text
+    const reward = document.getElementById('first-light-reward');
+    if (reward && data.completed) {
+        reward.querySelector('.first-light-reward-text').textContent = 'Bonus tree planted!';
+    }
+}
+
+async function completeFirstLightTask(taskKey) {
+    if (!firstLightState || !firstLightState.show) return;
+    if (firstLightState.completed) return;
+    if (firstLightState.tasks[taskKey]) return; // Already done
+
+    try {
+        const result = await API.completeFirstLightTask(taskKey);
+        if (!result.success) return;
+
+        // Update local state
+        firstLightState.tasks[taskKey] = true;
+
+        if (result.just_completed) {
+            firstLightState.completed = true;
+            renderFirstLightPanel(firstLightState);
+            onFirstLightComplete();
+        } else {
+            renderFirstLightPanel(firstLightState);
+        }
+    } catch (e) {
+        console.error('Failed to complete First Light task:', e);
+    }
+}
+
+function onFirstLightComplete() {
+    // Bypass sanctuary cooldown for the celebration
+    const savedCooldown = lastSanctuaryTime;
+    lastSanctuaryTime = 0;
+    triggerSanctuary('first_light', 'First Light complete! A tree grows in your honor.');
+    // Restore cooldown (sanctuary sets it internally)
+
+    // After sanctuary dismisses (~3.5s), refresh grove and highlight it
+    setTimeout(() => {
+        updateGrove();
+
+        // Scroll to grove card and add highlight
+        const groveCard = document.querySelector('[data-card-id="grove"]');
+        if (groveCard) {
+            groveCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            groveCard.classList.add('grove-highlight');
+            setTimeout(() => groveCard.classList.remove('grove-highlight'), 4500);
+        }
+
+        // Auto-collapse panel after 5s
+        setTimeout(() => {
+            const panel = document.getElementById('first-light-panel');
+            if (panel) {
+                panel.classList.add('collapsed');
+                localStorage.setItem('attune_first_light_collapsed', 'true');
+            }
+        }, 5000);
+    }, 3500);
 }

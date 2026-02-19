@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="css/gauges.css?v=16">
     <link rel="stylesheet" href="css/anxiety_timeline.css?v=16">
     <link rel="stylesheet" href="css/trends.css?v=15">
-    <link rel="stylesheet" href="css/engagement.css?v=15">
+    <link rel="stylesheet" href="css/engagement.css?v=19">
     <link rel="stylesheet" href="css/correlation.css?v=15">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 </head>
@@ -295,6 +295,16 @@
 
                             <!-- Score state: shown once 3+ readings exist -->
                             <span class="canopy-number" id="canopy-score" style="display: none;">--</span>
+                            <div class="canopy-progress-circle" id="canopy-progress-circle" style="display: none;">
+                                <svg viewBox="0 0 120 120" width="90" height="90">
+                                    <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
+                                            fill="none" opacity="0.15"/>
+                                    <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
+                                            fill="none" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+                                            stroke-linecap="round" id="canopy-progress-arc"
+                                            transform="rotate(-90 60 60)"/>
+                                </svg>
+                            </div>
                             <span class="canopy-profile" id="canopy-profile"></span>
                         </div>
                     </div>
@@ -355,6 +365,14 @@
                         </div>
                     </div>
 
+                    <!-- Stress Throughout Day (dot timeline) -->
+                    <div class="dashboard-card" data-card-id="stressdots">
+                        <div class="stress-dot-timeline-section">
+                            <h3 class="section-label">STRESS THROUGHOUT DAY</h3>
+                            <div id="stress-dot-timeline" class="stress-dot-timeline"></div>
+                        </div>
+                    </div>
+
                     <!-- Rhythm Rings (Feature #5) -->
                     <div class="dashboard-card" data-card-id="rings">
                         <div class="rhythm-rings-section">
@@ -382,15 +400,27 @@
                                     <div class="ring-legend-item"><span class="ring-dot" style="background: var(--calm-color)"></span><span id="ring-calm-label">Calm: --</span></div>
                                     <div class="ring-legend-item"><span class="ring-dot" style="background: var(--gold)"></span><span id="ring-checkin-label">Check-in: --</span></div>
                                 </div>
+                                <div class="recovery-pulse-widget" id="recovery-pulse-widget">
+                                    <div class="rp-header" style="position: relative;">Recovery Pulse
+                                        <button class="info-btn" data-info="recovery-pulse">i</button>
+                                        <div class="info-popover" id="info-recovery-pulse">Measures how quickly your stress drops between readings. Higher = faster bounce-back. Green = recovery, amber = stress spikes.</div>
+                                    </div>
+                                    <div class="rp-body">
+                                        <div class="rp-sparkline-area">
+                                            <svg id="rp-sparkline" class="rp-sparkline" viewBox="0 0 300 80" preserveAspectRatio="none"></svg>
+                                        </div>
+                                        <div class="rp-stats">
+                                            <div class="rp-number" id="rp-number">--</div>
+                                            <div class="rp-unit">pts/reading</div>
+                                            <div class="rp-trend" id="rp-trend">
+                                                <span class="rp-trend-arrow"></span>
+                                                <span class="rp-trend-label">--</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="rp-insight" id="rp-insight">Collecting data...</div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Stress Throughout Day (dot timeline) — moved above zone bar -->
-                    <div class="dashboard-card" data-card-id="stressdots">
-                        <div class="stress-dot-timeline-section">
-                            <h3 class="section-label">STRESS THROUGHOUT DAY</h3>
-                            <div id="stress-dot-timeline" class="stress-dot-timeline"></div>
                         </div>
                     </div>
 
@@ -642,6 +672,48 @@
         </main>
     </div>
 
+    <!-- First Light Quest Panel -->
+    <aside id="first-light-panel" class="first-light-panel" style="display: none;">
+        <div class="first-light-header" id="first-light-header">
+            <span class="first-light-star">&#9733;</span>
+            <span class="first-light-title">First Light</span>
+            <button class="first-light-collapse" id="first-light-collapse">&#9650;</button>
+        </div>
+        <div class="first-light-body" id="first-light-body">
+            <p class="first-light-subtitle">Discover your dashboard</p>
+            <div class="first-light-progress-wrap">
+                <div class="first-light-progress-bar" id="first-light-progress-bar"></div>
+            </div>
+            <span class="first-light-progress-label" id="first-light-progress-label">0 / 5</span>
+            <ul class="first-light-tasks">
+                <li class="first-light-task" data-quest-task="canopy">
+                    <span class="first-light-check">&#9675;</span>
+                    <span class="first-light-task-label">Find your Canopy Score</span>
+                </li>
+                <li class="first-light-task" data-quest-task="rings">
+                    <span class="first-light-check">&#9675;</span>
+                    <span class="first-light-task-label">Check Rhythm Rings</span>
+                </li>
+                <li class="first-light-task" data-quest-task="grove">
+                    <span class="first-light-check">&#9675;</span>
+                    <span class="first-light-task-label">Discover your Grove</span>
+                </li>
+                <li class="first-light-task" data-quest-task="faq">
+                    <span class="first-light-check">&#9675;</span>
+                    <span class="first-light-task-label">Open the FAQ</span>
+                </li>
+                <li class="first-light-task" data-quest-task="trends">
+                    <span class="first-light-check">&#9675;</span>
+                    <span class="first-light-task-label">Visit Trends</span>
+                </li>
+            </ul>
+            <div class="first-light-reward" id="first-light-reward">
+                <span class="first-light-reward-icon">&#127794;</span>
+                <span class="first-light-reward-text">Complete all to plant a bonus tree</span>
+            </div>
+        </div>
+    </aside>
+
     <!-- Tooltip -->
     <div id="tooltip" class="tooltip" style="display: none;"></div>
 
@@ -854,7 +926,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/bridge.js?v=15"></script>
+    <script src="js/bridge.js?v=17"></script>
     <script src="js/gauges.js?v=16"></script>
     <script src="js/anxiety_timeline.js?v=15"></script>
     <script src="js/trends.js?v=14"></script>
@@ -862,7 +934,7 @@
     <script src="js/correlation.js?v=14"></script>
     <script src="js/grove.js?v=14"></script>
     <script src="js/layout.js?v=14"></script>
-    <script src="js/app.js?v=20"></script>
+    <script src="js/app.js?v=26"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
     <div id="speaker-debug" class="speaker-debug" style="display:block;">

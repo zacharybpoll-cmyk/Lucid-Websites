@@ -499,6 +499,137 @@ async def get_rings():
     tracker = EngagementTracker(db)
     return tracker.compute_rhythm_rings()
 
+# ============ Recovery Pulse ============
+
+@app.get("/api/recovery-pulse")
+async def get_recovery_pulse():
+    """Get recovery speed metrics for today's readings"""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    readings = db.get_today_readings()
+
+    # Sort chronologically (readings come DESC, we need ASC)
+    readings_asc = sorted(readings, key=lambda r: r.get('timestamp', ''))
+
+    # Build simplified reading list for sparkline
+    sparkline_readings = []
+    for r in readings_asc:
+        stress = r.get('stress_score')
+        ts = r.get('timestamp', '')
+        if stress is not None and ts:
+            try:
+                t = datetime.fromisoformat(ts)
+                sparkline_readings.append({
+                    'stress': round(stress),
+                    'time': t.strftime('%H:%M'),
+                })
+            except (ValueError, TypeError):
+                pass
+
+    if len(sparkline_readings) < 2:
+        return {
+            'readings': sparkline_readings,
+            'avg_recovery_speed': 0,
+            'trend': 'stable',
+            'insight': 'Check in to start tracking your recovery' if len(sparkline_readings) == 0
+                       else 'One more reading to see your recovery pulse',
+            'has_data': len(sparkline_readings) > 0,
+            'recovery_count': 0,
+        }
+
+    # Compute recovery events from today's readings
+    today_drops = []
+    for i in range(len(sparkline_readings) - 1):
+        diff = sparkline_readings[i]['stress'] - sparkline_readings[i + 1]['stress']
+        if diff > 0:
+            today_drops.append(diff)
+
+    today_avg = sum(today_drops) / len(today_drops) if today_drops else 0
+
+    # 7-day historical comparison
+    hist_drops = []
+    try:
+        start_date = date.today() - timedelta(days=7)
+        start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+        end_time = datetime.combine(date.today(), datetime.min.time()).isoformat()
+        hist_readings = db.get_readings(start_time=start_time, end_time=end_time, limit=500)
+        hist_asc = sorted(hist_readings, key=lambda r: r.get('timestamp', ''))
+        for i in range(len(hist_asc) - 1):
+            s_curr = hist_asc[i].get('stress_score')
+            s_next = hist_asc[i + 1].get('stress_score')
+            if s_curr is not None and s_next is not None:
+                diff = s_curr - s_next
+                if diff > 0:
+                    hist_drops.append(diff)
+    except Exception:
+        pass
+
+    hist_avg = sum(hist_drops) / len(hist_drops) if hist_drops else 0
+
+    # Determine trend
+    if hist_avg > 0 and today_avg >= hist_avg * 1.1:
+        trend = 'improving'
+    elif hist_avg > 0 and today_avg <= hist_avg * 0.9:
+        trend = 'declining'
+    else:
+        trend = 'stable'
+
+    # Generate insight (AM vs PM comparison)
+    insight = _generate_recovery_insight(sparkline_readings, today_drops)
+
+    return {
+        'readings': sparkline_readings,
+        'avg_recovery_speed': round(today_avg),
+        'trend': trend,
+        'insight': insight,
+        'has_data': True,
+        'recovery_count': len(today_drops),
+    }
+
+
+def _generate_recovery_insight(readings, drops):
+    """Generate contextual insight about recovery patterns"""
+    if len(readings) < 3:
+        return 'Keep checking in to build your recovery profile'
+    if len(drops) == 0:
+        return 'No stress dips yet — your levels have been rising or steady'
+    if len(readings) < 6:
+        return 'Your recovery speed is building'
+
+    # AM vs PM comparison
+    am_drops = []
+    pm_drops = []
+    for i in range(len(readings) - 1):
+        diff = readings[i]['stress'] - readings[i + 1]['stress']
+        if diff > 0:
+            try:
+                hour = int(readings[i]['time'].split(':')[0])
+                if hour < 12:
+                    am_drops.append(diff)
+                else:
+                    pm_drops.append(diff)
+            except (ValueError, IndexError):
+                pass
+
+    if am_drops and pm_drops:
+        am_avg = sum(am_drops) / len(am_drops)
+        pm_avg = sum(pm_drops) / len(pm_drops)
+        if am_avg > 0 and pm_avg > 0:
+            ratio = max(am_avg, pm_avg) / min(am_avg, pm_avg)
+            if ratio >= 1.5:
+                faster = 'morning' if am_avg > pm_avg else 'afternoon'
+                return f'You recover {ratio:.0f}x faster in the {faster}.'
+
+    avg_drop = sum(drops) / len(drops)
+    if avg_drop >= 15:
+        return 'Strong recovery pattern — you bounce back quickly.'
+    elif avg_drop >= 8:
+        return 'Steady recovery — your stress resets between readings.'
+    else:
+        return 'Gradual recovery pattern building throughout the day.'
+
+
 # ============ Echoes (Feature #6) ============
 
 @app.get("/api/echoes")
@@ -928,6 +1059,66 @@ async def set_onboarding_status(req: OnboardingStatusRequest):
         raise HTTPException(status_code=500, detail="Database not initialized")
     db.set_user_state('onboarding_completed', '1' if req.completed else '0')
     return {"success": True}
+
+
+# ============ First Light Quest ============
+
+FIRST_LIGHT_TASKS = ['canopy', 'rings', 'grove', 'faq', 'trends']
+
+@app.get("/api/quest/first-light")
+async def get_first_light_quest():
+    """Get First Light quest state."""
+    if db is None:
+        return {"show": False}
+
+    onboarding = db.get_user_state('onboarding_completed', '0')
+    if onboarding != '1':
+        return {"show": False}
+
+    completed = db.get_user_state('first_light_completed', '0') == '1'
+    tasks = {}
+    for task in FIRST_LIGHT_TASKS:
+        tasks[task] = db.get_user_state(f'first_light_task_{task}', '0') == '1'
+
+    return {"show": True, "tasks": tasks, "completed": completed}
+
+
+class FirstLightTaskRequest(BaseModel):
+    task: str
+
+@app.post("/api/quest/first-light/complete")
+async def complete_first_light_task(req: FirstLightTaskRequest):
+    """Mark a First Light quest task as complete."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    if req.task not in FIRST_LIGHT_TASKS:
+        raise HTTPException(status_code=400, detail="Invalid task name")
+
+    # Mark task complete
+    db.set_user_state(f'first_light_task_{req.task}', '1')
+
+    # Check if all tasks are now complete
+    all_done = all(
+        db.get_user_state(f'first_light_task_{t}', '0') == '1'
+        for t in FIRST_LIGHT_TASKS
+    )
+
+    just_completed = False
+    if all_done and db.get_user_state('first_light_completed', '0') != '1':
+        db.set_user_state('first_light_completed', '1')
+        just_completed = True
+
+        # Plant a bonus grove tree (stage 3 = blooming)
+        today_str = date.today().isoformat()
+        db.add_grove_tree(today_str, 'growing', 3)
+        db.update_grove_tree(today_str, stage=3)
+
+        # Award +2 rainfall
+        current_rainfall = int(db.get_user_state('rainfall', '0'))
+        db.set_user_state('rainfall', str(current_rainfall + 2))
+
+    return {"success": True, "just_completed": just_completed}
 
 
 # Mount static files (frontend) - must be AFTER API routes

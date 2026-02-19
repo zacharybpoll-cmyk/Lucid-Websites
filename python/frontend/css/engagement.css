@@ -83,6 +83,18 @@
     }
 }
 
+/* Canopy progress circle (analyzing state) */
+.canopy-progress-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 8px 0;
+}
+
+#canopy-progress-arc {
+    transition: stroke-dashoffset 2s ease-out;
+}
+
 /* Progress state (pre-score) */
 .canopy-progress-state {
     display: flex;
@@ -438,6 +450,111 @@
 
 .rings-svg.rings-complete {
     animation: ring-burst 0.6s ease;
+}
+
+/* ==========================================================
+   5b. RECOVERY PULSE — Stress Recovery Widget
+   ========================================================== */
+
+.recovery-pulse-widget {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    padding: 0 0 0 20px;
+    border-left: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.rp-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.rp-body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.rp-sparkline-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.rp-sparkline {
+    width: 100%;
+    height: 80px;
+    display: block;
+}
+
+.rp-stats {
+    flex-shrink: 0;
+    text-align: center;
+    min-width: 80px;
+}
+
+.rp-number {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--forest);
+    line-height: 1;
+}
+
+.rp-unit {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.rp-trend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.rp-trend-improving {
+    color: #3a9a8e;
+}
+
+.rp-trend-stable {
+    color: var(--gold);
+}
+
+.rp-trend-declining {
+    color: #c4584c;
+}
+
+.rp-insight {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Responsive: stack recovery pulse below rings on narrow screens */
+@media (max-width: 768px) {
+    .rings-container {
+        flex-wrap: wrap;
+    }
+
+    .recovery-pulse-widget {
+        border-left: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 16px 0 0 0;
+        width: 100%;
+    }
 }
 
 /* ==========================================================
@@ -1267,4 +1384,193 @@
 
 .quiet-hours-row span {
     color: var(--text-muted);
+}
+
+/* ==========================================================
+   14. FIRST LIGHT — Interactive Discovery Quest Panel
+   ========================================================== */
+
+.first-light-panel {
+    position: fixed;
+    top: 80px;
+    right: 16px;
+    width: 260px;
+    z-index: 200;
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.first-light-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.first-light-star {
+    font-size: 18px;
+    color: var(--gold);
+}
+
+.first-light-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.first-light-collapse {
+    background: none;
+    border: none;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    transition: transform 0.3s ease;
+}
+
+.first-light-panel.collapsed .first-light-collapse {
+    transform: rotate(180deg);
+}
+
+.first-light-body {
+    padding: 10px 14px 14px;
+    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+    max-height: 500px;
+    opacity: 1;
+    overflow: hidden;
+}
+
+.first-light-panel.collapsed .first-light-body {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.first-light-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+    font-style: italic;
+}
+
+.first-light-progress-wrap {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.first-light-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--forest), var(--gold));
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.first-light-progress-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 10px;
+}
+
+.first-light-tasks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.first-light-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    transition: background 0.2s ease;
+}
+
+.first-light-task:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.first-light-check {
+    font-size: 16px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: color 0.3s ease;
+}
+
+.first-light-task.completed .first-light-check {
+    color: var(--forest);
+}
+
+.first-light-task.completed .first-light-task-label {
+    text-decoration: line-through;
+    color: var(--text-muted);
+}
+
+.first-light-reward {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(184, 151, 92, 0.08);
+    border: 1px solid rgba(184, 151, 92, 0.15);
+    border-radius: 8px;
+}
+
+.first-light-reward-icon {
+    font-size: 18px;
+}
+
+.first-light-reward-text {
+    font-size: 12px;
+    color: var(--gold-dark);
+    font-weight: 500;
+}
+
+/* Grove highlight animation for quest completion */
+@keyframes first-light-grove-highlight {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(184, 151, 92, 0); }
+    50% { box-shadow: 0 0 20px 4px rgba(184, 151, 92, 0.35); }
+}
+
+.grove-highlight {
+    animation: first-light-grove-highlight 1.5s ease-in-out 2;
+    border-color: var(--gold) !important;
+}
+
+/* Responsive: quest panel as bottom sheet on narrow screens */
+@media (max-width: 768px) {
+    .first-light-panel {
+        position: fixed;
+        top: auto;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 14px 14px 0 0;
+        max-height: 60vh;
+        overflow-y: auto;
+    }
 }
