@@ -7,8 +7,10 @@ Includes:
 - Indeterminate zone detection for borderline readings
 - Quantized-output consistency checking
 """
+import logging
 import sys
 import traceback
+import hashlib
 import numpy as np
 import soundfile as sf
 import torch
@@ -17,7 +19,10 @@ from pathlib import Path
 from typing import Dict, Optional
 import app_config as config
 
+logger = logging.getLogger('attune.dam')
+
 DAM_PATH = config.DAM_DIR
+DAM_HASH_FILE = Path(config.DATA_DIR) / '.dam_model_hash'
 
 # Import score mapper (lives in dam/ directory)
 sys.path.insert(0, str(DAM_PATH))
@@ -53,6 +58,34 @@ def _check_consistency(mapped: float, quantized: int, range_map: dict) -> bool:
     return lo <= mapped <= hi
 
 
+def _compute_dam_checksum() -> str:
+    """Compute SHA-256 over all model files in DAM_PATH (sorted for determinism)."""
+    h = hashlib.sha256()
+    model_files = sorted(Path(DAM_PATH).rglob('*.bin')) + sorted(Path(DAM_PATH).rglob('*.pt'))
+    for fp in model_files:
+        h.update(fp.read_bytes())
+    return h.hexdigest()
+
+
+def _verify_dam_integrity():
+    """Verify DAM model files haven't changed. Save hash on first run, warn on mismatch."""
+    try:
+        current_hash = _compute_dam_checksum()
+        if DAM_HASH_FILE.exists():
+            saved_hash = DAM_HASH_FILE.read_text().strip()
+            if saved_hash != current_hash:
+                logger.warning(f"Model checksum mismatch! "
+                               f"Expected {saved_hash[:16]}..., got {current_hash[:16]}... "
+                               f"Model files may have been modified or corrupted.")
+            else:
+                logger.info("Model integrity verified (SHA-256 match)")
+        else:
+            DAM_HASH_FILE.write_text(current_hash)
+            logger.info(f"Model hash saved for future verification: {current_hash[:16]}...")
+    except Exception as e:
+        logger.warning(f"Could not verify model integrity: {e}")
+
+
 class DAMAnalyzer:
     def __init__(self):
         self.pipeline = None
@@ -61,7 +94,7 @@ class DAMAnalyzer:
     def _load_model(self):
         """Load DAM pipeline with sys.path isolation"""
         try:
-            print("[DAM] Loading DAM model...")
+            logger.info("Loading DAM model...")
             # Temporarily add DAM to sys.path, import, then restore
             saved_path = sys.path[:]
             sys.path.insert(0, str(DAM_PATH))
@@ -87,10 +120,11 @@ class DAMAnalyzer:
                 self.pipeline = Pipeline()
             finally:
                 sys.path[:] = saved_path
-            print("[DAM] DAM model loaded successfully")
+            _verify_dam_integrity()
+            logger.info("DAM model loaded successfully")
         except Exception as e:
-            print(f"[DAM] Error loading DAM model: {e}")
-            print(f"[DAM] Make sure the DAM repository is cloned at: {DAM_PATH}")
+            logger.error(f"Error loading DAM model: {e}")
+            logger.error(f"Make sure the DAM repository is cloned at: {DAM_PATH}")
             raise
 
     def analyze(self, audio: np.ndarray, sample_rate: int = 16000) -> Optional[Dict[str, float]]:
@@ -186,15 +220,15 @@ class DAMAnalyzer:
                 flags.append("INCONSISTENT")
             flag_str = f" [{', '.join(flags)}]" if flags else ""
 
-            print(f"[DAM] Analyzed {duration:.1f}s - "
-                  f"Depression: {dep_raw:.2f} -> PHQ-9 {dep_mapped:.1f} [{dep_ci_lo:.1f}-{dep_ci_hi:.1f}] (Q{dep_q}), "
-                  f"Anxiety: {anx_raw:.2f} -> GAD-7 {anx_mapped:.1f} [{anx_ci_lo:.1f}-{anx_ci_hi:.1f}] (Q{anx_q})"
-                  f"{flag_str}")
+            logger.info(f"Analyzed {duration:.1f}s - "
+                        f"Depression: {dep_raw:.2f} -> PHQ-9 {dep_mapped:.1f} [{dep_ci_lo:.1f}-{dep_ci_hi:.1f}] (Q{dep_q}), "
+                        f"Anxiety: {anx_raw:.2f} -> GAD-7 {anx_mapped:.1f} [{anx_ci_lo:.1f}-{anx_ci_hi:.1f}] (Q{anx_q})"
+                        f"{flag_str}")
 
             return output
 
         except Exception as e:
-            print(f"[DAM] Error during analysis: {e}")
+            logger.error(f"Error during analysis: {e}")
             traceback.print_exc()
             return None
 

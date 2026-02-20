@@ -3,11 +3,14 @@ The Pulse — Proactive Notification Engine for Attune
 Delivers macOS notifications for zone transitions, threshold alerts,
 milestones, Voice Weather (morning), and Curtain Call (end-of-day).
 """
+import logging
 import subprocess
 import threading
 import time
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Any, Optional
+
+logger = logging.getLogger('attune.notifications')
 
 
 class NotificationManager:
@@ -62,7 +65,7 @@ class NotificationManager:
             self.db.log_notification(notif_type, title, message)
             return True
         except Exception as e:
-            print(f"[Notifications] Failed to send: {e}")
+            logger.error(f"Failed to send: {e}")
             return False
 
     def _can_send(self, notif_type: str) -> bool:
@@ -327,7 +330,7 @@ class NotificationManager:
 
             self._curtain_sent_today = True
         except Exception as e:
-            print(f"[Notifications] Curtain call error: {e}")
+            logger.error(f"Curtain call error: {e}")
 
         # Schedule for tomorrow
         self._schedule_next_curtain()
@@ -366,6 +369,7 @@ class NotificationManager:
         Called after every new reading is saved.
         Dispatches to all notification checks.
         """
+        self._check_daily_reset()
         today = date.today()
 
         # Check if this is the first reading of the day
@@ -402,6 +406,13 @@ class NotificationManager:
     # ================================================================
     #  Reset Daily State
     # ================================================================
+
+    def _check_daily_reset(self):
+        """Auto-reset daily state if the date has changed."""
+        today = date.today()
+        if self._last_weather_date is not None and self._last_weather_date < today:
+            logger.info(f"New day detected ({today}), resetting daily state")
+            self.reset_daily_state()
 
     def reset_daily_state(self):
         """Reset daily flags. Call at midnight or app startup."""

@@ -26,12 +26,16 @@ meeting_detector = None
 insight_engine = None
 notification_manager = None
 
+# Daily summary cache (avoids recomputing on every GET /api/today)
+_daily_summary_cache = None
+_daily_summary_reading_count = None
+
 app = FastAPI(title="Attune API")
 
 # CORS middleware for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:8765", "http://localhost:8765"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -115,8 +119,13 @@ async def get_today():
             'low_confidence': latest.get('low_confidence', 0),
         }
 
-    # Get daily summary
-    summary = db.compute_daily_summary()
+    # Get daily summary (cached if reading count unchanged)
+    global _daily_summary_cache, _daily_summary_reading_count
+    reading_count = len(readings)
+    if reading_count != _daily_summary_reading_count:
+        _daily_summary_cache = db.compute_daily_summary()
+        _daily_summary_reading_count = reading_count
+    summary = _daily_summary_cache
 
     # Get calibration status
     if orchestrator:
@@ -1045,8 +1054,13 @@ async def api_v1_readings(request: Request, limit: int = 50):
 
 
 @app.get("/api/v1/token")
-async def get_api_token():
+async def get_api_token(request: Request):
     """Get or generate the API token (for settings display)"""
+    # Only allow from localhost
+    client_host = request.client.host if request.client else None
+    if client_host not in ("127.0.0.1", "::1", "localhost"):
+        raise HTTPException(status_code=403, detail="Token endpoint is localhost-only")
+
     if db is None:
         raise HTTPException(status_code=500, detail="Not initialized")
 

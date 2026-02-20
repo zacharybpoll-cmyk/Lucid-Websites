@@ -9,11 +9,14 @@ Two-tier trigger system:
 
 Also tracks VAD confidence per chunk for quality gating.
 """
+import logging
 import time
 import numpy as np
 from collections import deque
 from typing import Optional, Callable, Tuple
 import app_config as config
+
+logger = logging.getLogger('attune.speech_buffer')
 
 
 class SpeechBuffer:
@@ -40,7 +43,7 @@ class SpeechBuffer:
         self.grace_period_sec = grace_period_sec
         self.on_threshold_callback = on_threshold_callback
 
-        self.speech_chunks: deque = deque()  # (chunk, confidence) tuples
+        self.speech_chunks: deque = deque(maxlen=3000)  # (chunk, confidence) tuples
         self.total_speech_samples = 0
 
         # Grace period tracking
@@ -61,21 +64,21 @@ class SpeechBuffer:
 
         # Hard trigger at preferred duration (60s) — optimal reliability
         if self.total_speech_samples >= self.preferred_samples:
-            print(f"[SpeechBuffer] Preferred duration reached ({config.PREFERRED_SPEECH_SEC}s)")
+            logger.info(f"Preferred duration reached ({config.PREFERRED_SPEECH_SEC}s)")
             self._trigger_analysis()
             return
 
         # Force trigger at max buffer (90s)
         if self.total_speech_samples >= self.max_buffer_samples:
-            print(f"[SpeechBuffer] Max buffer reached ({config.BUFFER_SIZE_SEC}s), force-triggering")
+            logger.info(f"Max buffer reached ({config.BUFFER_SIZE_SEC}s), force-triggering")
             self._trigger_analysis()
             return
 
         # Soft trigger at threshold (30s) — start grace period
         if self.total_speech_samples >= self.threshold_samples and not self._soft_triggered:
             self._soft_triggered = True
-            print(f"[SpeechBuffer] Soft trigger at {config.SPEECH_THRESHOLD_SEC}s, "
-                  f"grace period {self.grace_period_sec}s")
+            logger.info(f"Soft trigger at {config.SPEECH_THRESHOLD_SEC}s, "
+                        f"grace period {self.grace_period_sec}s")
 
     def check_grace_timeout(self):
         """
@@ -90,8 +93,8 @@ class SpeechBuffer:
         elapsed = time.monotonic() - self._last_chunk_time
         if elapsed >= self.grace_period_sec:
             duration = self.total_speech_samples / self.sample_rate
-            print(f"[SpeechBuffer] Grace timeout ({elapsed:.1f}s silence), "
-                  f"analyzing {duration:.1f}s of speech")
+            logger.info(f"Grace timeout ({elapsed:.1f}s silence), "
+                        f"analyzing {duration:.1f}s of speech")
             self._trigger_analysis()
 
     def _trigger_analysis(self):
@@ -105,8 +108,8 @@ class SpeechBuffer:
             duration_sec = len(speech_audio) / self.sample_rate
             mean_vad_confidence = float(np.mean(confidences)) if confidences else 1.0
 
-            print(f"[SpeechBuffer] Triggering analysis with {duration_sec:.1f}s of speech "
-                  f"(VAD confidence: {mean_vad_confidence:.2f})")
+            logger.info(f"Triggering analysis with {duration_sec:.1f}s of speech "
+                        f"(VAD confidence: {mean_vad_confidence:.2f})")
 
             # Callback with audio, duration, and VAD confidence
             self.on_threshold_callback(speech_audio, duration_sec, mean_vad_confidence)

@@ -1,12 +1,17 @@
 """
 Audio capture using sounddevice
 Continuously captures microphone input in background thread
+Includes device monitoring with automatic disconnect detection and reconnection
 """
+import logging
 import sounddevice as sd
 import numpy as np
 from typing import Callable, Optional
 import queue
+import threading
 import app_config as config
+
+logger = logging.getLogger('attune.audio')
 
 class AudioCapture:
     def __init__(self,
@@ -31,13 +36,84 @@ class AudioCapture:
         self.is_running = False
         self.audio_queue = queue.Queue()
 
+        # Device monitor for disconnect detection/recovery
+        self._device_monitor_thread = None
+        self._monitor_stop = threading.Event()
+        self._on_disconnect_callback = None
+        self._on_reconnect_callback = None
+
+    def set_disconnect_callback(self, on_disconnect=None, on_reconnect=None):
+        """Set callbacks for mic disconnect/reconnect events."""
+        self._on_disconnect_callback = on_disconnect
+        self._on_reconnect_callback = on_reconnect
+
+    def _start_device_monitor(self):
+        """Start background thread to monitor audio device availability."""
+        self._monitor_stop.clear()
+        self._device_monitor_thread = threading.Thread(
+            target=self._monitor_device, daemon=True)
+        self._device_monitor_thread.start()
+
+    def _monitor_device(self):
+        """Poll for audio device availability every 5 seconds."""
+        while not self._monitor_stop.is_set():
+            self._monitor_stop.wait(5.0)
+            if self._monitor_stop.is_set():
+                break
+            if self.is_running:
+                try:
+                    sd.query_devices(kind='input')
+                except Exception:
+                    logger.error("Input device lost!")
+                    self._handle_disconnect()
+
+    def _handle_disconnect(self):
+        """Handle mic disconnect with exponential backoff reconnection."""
+        self.is_running = False
+        if self.stream:
+            try:
+                self.stream.stop()
+                self.stream.close()
+            except Exception:
+                pass
+            self.stream = None
+
+        if self._on_disconnect_callback:
+            try:
+                self._on_disconnect_callback()
+            except Exception:
+                pass
+
+        # Attempt reconnection with exponential backoff: 2, 4, 8, 16, 32 seconds
+        for attempt in range(5):
+            delay = 2 ** (attempt + 1)
+            logger.info(f"Reconnection attempt {attempt + 1}/5 in {delay}s...")
+            self._monitor_stop.wait(delay)
+            if self._monitor_stop.is_set():
+                return
+
+            try:
+                sd.query_devices(kind='input')
+                self.start()
+                logger.info("Reconnected successfully!")
+                if self._on_reconnect_callback:
+                    try:
+                        self._on_reconnect_callback()
+                    except Exception:
+                        pass
+                return
+            except Exception as e:
+                logger.warning(f"Reconnection attempt {attempt + 1} failed: {e}")
+
+        logger.error("All reconnection attempts failed")
+
     def _audio_callback(self, indata, frames, time, status):
         """
         Callback for sounddevice InputStream
         Runs in separate thread
         """
         if status:
-            print(f"[AudioCapture] Status: {status}")
+            logger.warning(f"Status: {status}")
 
         # Copy audio data (indata is a view, needs to be copied)
         audio_chunk = indata.copy().flatten()
@@ -47,22 +123,22 @@ class AudioCapture:
             try:
                 self.on_audio_callback(audio_chunk)
             except Exception as e:
-                print(f"[AudioCapture] Error in callback: {e}")
+                logger.error(f"Error in callback: {e}")
 
     def start(self):
         """Start audio capture"""
         if self.is_running:
-            print("[AudioCapture] Already running")
+            logger.warning("Already running")
             return
 
         try:
-            print(f"[AudioCapture] Starting audio capture at {self.sample_rate}Hz, {self.channels} channel(s)")
-            print(f"[AudioCapture] Chunk size: {self.chunk_size} samples ({self.chunk_duration_ms}ms)")
+            logger.info(f"Starting audio capture at {self.sample_rate}Hz, {self.channels} channel(s)")
+            logger.info(f"Chunk size: {self.chunk_size} samples ({self.chunk_duration_ms}ms)")
 
             # List available devices
             devices = sd.query_devices()
             default_input = sd.query_devices(kind='input')
-            print(f"[AudioCapture] Using input device: {default_input['name']}")
+            logger.info(f"Using input device: {default_input['name']}")
 
             self.stream = sd.InputStream(
                 samplerate=self.sample_rate,
@@ -74,10 +150,13 @@ class AudioCapture:
 
             self.stream.start()
             self.is_running = True
-            print("[AudioCapture] Audio capture started successfully")
+            logger.info("Audio capture started successfully")
+
+            # Start device monitor for disconnect detection
+            self._start_device_monitor()
 
         except Exception as e:
-            print(f"[AudioCapture] Error starting audio capture: {e}")
+            logger.error(f"Error starting audio capture: {e}")
             raise
 
     def stop(self):
@@ -85,28 +164,32 @@ class AudioCapture:
         if not self.is_running:
             return
 
-        print("[AudioCapture] Stopping audio capture")
+        logger.info("Stopping audio capture")
+
+        # Stop device monitor thread
+        self._monitor_stop.set()
+
         if self.stream:
             self.stream.stop()
             self.stream.close()
             self.stream = None
 
         self.is_running = False
-        print("[AudioCapture] Audio capture stopped")
+        logger.info("Audio capture stopped")
 
     def pause(self):
         """Pause audio capture"""
         if self.stream and self.is_running:
             self.stream.stop()
             self.is_running = False
-            print("[AudioCapture] Audio capture paused")
+            logger.info("Audio capture paused")
 
     def resume(self):
         """Resume audio capture"""
         if self.stream and not self.is_running:
             self.stream.start()
             self.is_running = True
-            print("[AudioCapture] Audio capture resumed")
+            logger.info("Audio capture resumed")
 
     def get_device_info(self):
         """Get information about audio devices"""

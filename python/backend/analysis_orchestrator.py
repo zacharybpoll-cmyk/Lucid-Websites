@@ -8,6 +8,7 @@ Includes:
 - Grace period checking for speech pauses
 - Speaker isolation: enrollment gate + RMS filter + segment-level speaker gating
 """
+import logging
 import threading
 import time
 import numpy as np
@@ -20,6 +21,8 @@ from backend.score_engine import ScoreEngine
 from backend.baseline_calibrator import BaselineCalibrator
 from backend.database import Database
 import app_config as config
+
+logger = logging.getLogger('attune.orchestrator')
 
 
 class AnalysisOrchestrator:
@@ -103,13 +106,17 @@ class AnalysisOrchestrator:
         from backend.dam_analyzer import DAMAnalyzer
         from backend.speaker_verifier import SpeakerVerifier
 
-        print("[Orchestrator] Loading VAD model...")
+        logger.info("Loading VAD model...")
         self.vad_processor = VADProcessor(sample_rate=config.SAMPLE_RATE)
 
-        print("[Orchestrator] Loading DAM model...")
-        self.dam_analyzer = DAMAnalyzer()
+        logger.info("Loading DAM model...")
+        try:
+            self.dam_analyzer = DAMAnalyzer()
+        except Exception as e:
+            logger.warning(f"DAM model failed to load (non-fatal): {e}")
+            self.dam_analyzer = None
 
-        print("[Orchestrator] Loading Speaker Verification model...")
+        logger.info("Loading Speaker Verification model...")
         try:
             self.speaker_verifier = SpeakerVerifier(db=self.db)
             self.speaker_verifier.load_model()
@@ -118,11 +125,11 @@ class AnalysisOrchestrator:
             if self.speaker_verifier.is_enrolled():
                 self._init_speaker_gate()
         except Exception as e:
-            print(f"[Orchestrator] Speaker verifier failed to load (non-fatal): {e}")
+            logger.warning(f"Speaker verifier failed to load (non-fatal): {e}")
             self.speaker_verifier = None
 
         self.models_ready.set()
-        print("[Orchestrator] All models loaded and ready")
+        logger.info("All models loaded and ready")
 
     def _init_speaker_gate(self):
         """Initialize segment-level speaker gate."""
@@ -134,7 +141,7 @@ class AnalysisOrchestrator:
             sample_rate=config.SAMPLE_RATE,
             on_verified_callback=self._on_gate_verified_chunk,
         )
-        print("[Orchestrator] Speaker gate initialized (segment-level verification active)")
+        logger.info("Speaker gate initialized (segment-level verification active)")
 
     def _on_gate_verified_chunk(self, audio_chunk: np.ndarray, vad_confidence: float):
         """Callback from SpeakerGate — verified chunks pass through to SpeechBuffer."""
@@ -161,7 +168,7 @@ class AnalysisOrchestrator:
         if config.SPEAKER_ENROLLMENT_REQUIRED:
             if not (self.speaker_verifier and self.speaker_verifier.is_enrolled()):
                 if not self._enrollment_warned:
-                    print("[Orchestrator] Voice profile required — analysis blocked until enrollment")
+                    logger.warning("Voice profile required — analysis blocked until enrollment")
                     self._enrollment_warned = True
                 self._vad_stats['enrollment_blocked'] += 1
                 return
@@ -206,9 +213,9 @@ class AnalysisOrchestrator:
                 extra += (f" | Gate: {gate_stats['segments_verified']}v/"
                           f"{gate_stats['segments_rejected']}r")
 
-            print(f"[VAD Stats] {rate:.0f}% speech ({speech_count}/{total} chunks) | "
-                  f"Buffer: {buffered:.1f}s/{config.SPEECH_THRESHOLD_SEC}s | "
-                  f"Peak level: {peak:.4f}{extra}")
+            logger.debug(f"{rate:.0f}% speech ({speech_count}/{total} chunks) | "
+                        f"Buffer: {buffered:.1f}s/{config.SPEECH_THRESHOLD_SEC}s | "
+                        f"Peak level: {peak:.4f}{extra}")
             self._vad_stats = {
                 'chunks': 0, 'speech': 0, 'rms_rejected': 0,
                 'enrollment_blocked': 0, 'last_report': now
@@ -227,8 +234,8 @@ class AnalysisOrchestrator:
             return
 
         self._is_analyzing = True
-        print(f"[Orchestrator] Starting analysis of {duration_sec:.1f}s speech segment "
-              f"(VAD confidence: {vad_confidence:.2f})")
+        logger.info(f"Starting analysis of {duration_sec:.1f}s speech segment "
+                    f"(VAD confidence: {vad_confidence:.2f})")
 
         # Buffer-level speaker verification (safety net)
         speaker_verified = -1   # -1 = not enrolled (pass-through)
@@ -238,18 +245,18 @@ class AnalysisOrchestrator:
             speaker_verified = 1 if verified else 0
             speaker_similarity = similarity
             if not verified:
-                print(f"[Orchestrator] Speaker rejected at buffer level "
-                      f"(similarity={similarity:.3f}), skipping segment")
+                logger.info(f"Speaker rejected at buffer level "
+                            f"(similarity={similarity:.3f}), skipping segment")
                 self._is_analyzing = False
                 return
-            print(f"[Orchestrator] Speaker verified (similarity={similarity:.3f})")
+            logger.info(f"Speaker verified (similarity={similarity:.3f})")
 
         try:
             # Run DAM analysis
             dam_output = self.dam_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
 
             if dam_output is None:
-                print("[Orchestrator] DAM analysis returned None (error), skipping this segment")
+                logger.warning("DAM analysis returned None (error), skipping this segment")
                 self._is_analyzing = False
                 return
 
@@ -262,7 +269,7 @@ class AnalysisOrchestrator:
             # Determine low-confidence flag (Step 4)
             low_confidence = 1 if vad_confidence < 0.65 else 0
             if low_confidence:
-                print(f"[Orchestrator] Low VAD confidence ({vad_confidence:.2f}) — flagging reading")
+                logger.info(f"Low VAD confidence ({vad_confidence:.2f}) — flagging reading")
 
             # Combine all data for database
             reading = {
@@ -301,9 +308,9 @@ class AnalysisOrchestrator:
                 flags.append("low_vad")
             flag_str = f" [{', '.join(flags)}]" if flags else ""
 
-            print(f"[Orchestrator] Saved reading #{reading_id} - "
-                  f"Zone: {scores['zone']}, Mood: {scores['mood_score']:.0f}, "
-                  f"Stress: {scores['stress_score']:.0f}{flag_str}")
+            logger.info(f"Saved reading #{reading_id} - "
+                        f"Zone: {scores['zone']}, Mood: {scores['mood_score']:.0f}, "
+                        f"Stress: {scores['stress_score']:.0f}{flag_str}")
 
             # Update baselines (for calibration)
             self.calibrator.update_baselines()
@@ -316,13 +323,13 @@ class AnalysisOrchestrator:
                 try:
                     self.notification_manager.on_new_reading(reading)
                 except Exception as ne:
-                    print(f"[Orchestrator] Notification error: {ne}")
+                    logger.error(f"Notification error: {ne}")
 
             self._is_analyzing = False
 
         except Exception as e:
             self._is_analyzing = False
-            print(f"[Orchestrator] Error during analysis: {e}")
+            logger.error(f"Error during analysis: {e}")
             import traceback
             traceback.print_exc()
 
@@ -330,7 +337,7 @@ class AnalysisOrchestrator:
         """Called after voice enrollment finishes. Initializes speaker gate."""
         self._enrollment_warned = False
         self._init_speaker_gate()
-        print("[Orchestrator] Enrollment complete — speaker gate activated")
+        logger.info("Enrollment complete — speaker gate activated")
 
     def on_profile_deleted(self):
         """Called after voice profile is deleted. Tears down speaker gate."""
@@ -338,7 +345,7 @@ class AnalysisOrchestrator:
             self.speaker_gate.stop()
             self.speaker_gate = None
         self._enrollment_warned = False
-        print("[Orchestrator] Voice profile deleted — speaker gate deactivated")
+        logger.info("Voice profile deleted — speaker gate deactivated")
 
     def _grace_check_loop(self):
         """Background thread to check grace period timeout on speech buffer."""
@@ -350,10 +357,10 @@ class AnalysisOrchestrator:
     def start(self):
         """Start the analysis pipeline"""
         if self.is_running:
-            print("[Orchestrator] Already running")
+            logger.warning("Already running")
             return
 
-        print("[Orchestrator] Starting analysis pipeline")
+        logger.info("Starting analysis pipeline")
         self.is_running = True
         self.is_paused = False
 
@@ -370,18 +377,18 @@ class AnalysisOrchestrator:
         if config.SPEAKER_ENROLLMENT_REQUIRED:
             enrolled = self.speaker_verifier and self.speaker_verifier.is_enrolled()
             if enrolled:
-                print("[Orchestrator] Analysis pipeline started (voice profile active)")
+                logger.info("Analysis pipeline started (voice profile active)")
             else:
-                print("[Orchestrator] Analysis pipeline started (awaiting voice enrollment)")
+                logger.info("Analysis pipeline started (awaiting voice enrollment)")
         else:
-            print("[Orchestrator] Analysis pipeline started")
+            logger.info("Analysis pipeline started")
 
     def stop(self):
         """Stop the analysis pipeline"""
         if not self.is_running:
             return
 
-        print("[Orchestrator] Stopping analysis pipeline")
+        logger.info("Stopping analysis pipeline")
         self.is_running = False
 
         # Stop grace period checker
@@ -398,24 +405,24 @@ class AnalysisOrchestrator:
         # Clear speech buffer
         self.speech_buffer.clear()
 
-        print("[Orchestrator] Analysis pipeline stopped")
+        logger.info("Analysis pipeline stopped")
 
     def pause(self):
         """Pause analysis (stop accumulating speech)"""
         self.is_paused = True
-        print("[Orchestrator] Analysis paused")
+        logger.info("Analysis paused")
 
     def resume(self):
         """Resume analysis"""
         self.is_paused = False
-        print("[Orchestrator] Analysis resumed")
+        logger.info("Analysis resumed")
 
     def set_meeting_active(self, active: bool):
         """Set whether a meeting is currently active"""
         with self.meeting_lock:
             self.meeting_active = active
             status = "started" if active else "ended"
-            print(f"[Orchestrator] Meeting {status}")
+            logger.info(f"Meeting {status}")
 
     def get_status(self) -> dict:
         """Get current orchestrator status"""

@@ -3,6 +3,13 @@
  * Handles view routing, data fetching, UI updates, and all 10 engagement features
  */
 
+// Sanitize user-controlled strings before innerHTML interpolation
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // State
 let currentView = 'today';
 let todayData = null;
@@ -179,6 +186,9 @@ function updateCurrentDate() {
 // ========== Polling ==========
 
 function startPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+    if (statusPollInterval) clearInterval(statusPollInterval);
+
     pollInterval = setInterval(() => {
         if (currentView === 'today') {
             loadTodayData();
@@ -187,6 +197,11 @@ function startPolling() {
 
     pollStatus();
     statusPollInterval = setInterval(pollStatus, 2000);
+}
+
+function stopPolling() {
+    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+    if (statusPollInterval) { clearInterval(statusPollInterval); statusPollInterval = null; }
 }
 
 async function pollStatus() {
@@ -724,7 +739,7 @@ async function loadEchoes() {
                 <div class="echo-item ${echo.seen ? '' : 'echo-new'}">
                     <span class="echo-icon">\u{2728}</span>
                     <div class="echo-content">
-                        <span class="echo-message">${echo.message}</span>
+                        <span class="echo-message">${sanitizeHTML(echo.message)}</span>
                         <span class="echo-date">${dateStr}</span>
                     </div>
                 </div>`;
@@ -760,10 +775,10 @@ async function loadCompass() {
             </div>`;
 
         if (data.biggest_positive) {
-            html += `<div class="compass-change compass-positive">+ ${data.biggest_positive}</div>`;
+            html += `<div class="compass-change compass-positive">+ ${sanitizeHTML(data.biggest_positive)}</div>`;
         }
         if (data.biggest_negative) {
-            html += `<div class="compass-change compass-negative">- ${data.biggest_negative}</div>`;
+            html += `<div class="compass-change compass-negative">- ${sanitizeHTML(data.biggest_negative)}</div>`;
         }
 
         // Intention input
@@ -772,7 +787,7 @@ async function loadCompass() {
             <div class="compass-intention-row">
                 <input type="text" class="compass-intention-input" id="compass-intention-input"
                     placeholder="e.g., Take a 5-min break after meetings"
-                    value="${data.intention || ''}" maxlength="120" />
+                    value="${sanitizeHTML(data.intention || '')}" maxlength="120" />
                 <button class="btn btn-primary compass-intention-btn" onclick="saveIntention()">Set</button>
             </div>
         </div>`;
@@ -815,7 +830,7 @@ async function loadCapsules() {
             html += `
                 <div class="capsule-item">
                     <span class="capsule-icon">\u{1F4E6}</span>
-                    <span class="capsule-message">${capsule.message}</span>
+                    <span class="capsule-message">${sanitizeHTML(capsule.message)}</span>
                 </div>`;
         }
 
@@ -866,9 +881,9 @@ async function loadWaypoints() {
 
             for (const wp of wps) {
                 const cls = wp.achieved ? 'waypoint-item achieved' : 'waypoint-item locked';
-                html += `<div class="${cls}" title="${wp.description}">
+                html += `<div class="${cls}" title="${sanitizeHTML(wp.description)}">
                     <div class="waypoint-dot">${wp.achieved ? '\u2713' : '\u25CB'}</div>
-                    <span class="waypoint-name">${wp.name}</span>
+                    <span class="waypoint-name">${sanitizeHTML(wp.name)}</span>
                 </div>`;
             }
 
@@ -1116,13 +1131,13 @@ function renderStructuredBriefing(card, data) {
             html += `
                 <div class="briefing-metric-item">
                     <div class="metric-label-row">
-                        <span class="metric-name">${m.label}</span>
+                        <span class="metric-name">${sanitizeHTML(m.label)}</span>
                         <span class="metric-value">${m.value}/${m.max}</span>
                     </div>
                     <div class="metric-bar-track">
                         <div class="metric-bar-fill ${barClass}" style="width: ${pct}%"></div>
                     </div>
-                    <span class="metric-interpretation">${m.interpretation}</span>
+                    <span class="metric-interpretation">${sanitizeHTML(m.interpretation)}</span>
                 </div>`;
         }
         metricsGrid.innerHTML = html;
@@ -1158,7 +1173,7 @@ function renderStructuredBriefing(card, data) {
 
     const highlightsList = card.querySelector('.briefing-highlights-list');
     if (highlightsList && data.highlights) {
-        highlightsList.innerHTML = data.highlights.map(h => `<li>${h}</li>`).join('');
+        highlightsList.innerHTML = data.highlights.map(h => `<li>${sanitizeHTML(h)}</li>`).join('');
     }
 
     const coachText = card.querySelector('.briefing-coach-text');
@@ -1308,9 +1323,9 @@ async function loadFirstSpark() {
         let html = '';
 
         if (data.narrative) {
-            html += `<p class="spark-narrative">${data.narrative}</p>`;
+            html += `<p class="spark-narrative">${sanitizeHTML(data.narrative)}</p>`;
             if (data.percentile_text) {
-                html += `<div class="spark-percentile">${data.percentile_text}</div>`;
+                html += `<div class="spark-percentile">${sanitizeHTML(data.percentile_text)}</div>`;
             }
         }
 
@@ -1323,8 +1338,8 @@ async function loadFirstSpark() {
                 const cls = (data.days_active >= u.day) ? 'spark-unlock achieved' : 'spark-unlock locked';
                 html += `<div class="${cls}">
                     <span class="spark-day">${dayLabel}</span>
-                    <span class="spark-unlock-label">${u.label}</span>
-                    <span class="spark-unlock-desc">${u.desc}</span>
+                    <span class="spark-unlock-label">${sanitizeHTML(u.label)}</span>
+                    <span class="spark-unlock-desc">${sanitizeHTML(u.desc)}</span>
                 </div>`;
             }
             html += '</div>';
@@ -1366,7 +1381,7 @@ async function loadWeeklyWrapped() {
         const trendColor = data.canopy.trend > 0 ? 'var(--calm-color)' : data.canopy.trend < 0 ? 'var(--stressed-color)' : 'var(--gold)';
 
         let html = `
-            <div class="wrapped-summary-line">${data.summary_line}</div>
+            <div class="wrapped-summary-line">${sanitizeHTML(data.summary_line)}</div>
             <div class="wrapped-canopy">
                 <span class="wrapped-canopy-score">${data.canopy.avg}</span>
                 <span class="wrapped-canopy-label">Avg Canopy</span>
@@ -1375,12 +1390,12 @@ async function loadWeeklyWrapped() {
             <div class="wrapped-days">
                 <div class="wrapped-day-stat wrapped-best">
                     <span class="wrapped-day-label">Calmest</span>
-                    <span class="wrapped-day-name">${data.best_day.label}</span>
+                    <span class="wrapped-day-name">${sanitizeHTML(data.best_day.label)}</span>
                     <span class="wrapped-day-val">Stress ${data.best_day.stress}</span>
                 </div>
                 <div class="wrapped-day-stat wrapped-worst">
                     <span class="wrapped-day-label">Toughest</span>
-                    <span class="wrapped-day-name">${data.worst_day.label}</span>
+                    <span class="wrapped-day-name">${sanitizeHTML(data.worst_day.label)}</span>
                     <span class="wrapped-day-val">Stress ${data.worst_day.stress}</span>
                 </div>
             </div>
@@ -1397,11 +1412,11 @@ async function loadWeeklyWrapped() {
         html += `</div>
             <div class="wrapped-stats">
                 <span>Rings closed: ${data.rings_closed}/7 days</span>
-                <span>Compass: ${data.compass_direction}</span>
+                <span>Compass: ${sanitizeHTML(data.compass_direction)}</span>
             </div>`;
 
         if (data.top_echo) {
-            html += `<div class="wrapped-echo">Top insight: "${data.top_echo}"</div>`;
+            html += `<div class="wrapped-echo">Top insight: "${sanitizeHTML(data.top_echo)}"</div>`;
         }
 
         content.innerHTML = html;
@@ -1620,7 +1635,7 @@ function renderMorningSummary(data) {
     // Highlights
     const highlightsList = document.getElementById('morning-highlights-list');
     if (highlightsList && briefing.highlights && briefing.highlights.length > 0) {
-        highlightsList.innerHTML = briefing.highlights.map(h => `<li>${h}</li>`).join('');
+        highlightsList.innerHTML = briefing.highlights.map(h => `<li>${sanitizeHTML(h)}</li>`).join('');
     }
 
     // Coach note

@@ -2,10 +2,13 @@
 The Bridge — Webhook Manager for Attune
 Dispatches POST requests to registered webhook URLs when conditions are met.
 """
+import logging
 import threading
 import time
 from typing import Dict, List, Any, Optional
 import json
+
+logger = logging.getLogger('attune.webhook')
 
 
 class WebhookManager:
@@ -73,7 +76,7 @@ class WebhookManager:
                 if attempt == 0:
                     time.sleep(5)  # Retry after 5s
                 else:
-                    print(f"[Webhook] Failed to deliver to {url}: {e}")
+                    logger.error(f"Failed to deliver to {url}: {e}")
 
     def on_reading(self, reading: Dict[str, Any]):
         """Dispatch reading-related webhooks."""

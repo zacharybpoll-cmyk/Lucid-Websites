@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://127.0.0.1:8765; script-src 'self' https://cdn.plot.ly 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8765;">
     <title>Attune</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,7 +14,7 @@
     <link rel="stylesheet" href="css/trends.css?v=15">
     <link rel="stylesheet" href="css/engagement.css?v=19">
     <link rel="stylesheet" href="css/correlation.css?v=15">
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
 <body>
     <!-- Background layer -->
@@ -1019,7 +1020,7 @@
     <script src="js/app.js?v=26"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
-    <div id="speaker-debug" class="speaker-debug" style="display:block;">
+    <div id="speaker-debug" class="speaker-debug" style="display:none;">
         <div class="speaker-debug-header">
             Speaker Gate Debug
             <span class="speaker-debug-close" id="speaker-debug-close">×</span>

@@ -9,6 +9,7 @@ Flow:
      → accept (>= threshold) or reject
   3. Adaptive update: high-confidence verifications slowly drift centroid via EMA
 """
+import logging
 import numpy as np
 import torch
 import torchaudio
@@ -17,6 +18,8 @@ import threading
 from typing import Tuple, Optional, List
 from pathlib import Path
 import app_config as config
+
+logger = logging.getLogger('attune.speaker')
 
 # Patch torchaudio compatibility for speechbrain (torchaudio 2.10+ removed list_audio_backends)
 if not hasattr(torchaudio, 'list_audio_backends'):
@@ -52,13 +55,13 @@ class SpeakerVerifier:
         if not custom_py.exists():
             custom_py.write_text("# Placeholder — this model has no custom modules\n")
 
-        print("[SpeakerVerifier] Loading ECAPA-TDNN model...")
+        logger.info("Loading ECAPA-TDNN model...")
         self.model = EncoderClassifier.from_hparams(
             source=config.SPEAKER_MODEL_SOURCE,
             savedir=str(cache_dir),
             run_opts={"device": "cpu"},
         )
-        print("[SpeakerVerifier] ECAPA-TDNN model loaded")
+        logger.info("ECAPA-TDNN model loaded")
 
         # Load stored voiceprint if exists
         self._load_profile()
@@ -71,7 +74,7 @@ class SpeakerVerifier:
         if profile and profile.get('embedding') is not None:
             self._centroid = np.frombuffer(profile['embedding'], dtype=np.float32).copy()
             self._enrolled = True
-            print(f"[SpeakerVerifier] Loaded voiceprint ({self._centroid.shape[0]}-dim)")
+            logger.info(f"Loaded voiceprint ({self._centroid.shape[0]}-dim)")
         else:
             self._enrolled = False
 
@@ -170,7 +173,7 @@ class SpeakerVerifier:
             threshold=self.threshold,
         )
 
-        print(f"[SpeakerVerifier] Enrollment complete — {len(embeddings)} samples → centroid")
+        logger.info(f"Enrollment complete — {len(embeddings)} samples -> centroid")
         return centroid
 
     def verify(self, audio: np.ndarray) -> Tuple[bool, float]:
@@ -247,7 +250,7 @@ class SpeakerVerifier:
         if self.db:
             self.db.delete_speaker_profile()
 
-        print("[SpeakerVerifier] Voice profile deleted")
+        logger.info("Voice profile deleted")
 
     def get_status(self) -> dict:
         """Get current speaker verification status."""

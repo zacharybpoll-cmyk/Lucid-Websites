@@ -2,10 +2,13 @@
 Voice Activity Detection using Silero VAD
 Classifies audio chunks as speech or silence
 """
+import logging
 import torch
 import numpy as np
 from typing import Tuple
 import app_config as config
+
+logger = logging.getLogger('attune.vad')
 
 
 class VADProcessor:
@@ -25,9 +28,9 @@ class VADProcessor:
             )
             self.model = model
             self.get_speech_timestamps = utils[0]
-            print("[VAD] Silero VAD model loaded successfully")
+            logger.info("Silero VAD model loaded successfully")
         except Exception as e:
-            print(f"[VAD] Error loading Silero VAD model: {e}")
+            logger.error(f"Error loading Silero VAD model: {e}")
             raise
 
     def is_speech(self, audio_chunk: np.ndarray) -> Tuple[bool, float]:
@@ -57,7 +60,7 @@ class VADProcessor:
             return is_speech, speech_prob
 
         except Exception as e:
-            print(f"[VAD] Error processing chunk: {e}")
+            logger.error(f"Error processing chunk: {e}")
             return False, 0.0
 
     def get_speech_segments(self, audio: np.ndarray) -> list:
@@ -85,5 +88,5 @@ class VADProcessor:
             )
             return speech_timestamps
         except Exception as e:
-            print(f"[VAD] Error getting speech segments: {e}")
+            logger.error(f"Error getting speech segments: {e}")
             return []

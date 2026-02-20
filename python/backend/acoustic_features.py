@@ -3,13 +3,35 @@ Acoustic feature extraction using librosa
 Extracts F0, pitch variability, RMS energy, speech rate, spectral features,
 shimmer, and voice breaks.
 """
+import logging
 import numpy as np
 import librosa
 from typing import Dict
 
+logger = logging.getLogger('attune.acoustic')
+
 class AcousticFeatureExtractor:
     def __init__(self, sample_rate: int = 16000):
         self.sample_rate = sample_rate
+
+    def _extract_pitch(self, audio: np.ndarray):
+        """Extract pitch using pyin (called once, shared across features).
+
+        Returns:
+            Tuple of (f0, voiced_flag, voiced_probs) from librosa.pyin,
+            or (None, None, None) on error.
+        """
+        try:
+            f0, voiced_flag, voiced_probs = librosa.pyin(
+                audio,
+                fmin=librosa.note_to_hz('C2'),  # ~65 Hz
+                fmax=librosa.note_to_hz('C7'),  # ~2093 Hz
+                sr=self.sample_rate
+            )
+            return f0, voiced_flag, voiced_probs
+        except Exception as e:
+            logger.error(f"Error in pyin extraction: {e}")
+            return None, None, None
 
     def extract(self, audio: np.ndarray) -> Dict[str, float]:
         """
@@ -29,8 +51,11 @@ class AcousticFeatureExtractor:
             if len(audio) == 0:
                 return self._get_zero_features()
 
+            # Run pyin once and share results across F0, jitter, shimmer, voice_breaks
+            f0, voiced_flag, voiced_probs = self._extract_pitch(audio)
+
             # F0 (fundamental frequency) - pitch
-            f0_mean, f0_std = self._extract_f0(audio)
+            f0_mean, f0_std = self._extract_f0(audio, f0=f0)
             features['f0_mean'] = f0_mean
             features['f0_std'] = f0_std
 
@@ -50,38 +75,41 @@ class AcousticFeatureExtractor:
             features['zcr'] = self._extract_zcr(audio)
 
             # Jitter (pitch period variation)
-            features['jitter'] = self._extract_jitter(audio)
+            features['jitter'] = self._extract_jitter(audio, f0=f0)
 
             # Shimmer (amplitude variation across pitch periods)
-            features['shimmer'] = self._extract_shimmer(audio)
+            features['shimmer'] = self._extract_shimmer(audio, f0=f0)
 
             # Voice breaks (unvoiced gaps within speech)
-            features['voice_breaks'] = self._extract_voice_breaks(audio)
+            features['voice_breaks'] = self._extract_voice_breaks(audio, f0=f0)
 
             # Log results
             duration = len(audio) / self.sample_rate
-            print(f"[AcousticFeatures] Extracted features from {duration:.1f}s: "
-                  f"F0={f0_mean:.1f}\u00b1{f0_std:.1f}Hz, "
-                  f"Energy={features['rms_energy']:.3f}, "
-                  f"Rate={features['speech_rate']:.1f}syl/s, "
-                  f"Shimmer={features['shimmer']:.3f}, "
-                  f"VoiceBreaks={features['voice_breaks']}")
+            logger.info(f"Extracted features from {duration:.1f}s: "
+                        f"F0={f0_mean:.1f}\u00b1{f0_std:.1f}Hz, "
+                        f"Energy={features['rms_energy']:.3f}, "
+                        f"Rate={features['speech_rate']:.1f}syl/s, "
+                        f"Shimmer={features['shimmer']:.3f}, "
+                        f"VoiceBreaks={features['voice_breaks']}")
 
             return features
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error extracting features: {e}")
+            logger.error(f"Error extracting features: {e}")
             return self._get_zero_features()
 
-    def _extract_f0(self, audio: np.ndarray) -> tuple:
-        """Extract F0 mean and standard deviation"""
+    def _extract_f0(self, audio: np.ndarray, f0=None) -> tuple:
+        """Extract F0 mean and standard deviation.
+
+        Args:
+            audio: audio samples (used as fallback if f0 is None)
+            f0: pre-computed F0 array from _extract_pitch() (optional)
+        """
         try:
-            f0, voiced_flag, voiced_probs = librosa.pyin(
-                audio,
-                fmin=librosa.note_to_hz('C2'),  # ~65 Hz
-                fmax=librosa.note_to_hz('C7'),  # ~2093 Hz
-                sr=self.sample_rate
-            )
+            if f0 is None:
+                f0, _, _ = self._extract_pitch(audio)
+                if f0 is None:
+                    return 0.0, 0.0
 
             # Remove NaN values (unvoiced frames)
             f0_voiced = f0[~np.isnan(f0)]
@@ -92,7 +120,7 @@ class AcousticFeatureExtractor:
                 return 0.0, 0.0
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in F0 extraction: {e}")
+            logger.error(f"Error in F0 extraction: {e}")
             return 0.0, 0.0
 
     def _extract_rms(self, audio: np.ndarray) -> float:
@@ -101,7 +129,7 @@ class AcousticFeatureExtractor:
             rms = librosa.feature.rms(y=audio)[0]
             return float(np.mean(rms))
         except Exception as e:
-            print(f"[AcousticFeatures] Error in RMS extraction: {e}")
+            logger.error(f"Error in RMS extraction: {e}")
             return 0.0
 
     def _extract_speech_rate(self, audio: np.ndarray) -> float:
@@ -130,7 +158,7 @@ class AcousticFeatureExtractor:
             return float(rate)
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in speech rate extraction: {e}")
+            logger.error(f"Error in speech rate extraction: {e}")
             return 0.0
 
     def _extract_spectral_centroid(self, audio: np.ndarray) -> float:
@@ -139,7 +167,7 @@ class AcousticFeatureExtractor:
             centroid = librosa.feature.spectral_centroid(y=audio, sr=self.sample_rate)[0]
             return float(np.mean(centroid))
         except Exception as e:
-            print(f"[AcousticFeatures] Error in spectral centroid extraction: {e}")
+            logger.error(f"Error in spectral centroid extraction: {e}")
             return 0.0
 
     def _extract_spectral_entropy(self, audio: np.ndarray) -> float:
@@ -157,7 +185,7 @@ class AcousticFeatureExtractor:
             return float(np.mean(entropy))
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in spectral entropy extraction: {e}")
+            logger.error(f"Error in spectral entropy extraction: {e}")
             return 0.0
 
     def _extract_zcr(self, audio: np.ndarray) -> float:
@@ -166,21 +194,23 @@ class AcousticFeatureExtractor:
             zcr = librosa.feature.zero_crossing_rate(audio)[0]
             return float(np.mean(zcr))
         except Exception as e:
-            print(f"[AcousticFeatures] Error in ZCR extraction: {e}")
+            logger.error(f"Error in ZCR extraction: {e}")
             return 0.0
 
-    def _extract_jitter(self, audio: np.ndarray) -> float:
+    def _extract_jitter(self, audio: np.ndarray, f0=None) -> float:
         """
         Extract jitter (pitch period variation)
         Simplified calculation based on F0 variations
+
+        Args:
+            audio: audio samples (used as fallback if f0 is None)
+            f0: pre-computed F0 array from _extract_pitch() (optional)
         """
         try:
-            f0, voiced_flag, voiced_probs = librosa.pyin(
-                audio,
-                fmin=librosa.note_to_hz('C2'),
-                fmax=librosa.note_to_hz('C7'),
-                sr=self.sample_rate
-            )
+            if f0 is None:
+                f0, _, _ = self._extract_pitch(audio)
+                if f0 is None:
+                    return 0.0
 
             # Remove NaN values
             f0_voiced = f0[~np.isnan(f0)]
@@ -195,10 +225,10 @@ class AcousticFeatureExtractor:
                 return 0.0
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in jitter extraction: {e}")
+            logger.error(f"Error in jitter extraction: {e}")
             return 0.0
 
-    def _extract_shimmer(self, audio: np.ndarray) -> float:
+    def _extract_shimmer(self, audio: np.ndarray, f0=None) -> float:
         """
         Extract shimmer (amplitude variation across pitch periods).
 
@@ -206,14 +236,16 @@ class AcousticFeatureExtractor:
         where A(i) is the peak amplitude in pitch period i.
 
         Well-validated biomarker for depression (Cummins et al. 2015).
+
+        Args:
+            audio: audio samples (used as fallback if f0 is None)
+            f0: pre-computed F0 array from _extract_pitch() (optional)
         """
         try:
-            f0, voiced_flag, voiced_probs = librosa.pyin(
-                audio,
-                fmin=librosa.note_to_hz('C2'),
-                fmax=librosa.note_to_hz('C7'),
-                sr=self.sample_rate
-            )
+            if f0 is None:
+                f0, _, _ = self._extract_pitch(audio)
+                if f0 is None:
+                    return 0.0
 
             f0_voiced = f0[~np.isnan(f0)]
             if len(f0_voiced) < 2:
@@ -251,22 +283,24 @@ class AcousticFeatureExtractor:
             return shimmer
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in shimmer extraction: {e}")
+            logger.error(f"Error in shimmer extraction: {e}")
             return 0.0
 
-    def _extract_voice_breaks(self, audio: np.ndarray) -> int:
+    def _extract_voice_breaks(self, audio: np.ndarray, f0=None) -> int:
         """
         Count unvoiced gaps >200ms within speech.
 
         Strong signal for severe depression (Scherer et al. 2013).
+
+        Args:
+            audio: audio samples (used as fallback if f0 is None)
+            f0: pre-computed F0 array from _extract_pitch() (optional)
         """
         try:
-            f0, voiced_flag, voiced_probs = librosa.pyin(
-                audio,
-                fmin=librosa.note_to_hz('C2'),
-                fmax=librosa.note_to_hz('C7'),
-                sr=self.sample_rate
-            )
+            if f0 is None:
+                f0, _, _ = self._extract_pitch(audio)
+                if f0 is None:
+                    return 0
 
             # Find unvoiced (NaN) segments
             is_voiced = ~np.isnan(f0)
@@ -292,7 +326,7 @@ class AcousticFeatureExtractor:
             return breaks
 
         except Exception as e:
-            print(f"[AcousticFeatures] Error in voice breaks extraction: {e}")
+            logger.error(f"Error in voice breaks extraction: {e}")
             return 0
 
     def _get_zero_features(self) -> Dict[str, float]:

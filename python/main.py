@@ -4,13 +4,20 @@ Attune - Main Entry Point
 Browser-based: starts uvicorn, loads models in background, opens browser automatically.
 Includes The Beacon (dynamic menubar icon) and The Pulse (notification engine).
 """
+import os
 import sys
 import signal
+import socket
 import threading
 import time
 import argparse
+import traceback
 import webbrowser
+import logging
+from datetime import datetime
 from pathlib import Path
+import psutil
+from backend.logging_config import setup_logging
 from backend.database import Database
 from backend.analysis_orchestrator import AnalysisOrchestrator
 from backend.meeting_detector import MeetingDetector
@@ -22,6 +29,46 @@ import app_config as config
 import api.routes as routes
 import uvicorn
 
+logger = logging.getLogger('attune.main')
+
+
+# ============ Crash Reporting ============
+
+def _setup_crash_reporting():
+    crash_log = Path(os.environ.get('ATTUNE_DATA_DIR', '.')) / 'crash_log.txt'
+
+    def excepthook(exc_type, exc_value, exc_tb):
+        timestamp = datetime.now().isoformat()
+        tb_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        entry = f"[{timestamp}] [python-uncaught] {tb_str}\n"
+        try:
+            with open(crash_log, 'a') as f:
+                f.write(entry)
+        except Exception:
+            pass
+        # Call the default hook too
+        sys.__excepthook__(exc_type, exc_value, exc_tb)
+
+    sys.excepthook = excepthook
+
+
+# ============ Memory Monitoring ============
+
+def _start_memory_monitor(interval_sec=300):
+    """Check memory usage every 5 minutes, warn if >2GB."""
+    def monitor():
+        while True:
+            time.sleep(interval_sec)
+            process = psutil.Process()
+            mem_mb = process.memory_info().rss / (1024 * 1024)
+            if mem_mb > 2048:
+                logger.warning(f"Memory usage high: {mem_mb:.0f}MB (>2GB)")
+            elif mem_mb > 1024:
+                logger.info(f"Memory usage: {mem_mb:.0f}MB")
+
+    thread = threading.Thread(target=monitor, daemon=True)
+    thread.start()
+
 
 # ============ The Beacon — Dynamic Menubar Icon ============
 
@@ -30,7 +77,7 @@ def _create_beacon_icons():
     try:
         from PIL import Image, ImageDraw
     except ImportError:
-        print("[Beacon] PIL not available, menubar icons disabled")
+        logger.warning("PIL not available, menubar icons disabled")
         return {}
 
     icons = {}
@@ -54,6 +101,20 @@ def _create_beacon_icons():
     return icons
 
 
+def _wait_for_server_socket(host, port, timeout=10.0):
+    """Poll until the server is accepting connections."""
+    deadline = time.monotonic() + timeout
+    delay = 0.2
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=1):
+                return True
+        except (ConnectionRefusedError, OSError):
+            time.sleep(delay)
+            delay = min(delay * 1.5, 1.0)
+    return False
+
+
 class Attune:
     def __init__(self, electron_mode=False):
         self.electron_mode = electron_mode
@@ -69,17 +130,17 @@ class Attune:
         self._beacon_current_zone = 'idle'
 
     def run(self):
-        print("=" * 60)
-        print("Attune — Attuned to you.")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("Attune — Attuned to you.")
+        logger.info("=" * 60)
 
         # --- Fast init (< 1s) ---
-        print("[Main] Initializing database...")
+        logger.info("Initializing database...")
         self.db = Database(config.DB_PATH)
-        print(f"[Main] Database ready at {config.DB_PATH}")
+        logger.info(f"Database ready at {config.DB_PATH}")
 
         # Create orchestrator with lazy model loading (fast)
-        print("[Main] Creating orchestrator (models will load in background)...")
+        logger.info("Creating orchestrator (models will load in background)...")
         self.orchestrator = AnalysisOrchestrator(self.db, lazy=True)
 
         # Create meeting detector
@@ -89,11 +150,11 @@ class Attune:
         self.meeting_detector = MeetingDetector(on_meeting_change=on_meeting_change)
 
         # Create insight engine
-        print("[Main] Initializing insight engine...")
+        logger.info("Initializing insight engine...")
         self.insight_engine = InsightEngine()
 
         # Create notification manager (The Pulse)
-        print("[Main] Initializing notification engine...")
+        logger.info("Initializing notification engine...")
         self.notification_manager = NotificationManager(self.db)
         self.notification_manager.schedule_curtain_call()
 
@@ -111,7 +172,7 @@ class Attune:
         routes.notification_manager = self.notification_manager
 
         # --- Start uvicorn in a daemon thread ---
-        print(f"[Main] Starting server on http://{config.API_HOST}:{config.API_PORT}")
+        logger.info(f"Starting server on http://{config.API_HOST}:{config.API_PORT}")
         uv_config = uvicorn.Config(
             routes.app,
             host=config.API_HOST,
@@ -125,22 +186,26 @@ class Attune:
         server_thread = threading.Thread(target=self.server.run, daemon=True)
         server_thread.start()
 
-        # Give uvicorn a moment to bind — if it exits, the port is likely in use
-        time.sleep(1.5)
+        # Wait until uvicorn is accepting connections (or thread dies)
+        if not _wait_for_server_socket(config.API_HOST, config.API_PORT):
+            pass  # Fall through to the thread-alive check below
         if not server_thread.is_alive():
-            print(f"[Main] ERROR: Server failed to start. Port {config.API_PORT} is likely in use.")
-            print(f"[Main] Run: lsof -ti :{config.API_PORT} | xargs kill -9")
+            logger.error(f"Server failed to start. Port {config.API_PORT} is likely in use.")
+            logger.error(f"Run: lsof -ti :{config.API_PORT} | xargs kill -9")
             sys.exit(1)
+
+        # --- Start memory monitor ---
+        _start_memory_monitor()
 
         # --- Load models in background thread ---
         def _load_models():
             try:
                 self.orchestrator.load_models()
-                print("[Main] Models loaded - starting analysis pipeline")
+                logger.info("Models loaded - starting analysis pipeline")
                 self.orchestrator.start()
                 self.meeting_detector.start()
             except Exception as e:
-                print(f"[Main] Model loading failed: {e}")
+                logger.error(f"Model loading failed: {e}")
                 import traceback
                 traceback.print_exc()
 
@@ -151,12 +216,12 @@ class Attune:
         if not self.electron_mode:
             url = f"http://{config.API_HOST}:{config.API_PORT}/static/index.html"
             self._wait_for_server(url=f"http://{config.API_HOST}:{config.API_PORT}/")
-            print(f"[Main] Opening browser at {url}")
+            logger.info(f"Opening browser at {url}")
             webbrowser.open(url)
 
         # --- Block until signal ---
         mode_label = "Electron" if self.electron_mode else "Ctrl+C"
-        print(f"[Main] Running ({mode_label} mode). Waiting for shutdown signal.")
+        logger.info(f"Running ({mode_label} mode). Waiting for shutdown signal.")
         try:
             self._shutdown.wait()
         except KeyboardInterrupt:
@@ -174,10 +239,10 @@ class Attune:
                 return
             except Exception:
                 time.sleep(0.3)
-        print("[Main] Warning: server did not respond within timeout, opening browser anyway")
+        logger.warning("Server did not respond within timeout, opening browser anyway")
 
     def _cleanup(self):
-        print("\n[Main] Shutting down...")
+        logger.info("Shutting down...")
         if self.notification_manager:
             self.notification_manager.stop()
         if self.orchestrator:
@@ -188,7 +253,7 @@ class Attune:
             self.server.should_exit = True
         if self.db:
             self.db.close()
-        print("[Main] Goodbye.")
+        logger.info("Goodbye.")
 
     def update_beacon(self, zone: str):
         """Update the menubar beacon icon color based on current zone."""
@@ -200,6 +265,9 @@ class Attune:
 
 
 def main():
+    setup_logging()
+    _setup_crash_reporting()
+
     parser = argparse.ArgumentParser(description='Attune — Voice Wellness Monitor')
     parser.add_argument('--electron', action='store_true', help='Run in Electron mode (no browser open)')
     args = parser.parse_args()

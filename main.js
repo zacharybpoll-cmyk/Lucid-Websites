@@ -1,8 +1,18 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, dialog, powerMonitor, session } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
+
+// ============ Auto-Update ============
+let autoUpdater;
+try {
+  autoUpdater = require('electron-updater').autoUpdater;
+  autoUpdater.autoDownload = false; // Don't auto-download, just notify
+  autoUpdater.autoInstallOnAppQuit = true;
+} catch (e) {
+  console.log('[Main] electron-updater not available (dev mode)');
+}
 
 // Detect packaged vs development mode
 const IS_PACKAGED = app.isPackaged;
@@ -17,6 +27,28 @@ const VENV_PYTHON = path.join(PYTHON_DIR, 'venv', 'bin', 'python');
 const MAIN_PY = path.join(PYTHON_DIR, 'main.py');
 const DATA_DIR = path.join(app.getPath('userData'), 'attune-data');
 
+// ============ Crash Reporting ============
+
+const CRASH_LOG = path.join(DATA_DIR, 'crash_log.txt');
+
+function logCrash(source, error) {
+  const timestamp = new Date().toISOString();
+  const entry = `[${timestamp}] [${source}] ${error.stack || error.message || error}\n`;
+  try {
+    fs.appendFileSync(CRASH_LOG, entry);
+  } catch {} // Don't crash while logging crashes
+}
+
+process.on('uncaughtException', (error) => {
+  console.error('[Main] Uncaught exception:', error);
+  logCrash('electron-uncaught', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Main] Unhandled rejection:', reason);
+  logCrash('electron-unhandled-rejection', reason);
+});
+
 const API_HOST = '127.0.0.1';
 const API_PORT = 8765;
 const API_BASE = `http://${API_HOST}:${API_PORT}`;
@@ -25,6 +57,8 @@ let splashWindow = null;
 let onboardingWindow = null;
 let mainWindow = null;
 let pythonProcess = null;
+let pythonRestartCount = 0;
+let isQuitting = false;
 
 // Ensure data directory exists
 function ensureDataDir() {
@@ -37,6 +71,23 @@ function ensureDataDir() {
 // In packaged mode, __dirname is inside the .app asar; use app.getAppPath()
 function getAppRoot() {
   return IS_PACKAGED ? app.getAppPath() : __dirname;
+}
+
+// ============ Version-Based Cache Clearing ============
+
+const VERSION_FILE = path.join(DATA_DIR, '.app-version');
+const CURRENT_VERSION = require('./package.json').version;
+
+function checkVersionAndClearCache() {
+  let lastVersion = '';
+  try { lastVersion = fs.readFileSync(VERSION_FILE, 'utf8').trim(); } catch {}
+  if (lastVersion !== CURRENT_VERSION) {
+    console.log(`[Main] Version changed (${lastVersion} → ${CURRENT_VERSION}), clearing cache...`);
+    session.defaultSession.clearCache().then(() => {
+      console.log('[Main] Cache cleared');
+    });
+    fs.writeFileSync(VERSION_FILE, CURRENT_VERSION);
+  }
 }
 
 // ============ Splash Screen ============
@@ -70,6 +121,7 @@ function spawnPython() {
     const env = {
       ...process.env,
       ATTUNE_DATA_DIR: DATA_DIR,
+      PYTHONUNBUFFERED: '1',
     };
 
     console.log(`[Main] Python dir: ${PYTHON_DIR}`);
@@ -98,6 +150,31 @@ function spawnPython() {
     pythonProcess.on('exit', (code) => {
       console.log(`[Python] Exited with code ${code}`);
       pythonProcess = null;
+
+      if (isQuitting || code === 0) return;
+
+      if (pythonRestartCount < 3) {
+        const delay = Math.pow(2, pythonRestartCount) * 1000; // 1s, 2s, 4s
+        pythonRestartCount++;
+        console.log(`[Python] Unexpected exit. Restarting in ${delay}ms (attempt ${pythonRestartCount}/3)...`);
+        setTimeout(async () => {
+          try {
+            await spawnPython();
+            console.log('[Python] Restarted, waiting for server...');
+            await pollForServer();
+            console.log('[Python] Server back up after restart.');
+            pythonRestartCount = 0;
+          } catch (err) {
+            console.error('[Python] Restart failed:', err);
+          }
+        }, delay);
+      } else {
+        console.error('[Python] Failed to restart after 3 attempts.');
+        dialog.showErrorBox(
+          'Attune — Backend Error',
+          'The Attune backend crashed and could not be restarted after 3 attempts.\nPlease restart the application.'
+        );
+      }
     });
 
     // Don't wait for exit — resolve immediately and let polling handle readiness
@@ -264,46 +341,145 @@ ipcMain.handle('open-system-settings', () => {
 
 // ============ App Lifecycle ============
 
-app.whenReady().then(async () => {
-  showSplash();
-
-  try {
-    await spawnPython();
-    console.log('[Main] Python process spawned, waiting for server...');
-
-    await pollForServer();
-    console.log('[Main] Server is up!');
-
-    const status = await checkOnboardingStatus();
-    console.log('[Main] Onboarding status:', status);
-
-    if (status.completed) {
-      showMainApp();
-    } else {
-      showOnboarding();
-    }
-  } catch (err) {
-    console.error('[Main] Startup failed:', err);
-    if (splashWindow) splashWindow.close();
-    app.quit();
-  }
-});
-
-app.on('window-all-closed', () => {
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
   app.quit();
-});
+} else {
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
 
-app.on('before-quit', () => {
-  if (pythonProcess) {
-    console.log('[Main] Sending SIGTERM to Python...');
-    pythonProcess.kill('SIGTERM');
+  app.whenReady().then(async () => {
+    showSplash();
+    ensureDataDir();
+    checkVersionAndClearCache();
 
-    // Force kill after 3 seconds if still alive
-    setTimeout(() => {
-      if (pythonProcess) {
-        console.log('[Main] Force killing Python (SIGKILL)...');
-        pythonProcess.kill('SIGKILL');
+    try {
+      await spawnPython();
+      console.log('[Main] Python process spawned, waiting for server...');
+
+      await pollForServer();
+      console.log('[Main] Server is up!');
+
+      const status = await checkOnboardingStatus();
+      console.log('[Main] Onboarding status:', status);
+
+      if (status.completed) {
+        showMainApp();
+      } else {
+        showOnboarding();
       }
-    }, 3000);
-  }
-});
+
+      // ============ Check for Updates ============
+      if (autoUpdater) {
+        setTimeout(() => {
+          autoUpdater.checkForUpdates().catch(err => {
+            console.log('[Main] Update check failed:', err.message);
+          });
+        }, 5000); // Wait 5 seconds after launch
+
+        autoUpdater.on('update-available', (info) => {
+          console.log('[Main] Update available:', info.version);
+          if (mainWindow) {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'Update Available',
+              message: `A new version of Attune (v${info.version}) is available.`,
+              detail: 'The update will be downloaded in the background and installed when you restart.',
+              buttons: ['Download', 'Later'],
+              defaultId: 0,
+            }).then(({ response }) => {
+              if (response === 0) {
+                autoUpdater.downloadUpdate();
+              }
+            });
+          }
+        });
+
+        autoUpdater.on('update-downloaded', () => {
+          console.log('[Main] Update downloaded, will install on quit');
+          if (mainWindow) {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'Update Ready',
+              message: 'Update has been downloaded. It will be installed when you restart Attune.',
+              buttons: ['Restart Now', 'Later'],
+              defaultId: 0,
+            }).then(({ response }) => {
+              if (response === 0) {
+                autoUpdater.quitAndInstall();
+              }
+            });
+          }
+        });
+
+        autoUpdater.on('error', (err) => {
+          console.log('[Main] Auto-update error:', err.message);
+        });
+      }
+    } catch (err) {
+      console.error('[Main] Startup failed:', err);
+      if (splashWindow) splashWindow.close();
+      app.quit();
+    }
+  });
+
+  app.on('window-all-closed', () => {
+    app.quit();
+  });
+
+  app.on('activate', () => {
+    if (mainWindow) {
+      mainWindow.show();
+    } else if (onboardingWindow) {
+      onboardingWindow.show();
+    }
+  });
+
+  app.on('before-quit', () => {
+    isQuitting = true;
+    if (pythonProcess) {
+      console.log('[Main] Sending SIGTERM to Python...');
+      pythonProcess.kill('SIGTERM');
+
+      // Force kill after 3 seconds if still alive
+      setTimeout(() => {
+        if (pythonProcess) {
+          console.log('[Main] Force killing Python (SIGKILL)...');
+          pythonProcess.kill('SIGKILL');
+        }
+      }, 3000);
+    }
+  });
+
+  // ============ Power Monitor (Sleep/Wake) ============
+
+  app.whenReady().then(() => {
+    powerMonitor.on('suspend', () => {
+      console.log('[Main] System suspending, pausing analysis...');
+      const req = http.request({
+        hostname: API_HOST,
+        port: API_PORT,
+        path: '/api/pause',
+        method: 'POST',
+      }, () => {});
+      req.on('error', () => {});
+      req.end();
+    });
+
+    powerMonitor.on('resume', () => {
+      console.log('[Main] System resumed, resuming analysis...');
+      const req = http.request({
+        hostname: API_HOST,
+        port: API_PORT,
+        path: '/api/resume',
+        method: 'POST',
+      }, () => {});
+      req.on('error', () => {});
+      req.end();
+    });
+  });
+}

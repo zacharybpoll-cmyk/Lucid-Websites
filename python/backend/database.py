@@ -14,7 +14,7 @@ class Database:
     def __init__(self, db_path: Path = config.DB_PATH):
         self.db_path = db_path
         self.conn = None
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self._init_db()
 
     def _init_db(self):
@@ -369,30 +369,31 @@ class Database:
     def get_readings(self, start_time: Optional[str] = None, end_time: Optional[str] = None,
                      limit: int = 100) -> List[Dict[str, Any]]:
         """Get readings within time range"""
-        cursor = self.conn.cursor()
+        with self.lock:
+            cursor = self.conn.cursor()
 
-        if start_time and end_time:
-            cursor.execute("""
-                SELECT * FROM readings
-                WHERE timestamp BETWEEN ? AND ?
-                ORDER BY timestamp DESC
-                LIMIT ?
-            """, (start_time, end_time, limit))
-        elif start_time:
-            cursor.execute("""
-                SELECT * FROM readings
-                WHERE timestamp >= ?
-                ORDER BY timestamp DESC
-                LIMIT ?
-            """, (start_time, limit))
-        else:
-            cursor.execute("""
-                SELECT * FROM readings
-                ORDER BY timestamp DESC
-                LIMIT ?
-            """, (limit,))
+            if start_time and end_time:
+                cursor.execute("""
+                    SELECT * FROM readings
+                    WHERE timestamp BETWEEN ? AND ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """, (start_time, end_time, limit))
+            elif start_time:
+                cursor.execute("""
+                    SELECT * FROM readings
+                    WHERE timestamp >= ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """, (start_time, limit))
+            else:
+                cursor.execute("""
+                    SELECT * FROM readings
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                """, (limit,))
 
-        return [dict(row) for row in cursor.fetchall()]
+            return [dict(row) for row in cursor.fetchall()]
 
     def get_today_readings(self) -> List[Dict[str, Any]]:
         """Get all readings from today"""
@@ -401,40 +402,40 @@ class Database:
 
     def compute_daily_summary(self, target_date: Optional[date] = None) -> Dict[str, Any]:
         """Compute and store daily summary for a given date"""
-        if target_date is None:
-            target_date = date.today()
-
-        date_str = target_date.isoformat()
-        start_time = datetime.combine(target_date, datetime.min.time()).isoformat()
-        end_time = datetime.combine(target_date, datetime.max.time()).isoformat()
-
-        readings = self.get_readings(start_time, end_time, limit=1000)
-
-        if not readings:
-            return {}
-
-        # Calculate averages
-        summary = {
-            'date': date_str,
-            'avg_depression': sum((r.get('depression_mapped') or r['depression_raw'] or 0) for r in readings) / len(readings),
-            'avg_anxiety': sum((r.get('anxiety_mapped') or r['anxiety_raw'] or 0) for r in readings) / len(readings),
-            'avg_stress': sum(r['stress_score'] or 0 for r in readings) / len(readings),
-            'avg_mood': sum(r['mood_score'] or 0 for r in readings) / len(readings),
-            'avg_energy': sum(r['energy_score'] or 0 for r in readings) / len(readings),
-            'avg_calm': sum(r['calm_score'] or 0 for r in readings) / len(readings),
-            'peak_stress': max((r['stress_score'] or 0 for r in readings), default=0),
-            'time_in_stressed_min': sum(1 for r in readings if r['zone'] == 'stressed') * 5,
-            'time_in_tense_min': sum(1 for r in readings if r['zone'] == 'tense') * 5,
-            'time_in_steady_min': sum(1 for r in readings if r['zone'] == 'steady') * 5,
-            'time_in_calm_min': sum(1 for r in readings if r['zone'] == 'calm') * 5,
-            'total_speech_min': sum(r['speech_duration_sec'] or 0 for r in readings) / 60,
-            'total_meetings': sum(r['meeting_detected'] or 0 for r in readings),
-            'burnout_risk': None,  # Computed separately from rolling window
-            'resilience_score': None  # Computed separately from rolling window
-        }
-
-        # Insert or update
         with self.lock:
+            if target_date is None:
+                target_date = date.today()
+
+            date_str = target_date.isoformat()
+            start_time = datetime.combine(target_date, datetime.min.time()).isoformat()
+            end_time = datetime.combine(target_date, datetime.max.time()).isoformat()
+
+            readings = self.get_readings(start_time, end_time, limit=1000)
+
+            if not readings:
+                return {}
+
+            # Calculate averages
+            summary = {
+                'date': date_str,
+                'avg_depression': sum((r.get('depression_mapped') or r['depression_raw'] or 0) for r in readings) / len(readings),
+                'avg_anxiety': sum((r.get('anxiety_mapped') or r['anxiety_raw'] or 0) for r in readings) / len(readings),
+                'avg_stress': sum(r['stress_score'] or 0 for r in readings) / len(readings),
+                'avg_mood': sum(r['mood_score'] or 0 for r in readings) / len(readings),
+                'avg_energy': sum(r['energy_score'] or 0 for r in readings) / len(readings),
+                'avg_calm': sum(r['calm_score'] or 0 for r in readings) / len(readings),
+                'peak_stress': max((r['stress_score'] or 0 for r in readings), default=0),
+                'time_in_stressed_min': sum(1 for r in readings if r['zone'] == 'stressed') * 5,
+                'time_in_tense_min': sum(1 for r in readings if r['zone'] == 'tense') * 5,
+                'time_in_steady_min': sum(1 for r in readings if r['zone'] == 'steady') * 5,
+                'time_in_calm_min': sum(1 for r in readings if r['zone'] == 'calm') * 5,
+                'total_speech_min': sum(r['speech_duration_sec'] or 0 for r in readings) / 60,
+                'total_meetings': sum(r['meeting_detected'] or 0 for r in readings),
+                'burnout_risk': None,  # Computed separately from rolling window
+                'resilience_score': None  # Computed separately from rolling window
+            }
+
+            # Insert or update
             cursor = self.conn.cursor()
             cursor.execute("""
                 INSERT OR REPLACE INTO daily_summaries (
@@ -452,18 +453,19 @@ class Database:
             ))
             self.conn.commit()
 
-        return summary
+            return summary
 
     def get_daily_summaries(self, days: int = 14) -> List[Dict[str, Any]]:
         """Get daily summaries for the last N days"""
-        start_date = (date.today() - timedelta(days=days)).isoformat()
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT * FROM daily_summaries
-            WHERE date >= ?
-            ORDER BY date DESC
-        """, (start_date,))
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            start_date = (date.today() - timedelta(days=days)).isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM daily_summaries
+                WHERE date >= ?
+                ORDER BY date DESC
+            """, (start_date,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def update_baseline(self, metric: str, mean: float, std: float, samples: int):
         """Update personal baseline for a metric"""
@@ -477,16 +479,18 @@ class Database:
 
     def get_baseline(self, metric: str) -> Optional[Dict[str, Any]]:
         """Get baseline for a metric"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM baselines WHERE metric = ?", (metric,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM baselines WHERE metric = ?", (metric,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def get_all_baselines(self) -> Dict[str, Dict[str, Any]]:
         """Get all baselines as a dict"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM baselines")
-        return {row['metric']: dict(row) for row in cursor.fetchall()}
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM baselines")
+            return {row['metric']: dict(row) for row in cursor.fetchall()}
 
     def add_tag(self, timestamp: str, label: str, notes: str = "") -> int:
         """Add a tag/annotation"""
@@ -501,18 +505,19 @@ class Database:
 
     def get_tags(self, start_time: Optional[str] = None, end_time: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get tags within time range"""
-        cursor = self.conn.cursor()
+        with self.lock:
+            cursor = self.conn.cursor()
 
-        if start_time and end_time:
-            cursor.execute("""
-                SELECT * FROM tags
-                WHERE timestamp BETWEEN ? AND ?
-                ORDER BY timestamp
-            """, (start_time, end_time))
-        else:
-            cursor.execute("SELECT * FROM tags ORDER BY timestamp DESC LIMIT 50")
+            if start_time and end_time:
+                cursor.execute("""
+                    SELECT * FROM tags
+                    WHERE timestamp BETWEEN ? AND ?
+                    ORDER BY timestamp
+                """, (start_time, end_time))
+            else:
+                cursor.execute("SELECT * FROM tags ORDER BY timestamp DESC LIMIT 50")
 
-        return [dict(row) for row in cursor.fetchall()]
+            return [dict(row) for row in cursor.fetchall()]
 
     def insert_briefing(self, date: str, type: str, content: str) -> int:
         """Insert or replace daily briefing"""
@@ -527,13 +532,14 @@ class Database:
 
     def get_briefing(self, date: str, type: str) -> Optional[str]:
         """Get briefing for a specific date and type"""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT content FROM briefings
-            WHERE date = ? AND type = ?
-        """, (date, type))
-        row = cursor.fetchone()
-        return row['content'] if row else None
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT content FROM briefings
+                WHERE date = ? AND type = ?
+            """, (date, type))
+            row = cursor.fetchone()
+            return row['content'] if row else None
 
     def get_readings_for_date(self, target_date: date) -> List[Dict[str, Any]]:
         """Get all readings for a specific date"""
@@ -543,12 +549,13 @@ class Database:
 
     def get_summary_for_date(self, target_date: date) -> Optional[Dict[str, Any]]:
         """Get stored summary for a date, or compute from readings if missing"""
-        date_str = target_date.isoformat()
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM daily_summaries WHERE date = ?", (date_str,))
-        row = cursor.fetchone()
-        if row:
-            return dict(row)
+        with self.lock:
+            date_str = target_date.isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM daily_summaries WHERE date = ?", (date_str,))
+            row = cursor.fetchone()
+            if row:
+                return dict(row)
         # No stored summary — try to compute from readings
         return self.compute_daily_summary(target_date) or None
 
@@ -562,9 +569,10 @@ class Database:
     # ============ Grove Methods ============
 
     def get_grove_trees(self, limit: int = 90) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM grove ORDER BY date DESC LIMIT ?", (limit,))
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM grove ORDER BY date DESC LIMIT ?", (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def add_grove_tree(self, date_str: str, state: str = 'growing', stage: int = 1):
         with self.lock:
@@ -597,10 +605,11 @@ class Database:
     # ============ User State Methods ============
 
     def get_user_state(self, key: str, default: str = '0') -> str:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT value FROM user_state WHERE key = ?", (key,))
-        row = cursor.fetchone()
-        return row['value'] if row else default
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT value FROM user_state WHERE key = ?", (key,))
+            row = cursor.fetchone()
+            return row['value'] if row else default
 
     def set_user_state(self, key: str, value: str):
         with self.lock:
@@ -614,9 +623,10 @@ class Database:
     # ============ Achievements Methods ============
 
     def get_achievements(self) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM achievements ORDER BY sort_order")
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM achievements ORDER BY sort_order")
+            return [dict(row) for row in cursor.fetchall()]
 
     def upsert_achievement(self, aid: str, name: str, desc: str, tier: str,
                            achieved: bool, sort_order: int = 0):
@@ -639,13 +649,14 @@ class Database:
     # ============ Goals Methods ============
 
     def get_current_goals(self) -> Optional[Dict[str, Any]]:
-        today = date.today()
-        weekday = today.weekday()
-        week_start = (today - timedelta(days=weekday)).isoformat()
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM goals WHERE week_start = ?", (week_start,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with self.lock:
+            today = date.today()
+            weekday = today.weekday()
+            week_start = (today - timedelta(days=weekday)).isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM goals WHERE week_start = ?", (week_start,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def set_goals(self, week_start: str, speak: float = 15, calm: float = 30, checkin: int = 5):
         with self.lock:
@@ -659,14 +670,16 @@ class Database:
     # ============ Echoes Methods ============
 
     def get_echoes(self, limit: int = 20) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM echoes ORDER BY discovered_at DESC LIMIT ?", (limit,))
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM echoes ORDER BY discovered_at DESC LIMIT ?", (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def get_unseen_echo_count(self) -> int:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) as cnt FROM echoes WHERE seen = 0")
-        return cursor.fetchone()['cnt']
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM echoes WHERE seen = 0")
+            return cursor.fetchone()['cnt']
 
     def add_echo(self, pattern_type: str, message: str, detail: str = None):
         with self.lock:
@@ -675,6 +688,21 @@ class Database:
                 INSERT INTO echoes (pattern_type, message, detail, discovered_at)
                 VALUES (?, ?, ?, ?)
             """, (pattern_type, message, detail, datetime.now().isoformat()))
+            self.conn.commit()
+
+
+    def batch_add_echoes(self, echoes: list):
+        """Insert multiple echoes in a single transaction.
+        Each echo is a dict with keys: pattern_type, message, detail (optional)."""
+        if not echoes:
+            return
+        with self.lock:
+            cursor = self.conn.cursor()
+            now = datetime.now().isoformat()
+            cursor.executemany("""
+                INSERT INTO echoes (pattern_type, message, detail, discovered_at)
+                VALUES (?, ?, ?, ?)
+            """, [(e['pattern_type'], e['message'], e.get('detail'), now) for e in echoes])
             self.conn.commit()
 
     def mark_echoes_seen(self):
@@ -686,10 +714,11 @@ class Database:
     # ============ Compass Methods ============
 
     def get_compass_entry(self, week_start: str) -> Optional[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM compass_entries WHERE week_start = ?", (week_start,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM compass_entries WHERE week_start = ?", (week_start,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def upsert_compass(self, week_start: str, direction: str, positive: str, negative: str, intention: str = None):
         with self.lock:
@@ -709,9 +738,10 @@ class Database:
     # ============ Time Capsule Methods ============
 
     def get_time_capsules(self, limit: int = 10) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM time_capsules ORDER BY triggered_at DESC LIMIT ?", (limit,))
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM time_capsules ORDER BY triggered_at DESC LIMIT ?", (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def add_time_capsule(self, trigger_type: str, message: str, detail: str = None):
         with self.lock:
@@ -729,10 +759,11 @@ class Database:
     # ============ Canopy Score Methods ============
 
     def get_canopy_score(self, date_str: str) -> Optional[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM canopy_scores WHERE date = ?", (date_str,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM canopy_scores WHERE date = ?", (date_str,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def set_canopy_score(self, date_str: str, score: float, dow: int, profile: str):
         with self.lock:
@@ -746,9 +777,10 @@ class Database:
     # ============ Dashboard Layout Methods ============
 
     def get_dashboard_layout(self) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM dashboard_layout ORDER BY sort_order")
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM dashboard_layout ORDER BY sort_order")
+            return [dict(row) for row in cursor.fetchall()]
 
     def set_dashboard_layout(self, layouts: List[Dict[str, Any]]):
         with self.lock:
@@ -773,22 +805,25 @@ class Database:
             self.conn.commit()
 
     def get_notification_log(self, limit: int = 50) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM notification_log ORDER BY sent_at DESC LIMIT ?", (limit,))
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM notification_log ORDER BY sent_at DESC LIMIT ?", (limit,))
+            return [dict(row) for row in cursor.fetchall()]
 
     def count_notifications_since(self, since: str) -> int:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT COUNT(*) as cnt FROM notification_log WHERE sent_at >= ?", (since,))
-        return cursor.fetchone()['cnt']
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM notification_log WHERE sent_at >= ?", (since,))
+            return cursor.fetchone()['cnt']
 
     # ============ Notification Preferences Methods ============
 
     def get_notification_pref(self, key: str, default: str = '') -> str:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT value FROM notification_prefs WHERE key = ?", (key,))
-        row = cursor.fetchone()
-        return row['value'] if row else default
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT value FROM notification_prefs WHERE key = ?", (key,))
+            row = cursor.fetchone()
+            return row['value'] if row else default
 
     def set_notification_pref(self, key: str, value: str):
         with self.lock:
@@ -800,9 +835,10 @@ class Database:
             self.conn.commit()
 
     def get_all_notification_prefs(self) -> Dict[str, str]:
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT key, value FROM notification_prefs")
-        return {row['key']: row['value'] for row in cursor.fetchall()}
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT key, value FROM notification_prefs")
+            return {row['key']: row['value'] for row in cursor.fetchall()}
 
     # ============ Webhook Methods ============
 
@@ -818,12 +854,13 @@ class Database:
             return cursor.lastrowid
 
     def get_webhooks(self, active_only: bool = True) -> List[Dict[str, Any]]:
-        cursor = self.conn.cursor()
-        if active_only:
-            cursor.execute("SELECT * FROM webhooks WHERE active = 1")
-        else:
-            cursor.execute("SELECT * FROM webhooks")
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            if active_only:
+                cursor.execute("SELECT * FROM webhooks WHERE active = 1")
+            else:
+                cursor.execute("SELECT * FROM webhooks")
+            return [dict(row) for row in cursor.fetchall()]
 
     def delete_webhook(self, webhook_id: int):
         with self.lock:
@@ -835,14 +872,15 @@ class Database:
 
     def get_speaker_profile(self) -> Optional[Dict[str, Any]]:
         """Get the active speaker profile (default)."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT * FROM speaker_profiles
-            WHERE name = 'default' AND enrollment_completed = 1
-            ORDER BY id DESC LIMIT 1
-        """)
-        row = cursor.fetchone()
-        return dict(row) if row else None
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM speaker_profiles
+                WHERE name = 'default' AND enrollment_completed = 1
+                ORDER BY id DESC LIMIT 1
+            """)
+            row = cursor.fetchone()
+            return dict(row) if row else None
 
     def save_speaker_profile(self, embedding: bytes, embedding_dim: int,
                              num_samples: int, threshold: float):
@@ -890,11 +928,12 @@ class Database:
 
     def get_enrollment_samples(self) -> List[Dict[str, Any]]:
         """Get all enrollment samples for the default profile."""
-        cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT * FROM enrollment_samples WHERE profile_id = 1 ORDER BY id
-        """)
-        return [dict(row) for row in cursor.fetchall()]
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM enrollment_samples WHERE profile_id = 1 ORDER BY id
+            """)
+            return [dict(row) for row in cursor.fetchall()]
 
     def clear_enrollment_samples(self):
         """Clear enrollment samples (before re-enrollment)."""

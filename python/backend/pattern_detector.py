@@ -23,75 +23,26 @@ class PatternDetector:
         discoveries = []
         existing = {e['pattern_type'] for e in self.db.get_echoes(limit=200)}
 
-        # 1. Day-of-week patterns
-        dow_patterns = self._detect_day_of_week(summaries)
-        for p in dow_patterns:
+        # Collect candidates from all detectors
+        all_candidates = []
+        all_candidates.extend(self._detect_day_of_week(summaries))        # 1. Day-of-week
+        all_candidates.extend(self._detect_trends(summaries))              # 2. Trends
+        all_candidates.extend(self._detect_meeting_impact(summaries))      # 3. Meeting impact
+        all_candidates.extend(self._detect_time_of_day())                  # 4. Time-of-day
+        all_candidates.extend(self._detect_milestones(summaries))          # 5. Milestones
+        all_candidates.extend(self._detect_multi_week_trends(summaries))   # 6. Eureka: Burnout trajectory
+        all_candidates.extend(self._detect_recovery_patterns())            # 7. Eureka: Recovery
+        all_candidates.extend(self._detect_compound_effects(summaries))    # 8. Eureka: Compound effects
+        all_candidates.extend(self._detect_anomalies(summaries))           # 9. Eureka: Anomaly detection
+        all_candidates.extend(self._detect_back_to_back_meetings())        # 10. Eureka: Back-to-back meetings
+
+        # Filter to only new discoveries
+        for p in all_candidates:
             if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
                 discoveries.append(p)
 
-        # 2. Trend comparisons
-        trend_patterns = self._detect_trends(summaries)
-        for p in trend_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 3. Meeting impact patterns
-        meeting_patterns = self._detect_meeting_impact(summaries)
-        for p in meeting_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 4. Time-of-day patterns
-        time_patterns = self._detect_time_of_day()
-        for p in time_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 5. Milestone-like discoveries
-        milestone_patterns = self._detect_milestones(summaries)
-        for p in milestone_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 6. Eureka: Multi-week burnout trajectory
-        burnout_patterns = self._detect_multi_week_trends(summaries)
-        for p in burnout_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 7. Eureka: Recovery patterns
-        recovery_patterns = self._detect_recovery_patterns()
-        for p in recovery_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 8. Eureka: Compound effects
-        compound_patterns = self._detect_compound_effects(summaries)
-        for p in compound_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 9. Eureka: Anomaly detection
-        anomaly_patterns = self._detect_anomalies(summaries)
-        for p in anomaly_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
-
-        # 10. Eureka: Back-to-back meeting impact
-        btb_patterns = self._detect_back_to_back_meetings()
-        for p in btb_patterns:
-            if p['pattern_type'] not in existing:
-                self.db.add_echo(p['pattern_type'], p['message'], p.get('detail'))
-                discoveries.append(p)
+        # Batch-insert all new echoes in a single transaction
+        self.db.batch_add_echoes(discoveries)
 
         return discoveries
 

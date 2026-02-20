@@ -153,7 +153,11 @@ body {
     padding: 0;
     margin-bottom: 16px;
     background: transparent;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     -webkit-app-region: drag;
+    position: sticky;
+    top: 0;
+    z-index: 200;
 }
 
 /* Interactive elements must opt out of drag */

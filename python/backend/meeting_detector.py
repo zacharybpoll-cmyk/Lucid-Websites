@@ -1,12 +1,15 @@
 """
 Meeting detector - detects active Zoom/Teams meetings using psutil
 """
+import logging
 import platform
 import psutil
 import threading
 import time
 from typing import Optional, Callable
 import app_config as config
+
+logger = logging.getLogger('attune.meeting')
 
 
 class MeetingDetector:
@@ -27,14 +30,14 @@ class MeetingDetector:
         if self.is_running:
             return
 
-        print("[MeetingDetector] Starting meeting detection")
+        logger.info("Starting meeting detection")
         self.is_running = True
         self.poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
         self.poll_thread.start()
 
     def stop(self):
         """Stop meeting detection polling"""
-        print("[MeetingDetector] Stopping meeting detection")
+        logger.info("Stopping meeting detection")
         self.is_running = False
         if self.poll_thread:
             self.poll_thread.join(timeout=2)
@@ -56,7 +59,7 @@ class MeetingDetector:
                 time.sleep(config.MEETING_POLL_INTERVAL_SEC)
 
             except Exception as e:
-                print(f"[MeetingDetector] Error in poll loop: {e}")
+                logger.error(f"Error in poll loop: {e}")
                 time.sleep(config.MEETING_POLL_INTERVAL_SEC)
 
     def _detect_meeting(self) -> bool:
@@ -96,7 +99,7 @@ class MeetingDetector:
             return False
 
         except Exception as e:
-            print(f"[MeetingDetector] Error detecting meeting: {e}")
+            logger.error(f"Error detecting meeting: {e}")
             return False
 
     def set_manual_override(self, active: bool):
@@ -112,12 +115,12 @@ class MeetingDetector:
             if self.on_meeting_change:
                 self.on_meeting_change(active)
 
-        print(f"[MeetingDetector] Manual override: Meeting {'active' if active else 'inactive'}")
+        logger.info(f"Manual override: Meeting {'active' if active else 'inactive'}")
 
     def clear_manual_override(self):
         """Clear manual override and resume automatic detection"""
         self.manual_override = False
-        print("[MeetingDetector] Manual override cleared, resuming automatic detection")
+        logger.info("Manual override cleared, resuming automatic detection")
 
     def is_meeting_active(self) -> bool:
         """Get current meeting state"""

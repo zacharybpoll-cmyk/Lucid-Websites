@@ -31,7 +31,8 @@ let isRecording = false;
 let audioContext = null;
 let audioStream = null;
 let analyserNode = null;
-let scriptNode = null;
+let scriptNode = null;   // Fallback (deprecated ScriptProcessorNode)
+let workletNode = null;  // Preferred (AudioWorklet)
 let sourceNode = null;
 let pcmChunks = [];
 let animFrameId = null;
@@ -45,6 +46,7 @@ let carouselSlide = 0;
 let carouselPaused = false;
 let carouselProgressStart = 0;
 let carouselProgressRAF = null;
+let particleRAF = null;
 const CAROUSEL_DURATION = 6000; // ms per slide
 const TOTAL_SLIDES = 10;
 
@@ -71,6 +73,11 @@ function goToStep(step) {
   // Stop carousel if leaving step 2
   if (currentStep === 2) {
     stopCarouselTimer();
+  }
+
+  // Stop particles if leaving step 6
+  if (currentStep === 6) {
+    stopParticles();
   }
 
   currentStep = step;
@@ -128,6 +135,7 @@ function startCarouselTimer() {
 
 function animateCarouselProgress() {
   carouselProgressRAF = requestAnimationFrame(() => {
+    if (currentStep !== 2) return;  // Stop RAF loop if we left this step
     if (carouselPaused) {
       // Keep RAF alive but don't advance
       animateCarouselProgress();
@@ -297,24 +305,39 @@ async function startRecording() {
     analyserNode.fftSize = 256;
     sourceNode.connect(analyserNode);
 
-    // Capture raw PCM
-    const bufferSize = 4096;
-    scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    // Capture raw PCM — prefer AudioWorklet, fall back to ScriptProcessorNode
     pcmChunks = [];
 
-    scriptNode.onaudioprocess = (e) => {
-      if (!isRecording) return;
-      const channelData = e.inputBuffer.getChannelData(0);
-      const int16 = new Int16Array(channelData.length);
-      for (let i = 0; i < channelData.length; i++) {
-        const s = Math.max(-1, Math.min(1, channelData[i]));
-        int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-      }
-      pcmChunks.push(int16);
-    };
+    try {
+      if (!audioContext.audioWorklet) throw new Error('AudioWorklet not supported');
+      await audioContext.audioWorklet.addModule('audio-processor.js');
+      workletNode = new AudioWorkletNode(audioContext, 'pcm-capture-processor');
+      workletNode.port.onmessage = (event) => {
+        if (!isRecording) return;
+        pcmChunks.push(event.data.pcm);
+      };
+      sourceNode.connect(workletNode);
+      workletNode.connect(audioContext.destination);
+      console.log('[Onboarding] Using AudioWorklet for PCM capture');
+    } catch (workletErr) {
+      console.warn('[Onboarding] AudioWorklet unavailable, falling back to ScriptProcessorNode:', workletErr.message);
+      const bufferSize = 4096;
+      scriptNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
 
-    sourceNode.connect(scriptNode);
-    scriptNode.connect(audioContext.destination);
+      scriptNode.onaudioprocess = (e) => {
+        if (!isRecording) return;
+        const channelData = e.inputBuffer.getChannelData(0);
+        const int16 = new Int16Array(channelData.length);
+        for (let i = 0; i < channelData.length; i++) {
+          const s = Math.max(-1, Math.min(1, channelData[i]));
+          int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        pcmChunks.push(int16);
+      };
+
+      sourceNode.connect(scriptNode);
+      scriptNode.connect(audioContext.destination);
+    }
 
     isRecording = true;
     speechMs = 0;
@@ -530,6 +553,11 @@ function cleanupAudio() {
     cancelAnimationFrame(animFrameId);
     animFrameId = null;
   }
+  if (workletNode) {
+    try { workletNode.port.close(); } catch (e) {}
+    try { workletNode.disconnect(); } catch (e) {}
+    workletNode = null;
+  }
   if (scriptNode) {
     try { scriptNode.disconnect(); } catch (e) {}
     scriptNode = null;
@@ -623,6 +651,9 @@ function startParticles() {
   const canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
 
+  // Cancel any existing particle animation before starting a new one
+  stopParticles();
+
   // Match canvas to actual card size
   const card = canvas.parentElement;
   canvas.width = card.offsetWidth;
@@ -663,10 +694,17 @@ function startParticles() {
     }
 
     ctx.globalAlpha = 1;
-    requestAnimationFrame(animate);
+    particleRAF = requestAnimationFrame(animate);
   }
 
   animate();
+}
+
+function stopParticles() {
+  if (particleRAF) {
+    cancelAnimationFrame(particleRAF);
+    particleRAF = null;
+  }
 }
 
 // ============ Complete Onboarding ============

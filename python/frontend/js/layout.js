@@ -6,6 +6,10 @@ class LayoutManager {
     constructor() {
         this.editMode = false;
         this.cards = [];
+        this._boundDragStart = this._onDragStart.bind(this);
+        this._boundDragOver = this._onDragOver.bind(this);
+        this._boundDrop = this._onDrop.bind(this);
+        this._boundDragEnd = this._onDragEnd.bind(this);
     }
 
     async init() {
@@ -34,19 +38,23 @@ class LayoutManager {
             const cards = container.querySelectorAll('.dashboard-card');
             cards.forEach(card => {
                 card.setAttribute('draggable', 'true');
-                card.addEventListener('dragstart', this._onDragStart.bind(this));
-                card.addEventListener('dragover', this._onDragOver.bind(this));
-                card.addEventListener('drop', this._onDrop.bind(this));
-                card.addEventListener('dragend', this._onDragEnd.bind(this));
+                card.addEventListener('dragstart', this._boundDragStart);
+                card.addEventListener('dragover', this._boundDragOver);
+                card.addEventListener('drop', this._boundDrop);
+                card.addEventListener('dragend', this._boundDragEnd);
             });
         } else {
             container.classList.remove('layout-editing');
             if (editBtn) editBtn.classList.remove('active');
 
-            // Remove draggable
+            // Remove draggable and event listeners
             const cards = container.querySelectorAll('.dashboard-card');
             cards.forEach(card => {
                 card.removeAttribute('draggable');
+                card.removeEventListener('dragstart', this._boundDragStart);
+                card.removeEventListener('dragover', this._boundDragOver);
+                card.removeEventListener('drop', this._boundDrop);
+                card.removeEventListener('dragend', this._boundDragEnd);
             });
 
             // Save layout

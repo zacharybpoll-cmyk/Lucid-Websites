@@ -1,7 +1,7 @@
 """
 Pydantic schemas for API responses
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -43,6 +43,27 @@ class Reading(BaseModel):
     vad_confidence: Optional[float] = None
     low_confidence: Optional[int] = None
     meeting_detected: Optional[int] = None
+
+    @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
+                     'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',
+                     mode='before')
+    @classmethod
+    def clamp_scores(cls, v):
+        """Clamp score fields to 0-100 range"""
+        if v is None:
+            return v
+        return max(0.0, min(100.0, float(v)))
+
+    @field_validator('f0_mean', mode='before')
+    @classmethod
+    def validate_f0(cls, v):
+        """Validate fundamental frequency range (0-1000 Hz)"""
+        if v is None:
+            return v
+        v = float(v)
+        if v < 0 or v > 1000:
+            raise ValueError(f'f0_mean must be between 0 and 1000 Hz, got {v}')
+        return v
 
 class DailySummary(BaseModel):
     date: str

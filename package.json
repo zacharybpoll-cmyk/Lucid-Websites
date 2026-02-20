@@ -10,8 +10,20 @@
   "author": "Attune",
   "license": "UNLICENSED",
   "private": true,
+  "build": {
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "owner",
+        "repo": "attune"
+      }
+    ]
+  },
   "devDependencies": {
     "@electron/packager": "^19.0.5",
     "electron": "^35.0.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
   }
 }

@@ -7,6 +7,7 @@ class CorrelationExplorer {
         this.container = document.getElementById('history-view');
         this.data = null;
         this.currentChart = 'trends';
+        this._patternChangeHandler = null;
     }
 
     async load(days = 30) {
@@ -240,7 +241,13 @@ class CorrelationExplorer {
 
         Plotly.newPlot('plotly-chart', [trace], layout, { displaylogo: false, responsive: true });
 
-        selectEl.addEventListener('change', () => this.renderDailyPatterns());
+        // Remove old listener to prevent leak on re-render
+        if (this._patternChangeHandler) {
+            const oldSelect = document.getElementById('pattern-metric');
+            if (oldSelect) oldSelect.removeEventListener('change', this._patternChangeHandler);
+        }
+        this._patternChangeHandler = () => this.renderDailyPatterns();
+        selectEl.addEventListener('change', this._patternChangeHandler);
     }
 
     renderEmpty() {

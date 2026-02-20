@@ -2,10 +2,13 @@
 Personal baseline calibrator
 Computes running statistics for personalized scoring
 """
+import logging
 import numpy as np
 from typing import Dict, List, Optional
 from backend.database import Database
 import app_config as config
+
+logger = logging.getLogger('attune.calibration')
 
 class BaselineCalibrator:
     def __init__(self, db: Database):
@@ -36,7 +39,7 @@ class BaselineCalibrator:
         readings = self.db.get_readings(limit=1000)
 
         if len(readings) < 10:
-            print("[Calibration] Not enough readings yet for calibration")
+            logger.info("Not enough readings yet for calibration")
             return
 
         # Update baseline for each metric
@@ -58,7 +61,7 @@ class BaselineCalibrator:
                 self.db.update_baseline(metric, mean, std, len(values))
 
         status = "complete" if self.is_calibrated() else "in progress"
-        print(f"[Calibration] Updated baselines from {len(readings)} readings - Status: {status}")
+        logger.info(f"Updated baselines from {len(readings)} readings - Status: {status}")
 
     def normalize_score(self, metric: str, value: float, target_range: tuple = (0, 100)) -> float:
         """
