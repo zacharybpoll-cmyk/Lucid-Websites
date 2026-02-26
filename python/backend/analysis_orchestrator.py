@@ -85,29 +85,6 @@ class AnalysisOrchestrator:
         # TS-003: Graceful shutdown event — replaces daemon=True termination
         self._shutdown_event = threading.Event()
 
-    # Thread-safe properties for is_running / is_paused
-    @property
-    def is_running(self) -> bool:
-        return self._running_event.is_set()
-
-    @is_running.setter
-    def is_running(self, value: bool):
-        if value:
-            self._running_event.set()
-        else:
-            self._running_event.clear()
-
-    @property
-    def is_paused(self) -> bool:
-        return self._paused_event.is_set()
-
-    @is_paused.setter
-    def is_paused(self, value: bool):
-        if value:
-            self._paused_event.set()
-        else:
-            self._paused_event.clear()
-
         # Mic disconnect tracking (for user notification)
         self._mic_disconnected = False
         # EDGE-003: Audio reconnect debounce
@@ -152,6 +129,31 @@ class AnalysisOrchestrator:
 
         if not lazy:
             self.load_models()
+
+        self._initialized = True
+
+    # Thread-safe properties for is_running / is_paused
+    @property
+    def is_running(self) -> bool:
+        return self._running_event.is_set()
+
+    @is_running.setter
+    def is_running(self, value: bool):
+        if value:
+            self._running_event.set()
+        else:
+            self._running_event.clear()
+
+    @property
+    def is_paused(self) -> bool:
+        return self._paused_event.is_set()
+
+    @is_paused.setter
+    def is_paused(self, value: bool):
+        if value:
+            self._paused_event.set()
+        else:
+            self._paused_event.clear()
 
     def load_models(self):
         """Load slow models (VAD + DAM + Speaker). Call from background thread."""
@@ -560,6 +562,8 @@ class AnalysisOrchestrator:
 
     def start(self):
         """Start the analysis pipeline"""
+        assert self._initialized, "Orchestrator not properly initialized"
+
         if self.is_running:
             logger.warning("Already running")
             return
@@ -579,6 +583,10 @@ class AnalysisOrchestrator:
 
         # Start audio capture
         self.audio_capture.start()
+
+        logger.info(f"Pipeline components: buffer={self.speech_buffer is not None}, "
+                    f"audio={self.audio_capture is not None}, "
+                    f"vad={self.vad_processor is not None}")
 
         if config.SPEAKER_ENROLLMENT_REQUIRED:
             enrolled = self.speaker_verifier and self.speaker_verifier.is_enrolled()
