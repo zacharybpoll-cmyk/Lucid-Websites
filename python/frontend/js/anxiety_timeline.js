@@ -16,8 +16,8 @@ class StressDotTimeline {
         // Color stops for continuous interpolation
         this.colorStops = [
             { at: 0,   r: 90,  g: 154, b: 110 }, // #5a9a6e green
-            { at: 33,  r: 168, g: 184, b: 66  }, // #a8b842 yellow-green
-            { at: 66,  r: 212, g: 148, b: 58  }, // #d4943a orange
+            { at: 33,  r: 138, g: 168, b: 140 }, // cool muted sage
+            { at: 66,  r: 196, g: 120, b: 70  }, // slightly cooler amber-orange
             { at: 100, r: 196, g: 88,  b: 76  }  // #c4584c coral
         ];
     }
@@ -63,7 +63,15 @@ class StressDotTimeline {
         }
 
         this.readings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        this.container.innerHTML = '';
+        this.container.textContent = '';
+
+        // Theme-aware colors
+        const isDay = document.documentElement.dataset.theme === 'day';
+        const lineColor = isDay ? 'rgba(64,72,84,0.6)' : 'rgba(168,192,208,0.6)';
+        const fillColor = isDay ? '#6a7a8c' : '#8ab4cc';
+        const gridColor = isDay ? 'rgba(0,0,0,0.08)' : 'rgba(168,192,208,0.08)';
+        const labelColor = isDay ? 'rgba(60,68,80,0.45)' : 'rgba(168,192,208,0.38)';
+        const nowColor   = isDay ? 'rgba(60,68,80,0.3)' : 'rgba(168,192,208,0.3)';
 
         const width = this.container.clientWidth || 600;
         const plotWidth = width - this.margin.left - this.margin.right;
@@ -84,13 +92,13 @@ class StressDotTimeline {
         grad.setAttribute('x2', '0'); grad.setAttribute('y2', '0');
         const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
         stop1.setAttribute('offset', '0%');
-        stop1.setAttribute('stop-color', '#5a9a6e');
-        stop1.setAttribute('stop-opacity', '0.25');
+        stop1.setAttribute('stop-color', fillColor);
+        stop1.setAttribute('stop-opacity', '0.28');
         grad.appendChild(stop1);
         const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
         stop2.setAttribute('offset', '100%');
-        stop2.setAttribute('stop-color', '#c4584c');
-        stop2.setAttribute('stop-opacity', '0.30');
+        stop2.setAttribute('stop-color', fillColor);
+        stop2.setAttribute('stop-opacity', '0');
         grad.appendChild(stop2);
         defs.appendChild(grad);
 
@@ -110,6 +118,24 @@ class StressDotTimeline {
         mn2.setAttribute('in', 'SourceGraphic'); merge.appendChild(mn2);
         filter.appendChild(merge);
         defs.appendChild(filter);
+
+        // Bio-glow filter for main line
+        const bioGlow = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+        bioGlow.setAttribute('id', 'bio-glow');
+        bioGlow.setAttribute('x', '-20%'); bioGlow.setAttribute('y', '-20%');
+        bioGlow.setAttribute('width', '140%'); bioGlow.setAttribute('height', '140%');
+        const bioBlur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+        bioBlur.setAttribute('in', 'SourceGraphic');
+        bioBlur.setAttribute('stdDeviation', '2.5');
+        bioBlur.setAttribute('result', 'blur');
+        bioGlow.appendChild(bioBlur);
+        const bioMerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+        const bioMN1 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+        bioMN1.setAttribute('in', 'blur'); bioMerge.appendChild(bioMN1);
+        const bioMN2 = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+        bioMN2.setAttribute('in', 'SourceGraphic'); bioMerge.appendChild(bioMN2);
+        bioGlow.appendChild(bioMerge);
+        defs.appendChild(bioGlow);
 
         svg.appendChild(defs);
 
@@ -152,7 +178,7 @@ class StressDotTimeline {
             tick.setAttribute('y1', yBottom);
             tick.setAttribute('x2', x);
             tick.setAttribute('y2', yBottom + 4);
-            tick.setAttribute('stroke', 'rgba(0,0,0,0.15)');
+            tick.setAttribute('stroke', gridColor);
             tick.setAttribute('stroke-width', '1');
             svg.appendChild(tick);
 
@@ -202,19 +228,43 @@ class StressDotTimeline {
             areaPath.setAttribute('fill', 'url(#area-gradient)');
             svg.appendChild(areaPath);
 
-            // Line stroke on top
+            // Line path data
             let lineD = `M ${points[0].x} ${points[0].y}`;
             for (let i = 1; i < points.length; i++) {
                 lineD += ` L ${points[i].x} ${points[i].y}`;
             }
 
+            // Ghost echo line 2 (farthest, most transparent)
+            const ghostLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            ghostLine2.setAttribute('d', lineD);
+            ghostLine2.setAttribute('fill', 'none');
+            ghostLine2.setAttribute('stroke', gridColor);
+            ghostLine2.setAttribute('stroke-width', '1.5');
+            ghostLine2.setAttribute('stroke-linecap', 'round');
+            ghostLine2.setAttribute('stroke-linejoin', 'round');
+            ghostLine2.setAttribute('transform', 'translate(0,-8)');
+            svg.appendChild(ghostLine2);
+
+            // Ghost echo line 1
+            const ghostLine1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            ghostLine1.setAttribute('d', lineD);
+            ghostLine1.setAttribute('fill', 'none');
+            ghostLine1.setAttribute('stroke', isDay ? 'rgba(64,72,84,0.2)' : 'rgba(168,192,208,0.2)');
+            ghostLine1.setAttribute('stroke-width', '1.5');
+            ghostLine1.setAttribute('stroke-linecap', 'round');
+            ghostLine1.setAttribute('stroke-linejoin', 'round');
+            ghostLine1.setAttribute('transform', 'translate(0,-4)');
+            svg.appendChild(ghostLine1);
+
+            // Main line stroke with bioluminescent glow
             const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             linePath.setAttribute('d', lineD);
             linePath.setAttribute('fill', 'none');
-            linePath.setAttribute('stroke', 'rgba(0,0,0,0.3)');
-            linePath.setAttribute('stroke-width', '2');
+            linePath.setAttribute('stroke', lineColor);
+            linePath.setAttribute('stroke-width', '1.5');
             linePath.setAttribute('stroke-linecap', 'round');
             linePath.setAttribute('stroke-linejoin', 'round');
+            linePath.setAttribute('filter', 'url(#bio-glow)');
             svg.appendChild(linePath);
         }
 
@@ -238,7 +288,7 @@ class StressDotTimeline {
             dot.setAttribute('cy', pt.y);
             dot.setAttribute('r', '4');
             dot.setAttribute('fill', color);
-            dot.setAttribute('stroke', 'rgba(255,255,255,0.8)');
+            dot.setAttribute('stroke', 'rgba(255,255,255,0.35)');
             dot.setAttribute('stroke-width', '1');
             svg.appendChild(dot);
 
@@ -269,7 +319,7 @@ class StressDotTimeline {
             nowLine.setAttribute('y1', this.margin.top);
             nowLine.setAttribute('x2', nowX);
             nowLine.setAttribute('y2', yBottom);
-            nowLine.setAttribute('stroke', 'rgba(0,0,0,0.25)');
+            nowLine.setAttribute('stroke', nowColor);
             nowLine.setAttribute('stroke-width', '1.5');
             nowLine.setAttribute('stroke-dasharray', '4 3');
             svg.appendChild(nowLine);
@@ -282,7 +332,7 @@ class StressDotTimeline {
             nowLabel.setAttribute('font-size', '9');
             nowLabel.setAttribute('font-weight', '700');
             nowLabel.setAttribute('font-family', 'Inter, sans-serif');
-            nowLabel.setAttribute('fill', 'rgba(0,0,0,0.5)');
+            nowLabel.setAttribute('fill', isDay ? 'rgba(60,68,80,0.5)' : 'rgba(168,192,208,0.6)');
             nowLabel.setAttribute('letter-spacing', '1');
             nowLabel.textContent = 'NOW';
             svg.appendChild(nowLabel);

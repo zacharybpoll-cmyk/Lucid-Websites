@@ -27,7 +27,7 @@ class Timeline {
         this.width = this.container.clientWidth;
 
         // Clear container
-        this.container.innerHTML = '';
+        this.container.textContent = '';
 
         // Create SVG
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -64,7 +64,7 @@ class Timeline {
             tick.setAttribute('y1', this.height - this.margin.bottom);
             tick.setAttribute('x2', x);
             tick.setAttribute('y2', this.height - this.margin.bottom + 3);
-            tick.setAttribute('stroke', '#5B5854');
+            tick.setAttribute('stroke', '#5a6270');
             tick.setAttribute('stroke-width', '1');
             svg.appendChild(tick);
 
@@ -134,10 +134,10 @@ class Timeline {
 
         // Zone color legend (bottom-right corner)
         const legendZones = [
-            { label: 'Calm', color: '#5B8DB8' },
-            { label: 'Steady', color: '#5B5854' },
-            { label: 'Tense', color: '#DD8452' },
-            { label: 'Stressed', color: '#C44E52' }
+            { label: 'Calm', color: '#5a9a6e' },
+            { label: 'Steady', color: '#b5a84a' },
+            { label: 'Tense', color: '#d4943a' },
+            { label: 'Stressed', color: '#c4584c' }
         ];
         const legendX = this.width - this.margin.right - 200;
         const legendY = this.height - 12;
@@ -155,8 +155,8 @@ class Timeline {
             text.setAttribute('x', offsetX + 11);
             text.setAttribute('y', legendY);
             text.setAttribute('font-size', '9');
-            text.setAttribute('font-family', 'Times New Roman');
-            text.setAttribute('fill', '#5B5854');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.setAttribute('fill', '#5a6270');
             text.textContent = z.label;
             svg.appendChild(text);
         });
@@ -182,7 +182,7 @@ class Timeline {
         const content = `
             <strong>${timeStr}</strong><br>
             Zone: ${(reading.zone || 'steady').toUpperCase()}<br>
-            Mood: ${Math.round(reading.mood_score || 50)}<br>
+            Wellbeing: ${Math.round(reading.wellbeing_score || 50)}<br>
             Stress: ${Math.round(reading.stress_score || 50)}<br>
             Anxiety: ${reading.anxiety_quantized !== null ? ['None', 'Mild', 'Moderate', 'Severe'][reading.anxiety_quantized] : 'Unknown'}
         `;

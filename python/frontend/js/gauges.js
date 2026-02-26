@@ -3,14 +3,75 @@
  * Oura-style translucent circles on forest canopy background
  */
 
-// ============ Score Circles (Oura-style) ============
+// ============ Gauge analyzing state ============
+
+let gaugesAreAnalyzing = false;
+let prevCircleScores = {};
+const ALL_METRICS = ['wellbeing','calm','activation','stress','depression','anxiety','emotional-stability'];
+
+function startGaugeProgress() {
+    if (gaugesAreAnalyzing) return;
+    gaugesAreAnalyzing = true;
+    ALL_METRICS.forEach(m => document.getElementById(`circle-${m}`)?.classList.add('gauge-analyzing'));
+}
+
+function finishGaugeProgress() {
+    if (!gaugesAreAnalyzing) return;
+    gaugesAreAnalyzing = false;
+    ALL_METRICS.forEach(m => document.getElementById(`circle-${m}`)?.classList.remove('gauge-analyzing'));
+}
+
+function animateCircle(metric, value, duration) {
+    const circumference = 2 * Math.PI * 30; // 188.5
+    const clamped = Math.max(0, Math.min(100, value));
+    const targetOffset = circumference - (clamped / 100) * circumference;
+    const targetColor = getScoreColor(metric, clamped);
+    const circle = document.querySelector(`#circle-${metric} .circle-progress`);
+    const valueEl = document.getElementById(`circle-${metric}-value`);
+    if (circle) {
+        circle.style.strokeDashoffset = circumference; // reset to empty
+        circle.setAttribute('stroke', targetColor);
+    }
+    const startTime = performance.now();
+    function tick(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        if (circle) circle.style.strokeDashoffset = circumference - (clamped / 100) * circumference * eased;
+        if (valueEl) valueEl.textContent = Math.round(clamped * eased);
+        if (progress < 1) requestAnimationFrame(tick);
+        else {
+            if (circle) circle.setAttribute('stroke-dashoffset', targetOffset);
+            if (valueEl) valueEl.textContent = Math.round(clamped);
+        }
+    }
+    requestAnimationFrame(tick);
+}
+
+// ============ Score Circles (Oura-style) — legacy hidden elements ============
 
 function updateScoreCircles(scores) {
-    updateCircle('calm', scores.calm || 50);
-    updateCircle('energy', scores.energy || 50);
-    updateCircle('stress', scores.stress || 50);
-    updateCircle('depression', scores.depression || 0);
-    updateCircle('anxiety', scores.anxiety || 0);
+    const targets = {
+        'wellbeing':           scores.wellbeing ?? scores.mood ?? 50,
+        'calm':                scores.calm ?? 50,
+        'activation':          scores.activation ?? scores.energy ?? 50,
+        'stress':              scores.stress ?? 50,
+        'depression':          scores.depression ?? 0,
+        'anxiety':             scores.anxiety ?? 0,
+        'emotional-stability': scores.emotional_stability ?? 50,
+    };
+    const hasNewData = Object.keys(targets).some(
+        m => Math.abs((targets[m] || 0) - (prevCircleScores[m] || 0)) > 1
+    );
+    Object.entries(targets).forEach(([metric, value]) => {
+        hasNewData ? animateCircle(metric, value, 1200) : updateCircle(metric, value);
+    });
+    prevCircleScores = {...targets};
+
+    // Drive ring gauge + metric bars
+    const canopyEl = document.getElementById('canopy-score');
+    const canopyVal = canopyEl ? parseInt(canopyEl.textContent) : NaN;
+    renderRingGauge(isNaN(canopyVal) ? null : canopyVal, scores);
+    updateMetricBars(scores);
 }
 
 function updateCircle(metric, value) {
@@ -41,7 +102,7 @@ function getScoreColor(metric, value) {
 
     // Three-stop interpolation: red(0) -> amber(50) -> green(100)
     const red   = [196, 88, 76];   // #c4584c
-    const amber = [181, 168, 74];  // #b5a84a
+    const amber = [138, 158, 170]; // #8a9eaa cool steel-neutral gray
     const green = [90, 154, 110];  // #5a9a6e
 
     let r, g, b;
@@ -60,17 +121,197 @@ function getScoreColor(metric, value) {
     return `rgb(${r}, ${g}, ${b})`;
 }
 
+// ============ Ring Gauge ============
+
+let _gaugeState = { canopy: null, scores: {} };
+
+function renderRingGauge(canopyScore, scores) {
+    _gaugeState = { canopy: canopyScore, scores: scores || {} };
+
+    const svg = document.getElementById('ring-gauge-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    const cx = 150, cy = 150;
+    const rings = [
+        { key: 'emotional-stability', r: 110, invert: false },
+        { key: 'wellbeing',           r: 95,  invert: false },
+        { key: 'calm',                r: 80,  invert: false },
+        { key: 'activation',          r: 65,  invert: false },
+        { key: 'anxiety',             r: 50,  invert: true  },
+        { key: 'stress',              r: 35,  invert: true  },
+    ];
+    const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
+    const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
+                        '--ring-accent-4','--ring-accent-5','--ring-accent-6'];
+
+    const style = getComputedStyle(document.documentElement);
+    const trackColor = style.getPropertyValue('--ring-track').trim() || '#1a2028';
+
+    // SVG defs: glow filter
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const filt = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filt.setAttribute('id', 'rg-glow');
+    filt.setAttribute('x', '-30%'); filt.setAttribute('y', '-30%');
+    filt.setAttribute('width', '160%'); filt.setAttribute('height', '160%');
+    const fblur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+    fblur.setAttribute('stdDeviation', '2'); fblur.setAttribute('result', 'blur');
+    filt.appendChild(fblur);
+    const fmerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+    ['blur','SourceGraphic'].forEach(src => {
+        const mn = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+        mn.setAttribute('in', src); fmerge.appendChild(mn);
+    });
+    filt.appendChild(fmerge);
+    defs.appendChild(filt);
+    svg.appendChild(defs);
+
+    // Track rings
+    rings.forEach(({ r }) => {
+        const track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        track.setAttribute('cx', cx); track.setAttribute('cy', cy);
+        track.setAttribute('r', r); track.setAttribute('fill', 'none');
+        track.setAttribute('stroke', trackColor); track.setAttribute('stroke-width', '5.5');
+        svg.appendChild(track);
+    });
+
+    // Progress arcs
+    rings.forEach(({ key, r, invert }, i) => {
+        const raw = scores[key] ?? (key === 'emotional-stability' ? (scores.emotional_stability ?? 50) : 50);
+        const val = Math.max(0, Math.min(100, raw));
+        const pct = invert ? (100 - val) / 100 : val / 100;
+        const circumference = 2 * Math.PI * r;
+        const accentColor = style.getPropertyValue(accentVars[i]).trim() || '#a8c0d0';
+
+        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        arc.setAttribute('cx', cx); arc.setAttribute('cy', cy);
+        arc.setAttribute('r', r); arc.setAttribute('fill', 'none');
+        arc.setAttribute('stroke', accentColor);
+        arc.setAttribute('stroke-width', '5.5');
+        arc.setAttribute('stroke-linecap', 'round');
+        arc.setAttribute('stroke-dasharray', circumference.toFixed(2));
+        arc.setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(2));
+        arc.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+        arc.setAttribute('opacity', opacities[i]);
+        arc.setAttribute('filter', 'url(#rg-glow)');
+        svg.appendChild(arc);
+    });
+
+    // Center: canopy score
+    const showScore = canopyScore !== null && canopyScore !== undefined;
+    const scoreStr = showScore ? Math.round(canopyScore).toString() : '--';
+
+    const scoreEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    scoreEl.setAttribute('x', cx); scoreEl.setAttribute('y', cy + 18);
+    scoreEl.setAttribute('text-anchor', 'middle');
+    scoreEl.setAttribute('font-family', 'Playfair Display, Georgia, serif');
+    scoreEl.setAttribute('font-size', '58');
+    scoreEl.setAttribute('font-weight', '600');
+    scoreEl.setAttribute('fill', style.getPropertyValue('--ring-accent-1').trim() || '#c4d8e8');
+    scoreEl.textContent = scoreStr;
+    svg.appendChild(scoreEl);
+
+    // Center: tier label
+    const tierEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    tierEl.setAttribute('x', cx); tierEl.setAttribute('y', cy + 36);
+    tierEl.setAttribute('text-anchor', 'middle');
+    tierEl.setAttribute('font-family', 'Inter, sans-serif');
+    tierEl.setAttribute('font-size', '10');
+    tierEl.setAttribute('font-weight', '500');
+    tierEl.setAttribute('letter-spacing', '3');
+    tierEl.setAttribute('fill', style.getPropertyValue('--ring-accent-3').trim() || '#a8c0d0');
+    tierEl.setAttribute('opacity', '0.6');
+    if (showScore) {
+        const tier = canopyScore >= 80 ? 'EXCELLENT' : canopyScore >= 65 ? 'GOOD' :
+                     canopyScore >= 50 ? 'FAIR' : canopyScore >= 35 ? 'LOW' : 'VERY LOW';
+        tierEl.textContent = tier;
+    }
+    svg.appendChild(tierEl);
+}
+
+// ============ Metric Bars ============
+
+function updateMetricBars(scores) {
+    const bars = [
+        { id: 'stability',  key: 'emotional-stability', altKey: 'emotional_stability', invert: false },
+        { id: 'wellbeing',  key: 'wellbeing',            altKey: null,                  invert: false },
+        { id: 'calmness',   key: 'calm',                 altKey: null,                  invert: false },
+        { id: 'activation', key: 'activation',           altKey: null,                  invert: false },
+        { id: 'anxiety',    key: 'anxiety',              altKey: null,                  invert: true  },
+        { id: 'stress',     key: 'stress',               altKey: null,                  invert: true  },
+    ];
+    bars.forEach(({ id, key, altKey, invert }) => {
+        const raw = Math.max(0, Math.min(100, scores[key] ?? (altKey ? scores[altKey] : null) ?? 50));
+        const pct = invert ? (100 - raw) : raw;
+        const valEl  = document.getElementById(`metbar-val-${id}`);
+        const fillEl = document.getElementById(`metbar-fill-${id}`);
+        if (valEl)  valEl.textContent = Math.round(raw) + '%';
+        if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+    });
+}
+
+// ============ Theme Toggle ============
+
+function initThemeToggle() {
+    const saved = localStorage.getItem('attune-theme') || 'day';
+    document.documentElement.dataset.theme = saved;
+    updateThemeIcon(saved);
+
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'night' ? 'day' : 'night';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('attune-theme', next);
+        updateThemeIcon(next);
+        // Re-render ring gauge for new theme colors
+        renderRingGauge(_gaugeState.canopy, _gaugeState.scores);
+    });
+}
+
+function updateThemeIcon(theme) {
+    const icon = document.getElementById('theme-toggle-icon');
+    if (!icon) return;
+    if (theme === 'day') {
+        // Day mode: show moon icon (click to switch to night)
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    } else {
+        // Night mode: show sun icon (click to switch to day)
+        icon.innerHTML = '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+    }
+}
+
 // ============ Metric Detail Popups ============
 
 const METRIC_DETAILS = {
+    wellbeing: {
+        title: 'Emotional Wellbeing',
+        description: 'Composite measure of emotional health combining low distress, vocal engagement, and speech vitality. Higher scores indicate more positive emotional state with animated, fluid speech.',
+        polarity: 'positive',
+        tiers: [
+            { label: 'Very Low',  range: '0 \u2013 20',  color: '#c4584c' },
+            { label: 'Low',       range: '21 \u2013 40', color: '#c47840' },
+            { label: 'Moderate',  range: '41 \u2013 60', color: '#8a9eaa' },
+            { label: 'Good',      range: '61 \u2013 80', color: '#7aad6e' },
+            { label: 'Excellent', range: '81 \u2013 100', color: '#5a9a6e' },
+        ],
+        note: 'Projected validity: 72/100. Replaces Mood with improved multi-component formula.',
+        getTier: function(v) {
+            if (v <= 20) return 0;
+            if (v <= 40) return 1;
+            if (v <= 60) return 2;
+            if (v <= 80) return 3;
+            return 4;
+        }
+    },
     calm: {
         title: 'Calmness',
         description: 'Measures vocal indicators of relaxation and composure. Derived from pitch stability, speech rate, and spectral smoothness. Higher scores indicate a calmer, more composed vocal state.',
         polarity: 'positive',
         tiers: [
             { label: 'Very Low',  range: '0 \u2013 20',  color: '#c4584c' },
-            { label: 'Low',       range: '21 \u2013 40', color: '#d4943a' },
-            { label: 'Moderate',  range: '41 \u2013 60', color: '#b5a84a' },
+            { label: 'Low',       range: '21 \u2013 40', color: '#c47840' },
+            { label: 'Moderate',  range: '41 \u2013 60', color: '#8a9eaa' },
             { label: 'Good',      range: '61 \u2013 80', color: '#7aad6e' },
             { label: 'Excellent', range: '81 \u2013 100', color: '#5a9a6e' },
         ],
@@ -83,18 +324,18 @@ const METRIC_DETAILS = {
             return 4;
         }
     },
-    energy: {
-        title: 'Energy',
-        description: 'Reflects vocal vitality and engagement. Based on speech amplitude variation, articulation rate, and dynamic range. Higher scores suggest more energetic, animated speech.',
+    activation: {
+        title: 'Activation',
+        description: 'Measures vocal arousal and dynamism. Based on loudness, pitch height, pitch range, speech rate, and spectral brightness. Higher scores indicate more animated, energetic speech.',
         polarity: 'positive',
         tiers: [
             { label: 'Very Low',  range: '0 \u2013 20',  color: '#c4584c' },
-            { label: 'Low',       range: '21 \u2013 40', color: '#d4943a' },
-            { label: 'Moderate',  range: '41 \u2013 60', color: '#b5a84a' },
+            { label: 'Low',       range: '21 \u2013 40', color: '#c47840' },
+            { label: 'Moderate',  range: '41 \u2013 60', color: '#8a9eaa' },
             { label: 'Good',      range: '61 \u2013 80', color: '#7aad6e' },
             { label: 'Excellent', range: '81 \u2013 100', color: '#5a9a6e' },
         ],
-        note: 'Typical daytime energy scores range from 45\u201365, peaking mid-morning.',
+        note: 'Replaces Energy with improved validity (70/100 vs 42/100). Typical range: 40\u201370.',
         getTier: function(v) {
             if (v <= 20) return 0;
             if (v <= 40) return 1;
@@ -110,8 +351,8 @@ const METRIC_DETAILS = {
         tiers: [
             { label: 'Very Low',  range: '0 \u2013 20',  color: '#5a9a6e' },
             { label: 'Low',       range: '21 \u2013 40', color: '#7aad6e' },
-            { label: 'Moderate',  range: '41 \u2013 60', color: '#b5a84a' },
-            { label: 'High',      range: '61 \u2013 80', color: '#d4943a' },
+            { label: 'Moderate',  range: '41 \u2013 60', color: '#8a9eaa' },
+            { label: 'High',      range: '61 \u2013 80', color: '#c47840' },
             { label: 'Very High', range: '81 \u2013 100', color: '#c4584c' },
         ],
         note: 'Some stress is normal. Sustained scores above 60 may indicate chronic tension.',
@@ -129,8 +370,8 @@ const METRIC_DETAILS = {
         polarity: 'negative',
         tiers: [
             { label: 'Minimal',  range: '0 \u2013 18',  color: '#5a9a6e' },
-            { label: 'Mild',     range: '19 \u2013 33', color: '#b5a84a' },
-            { label: 'Moderate', range: '34 \u2013 52', color: '#d4943a' },
+            { label: 'Mild',     range: '19 \u2013 33', color: '#8a9eaa' },
+            { label: 'Moderate', range: '34 \u2013 52', color: '#c47840' },
             { label: 'Severe',   range: '53 \u2013 100', color: '#c4584c' },
         ],
         note: 'This is a wellness indicator, not a clinical diagnosis. Consult a healthcare provider for concerns.',
@@ -147,8 +388,8 @@ const METRIC_DETAILS = {
         polarity: 'negative',
         tiers: [
             { label: 'Minimal',  range: '0 \u2013 23',  color: '#5a9a6e' },
-            { label: 'Mild',     range: '24 \u2013 47', color: '#b5a84a' },
-            { label: 'Moderate', range: '48 \u2013 71', color: '#d4943a' },
+            { label: 'Mild',     range: '24 \u2013 47', color: '#8a9eaa' },
+            { label: 'Moderate', range: '48 \u2013 71', color: '#c47840' },
             { label: 'Severe',   range: '72 \u2013 100', color: '#c4584c' },
         ],
         note: 'This is a wellness indicator, not a clinical diagnosis. Consult a healthcare provider for concerns.',
@@ -156,6 +397,24 @@ const METRIC_DETAILS = {
             if (v <= 23) return 0;
             if (v <= 47) return 1;
             if (v <= 71) return 2;
+            return 3;
+        }
+    },
+    'emotional-stability': {
+        title: 'Emotional Stability',
+        description: 'Measures consistency of your emotional state over time. Computed from rolling variability of core scores and acoustic coefficient of variation. Higher scores indicate steadier emotional patterns.',
+        polarity: 'positive',
+        tiers: [
+            { label: 'Volatile',  range: '0 \u2013 25',  color: '#c4584c' },
+            { label: 'Variable',  range: '26 \u2013 50', color: '#c47840' },
+            { label: 'Steady',    range: '51 \u2013 75', color: '#8a9eaa' },
+            { label: 'Stable',    range: '76 \u2013 100', color: '#5a9a6e' },
+        ],
+        note: 'Projected validity: 62/100. Requires 3+ recent readings for full accuracy.',
+        getTier: function(v) {
+            if (v <= 25) return 0;
+            if (v <= 50) return 1;
+            if (v <= 75) return 2;
             return 3;
         }
     }
@@ -218,7 +477,11 @@ function closeMetricDetail() {
 
 // Wire up click handlers on DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
-    const metrics = ['calm', 'energy', 'stress', 'depression', 'anxiety'];
+    // Initialize theme toggle + ring gauge
+    initThemeToggle();
+    renderRingGauge(null, {});
+
+    const metrics = ['wellbeing', 'calm', 'activation', 'stress', 'depression', 'anxiety', 'emotional-stability'];
     metrics.forEach(metric => {
         const el = document.getElementById(`circle-${metric}`);
         if (el) {
@@ -289,7 +552,7 @@ function updateZoneBar(readings) {
     if (!container) return;
 
     if (!readings || readings.length === 0) {
-        container.innerHTML = '<div class="zone-bar-empty">Collecting data...</div>';
+        container.innerHTML = '<div class="zone-bar-empty">The Zone Bar shows how your emotional state shifts throughout the day \u2014 calm, steady, tense, or stressed. It will fill in as readings arrive.</div>';
         return;
     }
 
@@ -384,11 +647,11 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
     const scoreMap = {};
     if (summaries && summaries.length > 0) {
         for (const s of summaries) {
-            const mood = s.avg_mood || 50;
+            const wellbeing = s.avg_wellbeing || s.avg_mood || 50;
             const calm = s.avg_calm || 50;
-            const energy = s.avg_energy || 50;
+            const activation = s.avg_activation || s.avg_energy || 50;
             const stress = s.avg_stress || 50;
-            const wellness = (mood + calm + energy + (100 - stress)) / 4;
+            const wellness = (wellbeing + calm + activation + (100 - stress)) / 4;
             scoreMap[s.date] = wellness;
         }
     }
@@ -433,11 +696,11 @@ function initGauges() {
 }
 
 function updateGauges(scores, zone) {
-    const mood = scores.mood || 50;
-    const calm = scores.calm || 50;
-    const energy = scores.energy || 50;
-    const stress = scores.stress || 50;
-    const wellness = (mood + calm + energy + (100 - stress)) / 4;
+    const wellbeing = scores.wellbeing ?? scores.mood ?? 50;
+    const calm = scores.calm ?? 50;
+    const activation = scores.activation ?? scores.energy ?? 50;
+    const stress = scores.stress ?? 50;
+    const wellness = (wellbeing + calm + activation + (100 - stress)) / 4;
     updateHeroWellness(wellness);
     updateScoreCircles(scores);
 }

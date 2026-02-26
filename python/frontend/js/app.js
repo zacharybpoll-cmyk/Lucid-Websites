@@ -10,50 +10,137 @@ function sanitizeHTML(str) {
     return div.innerHTML;
 }
 
-// State
-let currentView = 'today';
-let todayData = null;
-let pollInterval = null;
-let statusPollInterval = null;
-let prevBufferedSec = 0;
+// Debounce utility — delays execution until calls stop for `delay` ms
+function debounce(fn, delay = 250) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+    };
+}
+
+// SVG helper — creates an SVG element with attributes in one call
+// Reduces boilerplate across chart rendering code (trends, timeline, gauges)
+function svgEl(tag, attrs) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    if (attrs) {
+        for (const [k, v] of Object.entries(attrs)) {
+            el.setAttribute(k, v);
+        }
+    }
+    return el;
+}
+
+// FE-015: Centralized date formatting helpers for consistency
+function formatShortDate(dateStr) {
+    // "Feb 23" format from an ISO date string or Date object
+    const d = typeof dateStr === 'string' ? new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00')) : dateStr;
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatLongDate(dateStr) {
+    // "Saturday, Feb 23" format
+    const d = typeof dateStr === 'string' ? new Date(dateStr + (dateStr.includes('T') ? '' : 'T12:00:00')) : dateStr;
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+}
+
+// Canonical zone color palette — matches CSS variables in main.css
+const ZONE_COLORS = {
+    calm: 'var(--calm-color)',
+    steady: 'var(--steady-color)',
+    tense: 'var(--tense-color)',
+    stressed: 'var(--stressed-color)',
+    idle: 'var(--zone-idle, #888)',
+};
+
+// Resolved zone hex colors (for canvas/SVG contexts where CSS vars don't work)
+const ZONE_HEX = {
+    calm: '#5a9a6e',
+    steady: '#b5a84a',
+    tense: '#d4943a',
+    stressed: '#c4584c',
+    idle: '#888888',
+};
+
+// Constants (not part of mutable state)
 const SPEECH_THRESHOLD_SEC = 30;
-
-// Throttle timestamps
-let lastBriefingUpdate = 0;
-let lastEngagementUpdate = 0;
-let lastFeatureUpdate = 0;
-
-// Sanctuary debounce
-let lastSanctuaryTime = 0;
 const SANCTUARY_COOLDOWN = 300000; // 5 min
-
-// Previous zone for transition detection
-let previousZone = null;
-
-// Canopy score reveal state
-let canopyRevealed = false;
-let prevCanopyScore = 0;
-
-// First Spark state
-let firstSparkLoaded = false;
-
-// First Light quest state
-let firstLightState = null;
 const FIRST_LIGHT_TASKS = ['canopy', 'rings', 'grove', 'faq', 'trends'];
+const HERO_RING_CIRCUMFERENCE = 2 * Math.PI * 54; // ~339.3
 
-// Beacon state
-let lastBeaconZone = 'idle';
+// ========== AppState — single namespace for all mutable state ==========
+window.AppState = {
+    // Current view
+    currentView: 'today',
+    todayData: null,
 
-// Morning summary state
-let morningSummaryShown = false;
+    // Polling intervals
+    pollInterval: null,
+    statusPollInterval: null,
 
-// Evening summary state
-let eveningSummaryShown = false;
+    // Mic indicator
+    prevBufferedSec: 0,
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Attune initialized');
+    // Throttle timestamps
+    lastBriefingUpdate: 0,
+    lastEngagementUpdate: 0,
+    lastFeatureUpdate: 0,
 
+    // Sanctuary debounce
+    lastSanctuaryTime: 0,
+
+    // Previous zone for transition detection
+    previousZone: null,
+
+    // Canopy score reveal state
+    canopyRevealed: false,
+    prevCanopyScore: 0,
+
+    // First Spark state
+    firstSparkLoaded: false,
+
+    // First Light quest state
+    firstLightState: null,
+
+    // Beacon state
+    lastBeaconZone: 'idle',
+
+    // Morning summary state
+    morningSummaryShown: false,
+
+    // Speak Hero state (first-time-ever + daily greeting)
+    speakHeroVisible: false,
+
+    // Evening summary state
+    eveningSummaryShown: false,
+
+    // Analysis error toast state (avoid spamming same error)
+    lastShownAnalysisError: null,
+
+    // Enrollment auto-prompt guard
+    enrollmentAutoPrompted: false,
+
+    // Hero ring analyzing state
+    heroAnalyzingActive: false,
+    heroAnalyzeRAF: null,
+    heroAnalyzeStart: 0,
+
+    // Canopy progress circle state
+    canopyIsAnalyzing: false,
+    canopyProgressRAF: null,
+    canopyProgressStart: 0,
+    canopyProgressSafetyTimer: null,
+};
+
+// ========== Startup Sequencing ==========
+
+async function init() {
+    // 1. Fetch config (non-blocking — used for future threshold overrides)
+    const config = await API.getConfig().catch(() => null);
+
+    // 2. Initialize all view modules
     initGauges();
     initAnxietyTimeline();
     initTrendsView();
@@ -62,16 +149,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initGrove();
     initLayout();
 
+    // 3. Setup UI event handlers and static content
     setupNavigation();
     setupSettings();
     setupBriefingCards();
     setupInfoButtons();
     updateCurrentDate();
+    updateDailyGreeting();
 
-    waitForBackend();
-});
+    // 4. Wait for backend readiness, then load data and start polling
+    await waitForBackend();
+}
+
+document.addEventListener('DOMContentLoaded', init);
 
 // Wait for backend models to load (skeleton loading screen)
+// Returns a promise that resolves when backend is ready
 function waitForBackend() {
     const overlay = document.getElementById('loading-overlay');
     const statusEl = document.getElementById('loading-status');
@@ -96,6 +189,7 @@ function waitForBackend() {
         if (statusEl) statusEl.textContent = statusMessages[msgIndex];
     }
 
+    return new Promise((resolve) => {
     function checkHealth() {
         API.getHealth()
             .then(data => {
@@ -107,22 +201,28 @@ function waitForBackend() {
 
                     // Fade out after a brief pause
                     setTimeout(() => {
-                        overlay.classList.add('fade-out');
+                        if (overlay) overlay.classList.add('fade-out');
                         setTimeout(() => {
-                            overlay.style.display = 'none';
+                            if (overlay) overlay.style.display = 'none';
                         }, 600);
                     }, 400);
 
                     startPolling();
-                    loadTodayData();
-                    loadFeatures();
-                    initFirstLight();
+
+                    // Batch parallel initial data fetches
+                    const initialFetches = [
+                        loadTodayData(),
+                        loadFeatures(),
+                        initFirstLight(),
+                    ];
                     if (shouldShowMorningSummary()) {
-                        loadMorningSummary();
+                        initialFetches.push(loadMorningSummary());
                     }
                     if (shouldShowEveningSummary()) {
-                        loadEveningSummary();
+                        initialFetches.push(loadEveningSummary());
                     }
+                    Promise.allSettled(initialFetches);
+                    resolve();
                 } else {
                     pollCount++;
                     updateProgress();
@@ -138,6 +238,7 @@ function waitForBackend() {
 
     updateProgress();
     checkHealth();
+    }); // end Promise
 }
 
 // ========== Navigation ==========
@@ -156,6 +257,11 @@ function setupNavigation() {
 }
 
 function switchView(view) {
+    // Stop polling intervals when leaving the today view
+    if (AppState.currentView === 'today' && view !== 'today') {
+        stopPolling();
+    }
+
     document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
         icon.classList.toggle('active', icon.dataset.view === view);
     });
@@ -164,7 +270,13 @@ function switchView(view) {
         viewEl.classList.toggle('active', viewEl.id === `${view}-view`);
     });
 
-    currentView = view;
+    AppState.currentView = view;
+
+    // Restart polling when returning to the today view
+    if (view === 'today') {
+        startPolling();
+        loadTodayData();
+    }
 
     if (view === 'trends' && typeof trendsView !== 'undefined' && trendsView) {
         trendsView.load(14);
@@ -178,6 +290,7 @@ function switchView(view) {
 
 function updateCurrentDate() {
     const dateEl = document.getElementById('current-date');
+    if (!dateEl) return;
     const now = new Date();
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
     dateEl.textContent = now.toLocaleDateString('en-US', options);
@@ -185,41 +298,204 @@ function updateCurrentDate() {
 
 // ========== Polling ==========
 
-function startPolling() {
-    if (pollInterval) clearInterval(pollInterval);
-    if (statusPollInterval) clearInterval(statusPollInterval);
-
-    pollInterval = setInterval(() => {
-        if (currentView === 'today') {
-            loadTodayData();
-        }
-    }, 5000);
-
-    pollStatus();
-    statusPollInterval = setInterval(pollStatus, 2000);
+function stopPolling() {
+    if (AppState.pollInterval) {
+        clearTimeout(AppState.pollInterval);
+        AppState.pollInterval = null;
+    }
+    if (AppState.statusPollInterval) {
+        clearTimeout(AppState.statusPollInterval);
+        AppState.statusPollInterval = null;
+    }
 }
 
-function stopPolling() {
-    if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
-    if (statusPollInterval) { clearInterval(statusPollInterval); statusPollInterval = null; }
+// Exponential backoff state for status polling
+let _statusPollDelay = 2000;
+let _statusPollFailures = 0;
+const _STATUS_POLL_MIN = 2000;
+const _STATUS_POLL_MAX = 30000;
+
+function _scheduleStatusPoll() {
+    AppState.statusPollInterval = setTimeout(async () => {
+        await pollStatus();
+        _scheduleStatusPoll();
+    }, _statusPollDelay);
+}
+
+function _scheduleDataPoll() {
+    AppState.pollInterval = setTimeout(() => {
+        if (AppState.currentView === 'today') {
+            loadTodayData();
+        }
+        _scheduleDataPoll();
+    }, 5000);
+}
+
+function startPolling() {
+    stopPolling();  // Clear any existing timeouts first
+    _statusPollDelay = _STATUS_POLL_MIN;
+    _statusPollFailures = 0;
+
+    _scheduleDataPoll();
+    pollStatus();
+    _scheduleStatusPoll();
+}
+
+// Pause polling when tab is hidden, resume when visible
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+        stopPolling();
+    } else {
+        startPolling();
+    }
+});
+
+function handleMicDisconnectBanner(status) {
+    let banner = document.getElementById('mic-disconnect-banner');
+    if (status && status.mic_disconnected) {
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'mic-disconnect-banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:10px 16px;' +
+                'background:rgba(196,88,76,0.95);color:#fff;text-align:center;font-size:13px;' +
+                'font-weight:600;z-index:10000;backdrop-filter:blur(8px);' +
+                'box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+            banner.textContent = 'Microphone disconnected. Please reconnect your microphone.';
+            document.body.appendChild(banner);
+        }
+    } else if (banner) {
+        banner.remove();
+    }
 }
 
 async function pollStatus() {
     try {
         const status = await API.getStatus();
+        // Mic disconnect banner
+        handleMicDisconnectBanner(status);
         updateMicIndicator(status);
         updateSpeakerDebug(status);
         // Start progress circle when backend begins analyzing
-        if (status.is_analyzing && !canopyIsAnalyzing) {
+        if (status.is_analyzing && !AppState.canopyIsAnalyzing) {
             startCanopyProgress();
         }
         // Finish progress circle when backend stops analyzing
-        if (!status.is_analyzing && canopyIsAnalyzing) {
+        if (!status.is_analyzing && AppState.canopyIsAnalyzing) {
             finishCanopyProgress();
         }
+        // Gauge ring animations
+        if (status.is_analyzing && !gaugesAreAnalyzing) startGaugeProgress();
+        if (!status.is_analyzing && gaugesAreAnalyzing) {
+            finishGaugeProgress();
+            // Small delay to let backend persist reading before fetching
+            setTimeout(() => loadTodayData(), 500);
+        }
+        // Show analysis error if present (only once per unique error)
+        if (status.last_analysis_error && !status.is_analyzing) {
+            showAnalysisError(status.last_analysis_error);
+        } else if (!status.last_analysis_error) {
+            AppState.lastShownAnalysisError = null; // reset when error clears
+        }
+        // Success: reset backoff
+        _statusPollDelay = _STATUS_POLL_MIN;
+        _statusPollFailures = 0;
+        _removeBackendBanner();
     } catch (e) {
         updateMicIndicator(null);
+        // Failure: exponential backoff
+        _statusPollFailures++;
+        _statusPollDelay = Math.min(_statusPollDelay * 2, _STATUS_POLL_MAX);
+        if (_statusPollFailures >= 5) {
+            _showBackendBanner();
+        }
     }
+}
+
+function _showBackendBanner() {
+    if (document.getElementById('backend-unreachable-banner')) return;
+    const banner = document.createElement('div');
+    banner.id = 'backend-unreachable-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:10px 16px;' +
+        'background:rgba(180,80,60,0.95);color:#fff;text-align:center;font-size:13px;' +
+        'font-weight:600;z-index:10000;backdrop-filter:blur(8px);';
+    banner.textContent = 'Backend unreachable — reconnecting...';
+    document.body.appendChild(banner);
+}
+
+function _removeBackendBanner() {
+    const banner = document.getElementById('backend-unreachable-banner');
+    if (banner) banner.remove();
+}
+
+// ========== Analysis Error Toast ==========
+
+function showAnalysisError(msg) {
+    // Only show once per unique error message
+    if (msg === AppState.lastShownAnalysisError) return;
+    AppState.lastShownAnalysisError = msg;
+
+    // Remove any existing toast
+    const existing = document.getElementById('analysis-error-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'analysis-error-toast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+        'background:rgba(196,88,76,0.92);color:#fff;padding:10px 20px;border-radius:10px;' +
+        'font-size:13px;z-index:9999;max-width:400px;text-align:center;' +
+        'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);' +
+        'animation:fadeIn 0.3s ease;';
+    toast.textContent = 'Analysis issue: ' + msg;
+
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => toast.remove(), 500);
+        }
+    }, 8000);
+}
+
+// ========== User-Visible Error Toast (FE-013) ==========
+
+function showUserError(msg, durationMs = 6000) {
+    // Remove any existing user-error toast
+    const existing = document.getElementById('user-error-toast');
+    if (existing) existing.remove();
+
+    const toast = document.createElement('div');
+    toast.id = 'user-error-toast';
+    toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+        'background:rgba(91,88,84,0.92);color:#fff;padding:10px 20px;border-radius:10px;' +
+        'font-size:13px;z-index:9999;max-width:400px;text-align:center;' +
+        'backdrop-filter:blur(8px);box-shadow:0 4px 16px rgba(0,0,0,0.3);' +
+        'animation:fadeIn 0.3s ease;';
+    toast.textContent = msg;
+
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => toast.remove(), 500);
+        }
+    }, durationMs);
+}
+
+// ========== Card Error Feedback [R-023] ==========
+
+function showCardError(cardId, message = 'Unable to load') {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    const errEl = card.querySelector('.card-error');
+    if (errEl) { errEl.textContent = message; return; }
+    const div = document.createElement('div');
+    div.className = 'card-error';
+    div.style.cssText = 'text-align:center;padding:12px;color:rgba(91,88,84,0.7);font-size:12px;cursor:pointer;';
+    div.textContent = message + ' — tap to retry';
+    div.onclick = () => { div.remove(); loadTodayData(); };
+    card.appendChild(div);
 }
 
 // ========== Speaker Gate Debug Overlay ==========
@@ -237,7 +513,7 @@ function updateSpeakerDebug(status) {
     const passRate = typeof stats.pass_rate === 'number' ? stats.pass_rate.toFixed(0) : '—';
     const sandwich = stats.segments_sandwich_recovered || 0;
     const momentumTag = stats.momentum_active ? ' <span style="color:#5B8DB8;">[momentum]</span>' : '';
-    const thresholdDisplay = stats.momentum_active ? '0.24' : '0.28';
+    const thresholdDisplay = stats.momentum_active ? '0.24' : (stats.adaptive_threshold || '0.28');
     document.getElementById('speaker-debug-stats').innerHTML =
         `Pass rate: <strong style="color:#fff">${passRate}%</strong> &nbsp;|&nbsp; ` +
         `✓ ${stats.segments_verified} verified &nbsp;|&nbsp; ✗ ${stats.segments_rejected} rejected` +
@@ -248,11 +524,13 @@ function updateSpeakerDebug(status) {
     const events = stats.recent_events || [];
     const logEl = document.getElementById('speaker-debug-log');
     if (events.length === 0) {
-        logEl.innerHTML = '<div style="opacity:0.5;margin-top:6px;">No segments yet — speak for ~1.2s</div>';
+        logEl.innerHTML = '<div style="opacity:0.5;margin-top:6px;">No segments yet — speak for ~2s</div>';
         return;
     }
     logEl.innerHTML = [...events].reverse().map(e => {
         let label = e.verified ? '✓ pass' : '✗ reject';
+        if (e.overlap_rejected) label = '🗣 overlap';
+        if (e.floor_rejected) label = '⛔ floor';
         if (e.sandwich_recovered) label = '🥪 recovered';
         if (e.momentum) label += ' [M]';
         return `<div class="gate-event ${e.verified ? 'gate-pass' : 'gate-fail'}">` +
@@ -277,8 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Track whether we've auto-prompted enrollment
-let enrollmentAutoPrompted = false;
+// enrollmentAutoPrompted is in AppState
 
 function updateMicIndicator(status) {
     const dot = document.getElementById('mic-dot');
@@ -286,6 +563,7 @@ function updateMicIndicator(status) {
     const seconds = document.getElementById('mic-seconds');
     const bar = document.getElementById('mic-progress-bar');
     const enrollBanner = document.getElementById('enrollment-required-banner');
+    if (!dot || !label) return; // FE-014: guard against missing DOM elements
 
     if (!status) {
         dot.className = 'mic-dot idle';
@@ -302,11 +580,11 @@ function updateMicIndicator(status) {
         label.textContent = 'Voice profile needed';
         if (seconds) seconds.textContent = '';
         if (bar) bar.style.width = '0%';
-        prevBufferedSec = 0;
+        AppState.prevBufferedSec = 0;
 
         // Auto-prompt enrollment on first detection (once per session)
-        if (!enrollmentAutoPrompted) {
-            enrollmentAutoPrompted = true;
+        if (!AppState.enrollmentAutoPrompted) {
+            AppState.enrollmentAutoPrompted = true;
             setTimeout(() => startEnrollment(), 1500);
         }
         return;
@@ -320,16 +598,26 @@ function updateMicIndicator(status) {
     if (seconds) seconds.textContent = `${Math.round(buffered)}s / ${SPEECH_THRESHOLD_SEC}s`;
     if (bar) bar.style.width = pct + '%';
 
+    // Update hero card progress ring if visible
+    if (AppState.speakHeroVisible) {
+        if (status.is_analyzing) {
+            setHeroAnalyzing(true);
+        } else {
+            setHeroAnalyzing(false);
+            updateHeroRing(buffered);
+        }
+    }
+
     if (status.is_paused) {
         dot.className = 'mic-dot paused';
         label.textContent = 'Paused';
     } else if (!status.is_running) {
         dot.className = 'mic-dot idle';
         label.textContent = 'Not running';
-    } else if (buffered < prevBufferedSec && prevBufferedSec > 5) {
+    } else if (buffered < AppState.prevBufferedSec && AppState.prevBufferedSec > 5) {
         dot.className = 'mic-dot hearing';
         label.textContent = 'Analyzing...';
-    } else if (buffered > 0 && buffered > prevBufferedSec) {
+    } else if (buffered > 0 && buffered > AppState.prevBufferedSec) {
         dot.className = 'mic-dot hearing';
         label.textContent = 'Hearing speech...';
     } else if (buffered >= SPEECH_THRESHOLD_SEC) {
@@ -339,19 +627,173 @@ function updateMicIndicator(status) {
         dot.className = 'mic-dot hearing';
         label.textContent = 'Speech buffered';
     } else {
-        dot.className = 'mic-dot idle';
-        label.textContent = 'Listening...';
+        // If hero visible or daily greeting, override the label
+        if (AppState.speakHeroVisible) {
+            dot.className = 'mic-dot idle';
+            label.textContent = 'Listening...';
+        } else {
+            dot.className = 'mic-dot idle';
+            label.textContent = 'Listening...';
+        }
     }
 
-    prevBufferedSec = buffered;
+    AppState.prevBufferedSec = buffered;
+}
+
+// ========== Speak Hero Card Logic ==========
+
+// HERO_RING_CIRCUMFERENCE is declared at top with constants
+// heroAnalyzingActive, heroAnalyzeRAF, heroAnalyzeStart are in AppState
+
+function updateHeroRing(bufferedSec) {
+    const ringFill = document.getElementById('hero-ring-fill');
+    const secondsEl = document.getElementById('hero-seconds-value');
+    const unitEl = document.querySelector('.hero-ring-unit');
+    if (!ringFill || !secondsEl) return;
+
+    const progress = Math.min(1, bufferedSec / SPEECH_THRESHOLD_SEC);
+    const offset = HERO_RING_CIRCUMFERENCE * (1 - progress);
+    ringFill.style.strokeDashoffset = offset;
+    secondsEl.textContent = Math.round(bufferedSec);
+    if (unitEl) unitEl.style.display = '';
+    if (unitEl) unitEl.textContent = 'sec';
+}
+
+function setHeroAnalyzing(active) {
+    const ringFill = document.getElementById('hero-ring-fill');
+    const secondsEl = document.getElementById('hero-seconds-value');
+    const ringWrap = document.querySelector('.speak-hero-ring-wrap');
+    if (!ringFill || !secondsEl) return;
+
+    if (active && !AppState.heroAnalyzingActive) {
+        AppState.heroAnalyzingActive = true;
+        ringFill.classList.add('hero-ring-analyzing');
+        ringWrap && ringWrap.classList.add('analyzing');
+        secondsEl.textContent = 'Analyzing';
+        secondsEl.classList.add('analyzing-text');
+
+        // Progressive fill: 0->80% over 8s, then slow crawl to 95%
+        AppState.heroAnalyzeStart = performance.now();
+        if (AppState.heroAnalyzeRAF) cancelAnimationFrame(AppState.heroAnalyzeRAF);
+
+        function tick(now) {
+            const elapsed = now - AppState.heroAnalyzeStart;
+            let progress;
+            if (elapsed < 8000) {
+                progress = (elapsed / 8000) * 0.80;
+            } else {
+                const extra = (elapsed - 8000) / 17000;
+                progress = 0.80 + Math.min(extra, 1) * 0.15;
+            }
+            const offset = HERO_RING_CIRCUMFERENCE * (1 - progress);
+            ringFill.style.strokeDashoffset = offset;
+
+            if (AppState.heroAnalyzingActive) {
+                AppState.heroAnalyzeRAF = requestAnimationFrame(tick);
+            }
+        }
+        AppState.heroAnalyzeRAF = requestAnimationFrame(tick);
+
+    } else if (!active && AppState.heroAnalyzingActive) {
+        AppState.heroAnalyzingActive = false;
+        if (AppState.heroAnalyzeRAF) {
+            cancelAnimationFrame(AppState.heroAnalyzeRAF);
+            AppState.heroAnalyzeRAF = null;
+        }
+        // Snap to full before clearing
+        ringFill.style.strokeDashoffset = '0';
+        setTimeout(() => {
+            ringFill.classList.remove('hero-ring-analyzing');
+            ringWrap && ringWrap.classList.remove('analyzing');
+            secondsEl.classList.remove('analyzing-text');
+        }, 400);
+    }
+}
+
+function showSpeakHero() {
+    const hero = document.getElementById('speak-hero');
+    if (!hero) return;
+    hero.style.display = '';
+    AppState.speakHeroVisible = true;
+}
+
+function hideSpeakHero(celebrate) {
+    const hero = document.getElementById('speak-hero');
+    if (!hero || !AppState.speakHeroVisible) return;
+
+    if (celebrate) {
+        // Gold flash celebration
+        hero.classList.add('celebrating');
+
+        // Spawn leaf burst particles
+        for (let i = 0; i < 12; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'hero-leaf-particle';
+            leaf.style.left = (30 + Math.random() * 40) + '%';
+            leaf.style.top = (30 + Math.random() * 40) + '%';
+            leaf.style.animationDelay = (Math.random() * 0.3) + 's';
+            hero.appendChild(leaf);
+        }
+
+        setTimeout(() => {
+            hero.style.maxHeight = hero.scrollHeight + 'px';
+            // Force reflow
+            hero.offsetHeight;
+            hero.classList.add('shrinking');
+            setTimeout(() => {
+                hero.style.display = 'none';
+                hero.classList.remove('celebrating', 'shrinking');
+                // Remove particles
+                hero.querySelectorAll('.hero-leaf-particle').forEach(p => p.remove());
+                AppState.speakHeroVisible = false;
+            }, 500);
+        }, 800);
+    } else {
+        hero.style.display = 'none';
+        AppState.speakHeroVisible = false;
+    }
+}
+
+function updateDailyGreeting() {
+    const greetingText = document.getElementById('daily-greeting-text');
+    if (!greetingText) return;
+    const hour = new Date().getHours();
+    if (hour < 12) greetingText.textContent = 'Good morning';
+    else if (hour < 17) greetingText.textContent = 'Good afternoon';
+    else greetingText.textContent = 'Good evening';
 }
 
 // ========== Load Today's Data ==========
 
 async function loadTodayData() {
+    // Set loading state on dashboard cards that haven't loaded yet
+    document.querySelectorAll('.card-content').forEach(el => {
+        if (!el.dataset.loaded) {
+            el.classList.add('loading');
+        }
+    });
+
     try {
         const data = await API.getToday();
-        todayData = data;
+        AppState.todayData = data;
+
+        // Clear loading states
+        document.querySelectorAll('.card-content.loading').forEach(el => {
+            el.classList.remove('loading');
+            el.dataset.loaded = 'true';
+        });
+
+        // --- Speak Hero / Daily Greeting Logic ---
+        const totalReadings = data.total_readings || 0;
+        const todayReadings = data.readings ? data.readings.length : 0;
+
+        if (totalReadings === 0 && todayReadings === 0) {
+            // First-time-ever: show hero card
+            if (!AppState.speakHeroVisible) showSpeakHero();
+        } else if (AppState.speakHeroVisible && todayReadings >= 1) {
+            // First reading just arrived — celebrate and dismiss hero
+            hideSpeakHero(true);
+        }
 
         updateCurrentScores(data.current_scores, data.readings);
         updateScoreCircles(data.current_scores);
@@ -365,31 +807,31 @@ async function loadTodayData() {
         // Detect zone transitions for Sanctuary Moments
         if (data.readings && data.readings.length > 0) {
             const currentZone = data.readings[0].zone;
-            if (previousZone === 'stressed' && (currentZone === 'calm' || currentZone === 'steady')) {
+            if (AppState.previousZone === 'stressed' && (currentZone === 'calm' || currentZone === 'steady')) {
                 triggerSanctuary('calm_shift', 'You found your calm');
-            } else if (previousZone === 'tense' && currentZone === 'calm') {
+            } else if (AppState.previousZone === 'tense' && currentZone === 'calm') {
                 triggerSanctuary('calm_shift', 'Tension released. Well done.');
             }
-            previousZone = currentZone;
+            AppState.previousZone = currentZone;
 
             // First reading of the day
-            if (data.readings.length === 1 && !canopyRevealed) {
+            if (data.readings.length === 1 && !AppState.canopyRevealed) {
                 triggerSanctuary('first_reading', 'Your voice has been heard');
             }
         }
 
         // Throttle expensive updates
         const now = Date.now();
-        if (now - lastBriefingUpdate > 300000) {
-            lastBriefingUpdate = now;
+        if (now - AppState.lastBriefingUpdate > 300000) {
+            AppState.lastBriefingUpdate = now;
             updateBriefings();
         }
-        if (now - lastEngagementUpdate > 60000) {
-            lastEngagementUpdate = now;
+        if (now - AppState.lastEngagementUpdate > 60000) {
+            AppState.lastEngagementUpdate = now;
             updateEngagement();
         }
-        if (now - lastFeatureUpdate > 30000) {
-            lastFeatureUpdate = now;
+        if (now - AppState.lastFeatureUpdate > 30000) {
+            AppState.lastFeatureUpdate = now;
             loadFeatures();
         }
 
@@ -399,7 +841,15 @@ async function loadTodayData() {
         }
 
     } catch (error) {
+        // Clear loading states on error
+        document.querySelectorAll('.card-content.loading').forEach(el => {
+            el.classList.remove('loading');
+        });
         console.error('Error loading today data:', error);
+        // FE-013: Show user-visible error if this is the initial load
+        if (!AppState.todayData) {
+            showUserError('Unable to load dashboard data. Retrying...');
+        }
     }
 }
 
@@ -414,7 +864,6 @@ async function loadFeatures() {
         loadCompass(),
         loadCapsules(),
         updateGrove(),
-        loadFirstSpark(),
         loadWeeklyWrapped(),
         pollBeacon(),
     ]);
@@ -439,20 +888,20 @@ async function loadCanopyScore() {
             if (progressBar) progressBar.style.width = ((count / 3) * 100) + '%';
             if (readingCountEl) readingCountEl.textContent = `${count} of 3 readings`;
             if (profileEl) profileEl.textContent = '';
-            canopyRevealed = false; // Reset so animation fires on score unlock
+            AppState.canopyRevealed = false; // Reset so animation fires on score unlock
         } else {
             // Show score (but not while progress circle is active)
             if (progressState) progressState.style.display = 'none';
-            if (!canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
+            if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
-            if (!canopyRevealed) {
-                canopyRevealed = true;
+            if (!AppState.canopyRevealed) {
+                AppState.canopyRevealed = true;
                 animateCountUp(scoreEl, data.score, 3000);
-            } else if (data.score !== prevCanopyScore) {
+            } else if (data.score !== AppState.prevCanopyScore) {
                 scoreEl.textContent = '0';
                 animateCountUp(scoreEl, data.score, 1500);
             }
-            prevCanopyScore = data.score;
+            AppState.prevCanopyScore = data.score;
             if (profileEl) profileEl.textContent = data.profile || '';
         }
     } catch (e) {
@@ -498,10 +947,7 @@ function addLeafParticles(container) {
 
 // ========== Canopy Progress Circle ==========
 
-let canopyIsAnalyzing = false;
-let canopyProgressRAF = null;
-let canopyProgressStart = 0;
-let canopyProgressSafetyTimer = null;
+// canopyIsAnalyzing, canopyProgressRAF, canopyProgressStart, canopyProgressSafetyTimer are in AppState
 
 function startCanopyProgress() {
     const circle = document.getElementById('canopy-progress-circle');
@@ -509,24 +955,24 @@ function startCanopyProgress() {
     const scoreEl = document.getElementById('canopy-score');
     if (!circle || !arc) return;
 
-    canopyIsAnalyzing = true;
+    AppState.canopyIsAnalyzing = true;
     circle.style.display = 'flex';
     if (scoreEl) scoreEl.style.display = 'none';
 
     arc.style.transition = 'none';
     arc.style.strokeDashoffset = '326.7';
 
-    canopyProgressStart = performance.now();
-    if (canopyProgressRAF) cancelAnimationFrame(canopyProgressRAF);
+    AppState.canopyProgressStart = performance.now();
+    if (AppState.canopyProgressRAF) cancelAnimationFrame(AppState.canopyProgressRAF);
 
     // Safety timeout: auto-dismiss after 25s no matter what
-    if (canopyProgressSafetyTimer) clearTimeout(canopyProgressSafetyTimer);
-    canopyProgressSafetyTimer = setTimeout(() => {
-        if (canopyIsAnalyzing) finishCanopyProgress();
+    if (AppState.canopyProgressSafetyTimer) clearTimeout(AppState.canopyProgressSafetyTimer);
+    AppState.canopyProgressSafetyTimer = setTimeout(() => {
+        if (AppState.canopyIsAnalyzing) finishCanopyProgress();
     }, 25000);
 
     function tick(now) {
-        const elapsed = now - canopyProgressStart;
+        const elapsed = now - AppState.canopyProgressStart;
         // Phase 1: Linear to 80% over 8s
         // Phase 2: Slow crawl from 80% to 95% over next 17s
         let progress;
@@ -540,12 +986,12 @@ function startCanopyProgress() {
         arc.style.transition = 'none';
         arc.style.strokeDashoffset = offset;
 
-        if (canopyIsAnalyzing) {
-            canopyProgressRAF = requestAnimationFrame(tick);
+        if (AppState.canopyIsAnalyzing) {
+            AppState.canopyProgressRAF = requestAnimationFrame(tick);
         }
     }
 
-    canopyProgressRAF = requestAnimationFrame(tick);
+    AppState.canopyProgressRAF = requestAnimationFrame(tick);
 }
 
 function finishCanopyProgress() {
@@ -556,13 +1002,13 @@ function finishCanopyProgress() {
 
     // Keep canopyIsAnalyzing true during the 500ms close transition
     // so loadCanopyScore() won't prematurely show the score element
-    if (canopyProgressRAF) {
-        cancelAnimationFrame(canopyProgressRAF);
-        canopyProgressRAF = null;
+    if (AppState.canopyProgressRAF) {
+        cancelAnimationFrame(AppState.canopyProgressRAF);
+        AppState.canopyProgressRAF = null;
     }
-    if (canopyProgressSafetyTimer) {
-        clearTimeout(canopyProgressSafetyTimer);
-        canopyProgressSafetyTimer = null;
+    if (AppState.canopyProgressSafetyTimer) {
+        clearTimeout(AppState.canopyProgressSafetyTimer);
+        AppState.canopyProgressSafetyTimer = null;
     }
 
     // Snap to 100%
@@ -571,7 +1017,7 @@ function finishCanopyProgress() {
 
     // After transition: hide circle, show score, refresh canopy data
     setTimeout(() => {
-        canopyIsAnalyzing = false;
+        AppState.canopyIsAnalyzing = false;
         if (circle) circle.style.display = 'none';
         if (scoreEl) scoreEl.style.display = '';
         // Force a fresh canopy score fetch so count-up fires immediately
@@ -625,7 +1071,7 @@ async function loadRecoveryPulse() {
         if (!data.has_data || data.readings.length < 2) {
             // Empty state
             const insightEl = document.getElementById('rp-insight');
-            if (insightEl) insightEl.textContent = data.insight || 'Collecting data...';
+            if (insightEl) insightEl.textContent = data.insight || 'Recovery Pulse measures how quickly your stress drops between readings. It needs at least 2 readings today to calculate.';
             return;
         }
 
@@ -727,7 +1173,7 @@ async function loadEchoes() {
         if (!container) return;
 
         if (!data.echoes || data.echoes.length === 0) {
-            container.innerHTML = '<div class="echoes-empty">Patterns will appear after 7+ days of data</div>';
+            container.innerHTML = '<div class="echoes-empty">Echoes surface recurring patterns in your voice data \u2014 like stress spikes on certain days or calm streaks. They appear after 7+ days of readings.</div>';
             return;
         }
 
@@ -760,7 +1206,7 @@ async function loadCompass() {
         if (!container) return;
 
         if (!data.has_data) {
-            container.innerHTML = '<div class="compass-empty">Weekly direction updates on Mondays</div>';
+            container.innerHTML = '<div class="compass-empty">The Compass tracks your week-over-week trajectory \u2014 are you trending calmer, steadier, or more stressed? Updates every Monday.</div>';
             return;
         }
 
@@ -900,8 +1346,8 @@ async function loadWaypoints() {
 
 function triggerSanctuary(type, message) {
     const now = Date.now();
-    if (now - lastSanctuaryTime < SANCTUARY_COOLDOWN) return; // 5 min debounce
-    lastSanctuaryTime = now;
+    if (now - AppState.lastSanctuaryTime < SANCTUARY_COOLDOWN) return; // 5 min debounce
+    AppState.lastSanctuaryTime = now;
 
     const overlay = document.getElementById('sanctuary-overlay');
     const msgEl = document.getElementById('sanctuary-message');
@@ -915,7 +1361,7 @@ function triggerSanctuary(type, message) {
 
     // Add leaf particles
     if (particles) {
-        particles.innerHTML = '';
+        particles.textContent = '';
         for (let i = 0; i < 12; i++) {
             const leaf = document.createElement('span');
             leaf.className = 'sanctuary-leaf';
@@ -930,7 +1376,7 @@ function triggerSanctuary(type, message) {
     setTimeout(() => {
         overlay.classList.remove('sanctuary-active');
         overlay.style.display = 'none';
-        if (particles) particles.innerHTML = '';
+        if (particles) particles.textContent = '';
     }, 3000);
 }
 
@@ -965,18 +1411,23 @@ function updateCurrentScores(scores, readings) {
 }
 
 function updateZoneSummary(summary) {
+    const calmEl = document.getElementById('calm-time');
+    const steadyEl = document.getElementById('steady-time');
+    const tenseEl = document.getElementById('tense-time');
+    const stressedEl = document.getElementById('stressed-time');
+
     if (!summary) {
-        document.getElementById('calm-time').textContent = '0 min';
-        document.getElementById('steady-time').textContent = '0 min';
-        document.getElementById('tense-time').textContent = '0 min';
-        document.getElementById('stressed-time').textContent = '0 min';
+        if (calmEl) calmEl.textContent = '0 min';
+        if (steadyEl) steadyEl.textContent = '0 min';
+        if (tenseEl) tenseEl.textContent = '0 min';
+        if (stressedEl) stressedEl.textContent = '0 min';
         return;
     }
 
-    document.getElementById('calm-time').textContent = `${Math.round(summary.time_in_calm_min || 0)} min`;
-    document.getElementById('steady-time').textContent = `${Math.round(summary.time_in_steady_min || 0)} min`;
-    document.getElementById('tense-time').textContent = `${Math.round(summary.time_in_tense_min || 0)} min`;
-    document.getElementById('stressed-time').textContent = `${Math.round(summary.time_in_stressed_min || 0)} min`;
+    if (calmEl) calmEl.textContent = `${Math.round(summary.time_in_calm_min || 0)} min`;
+    if (steadyEl) steadyEl.textContent = `${Math.round(summary.time_in_steady_min || 0)} min`;
+    if (tenseEl) tenseEl.textContent = `${Math.round(summary.time_in_tense_min || 0)} min`;
+    if (stressedEl) stressedEl.textContent = `${Math.round(summary.time_in_stressed_min || 0)} min`;
 }
 
 function updateMeetings(readings) {
@@ -1017,7 +1468,8 @@ function updateMeetings(readings) {
 
     if (currentMeeting) meetings.push(currentMeeting);
 
-    document.getElementById('meeting-count').textContent = meetings.length;
+    const meetingCountEl = document.getElementById('meeting-count');
+    if (meetingCountEl) meetingCountEl.textContent = meetings.length;
 
     const listHtml = meetings.map((meeting, idx) => {
         const startTime = new Date(meeting.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
@@ -1025,14 +1477,16 @@ function updateMeetings(readings) {
         return `<div class="meeting-item"><span class="meeting-time">${startTime} - ${endTime}</span><span class="meeting-label">Meeting ${idx + 1}</span></div>`;
     }).join('');
 
-    document.getElementById('meetings-list').innerHTML = listHtml;
+    const meetingsListEl = document.getElementById('meetings-list');
+    if (meetingsListEl) meetingsListEl.innerHTML = listHtml;
 }
 
 function updateCalibrationBanner(status) {
     const banner = document.getElementById('calibration-banner');
     const progress = document.getElementById('calibration-progress');
+    if (!banner) return;
 
-    if (!status || status.is_calibrated) {
+    if (!status || status.is_calibrated || (status.total_readings || 0) >= (status.min_readings || 10)) {
         banner.style.display = 'none';
         return;
     }
@@ -1045,7 +1499,7 @@ function updateCalibrationBanner(status) {
     }
 
     banner.style.display = 'block';
-    progress.textContent = `${status.total_readings || 0} readings collected (need ${status.min_readings || 10} minimum)`;
+    if (progress) progress.textContent = `${status.total_readings || 0} readings collected (need ${status.min_readings || 10} minimum)`;
 }
 
 // ========== Briefings ==========
@@ -1146,15 +1600,14 @@ function renderStructuredBriefing(card, data) {
     const zoneBar = card.querySelector('.briefing-zone-bar');
     const zoneLegend = card.querySelector('.briefing-zone-legend');
     if (zoneBar && data.zones) {
-        const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
         const zoneLabels = { calm: 'Calm', steady: 'Steady', tense: 'Tense', stressed: 'Stressed' };
         let barHtml = '';
         let legendHtml = '';
         for (const z of ['calm', 'steady', 'tense', 'stressed']) {
             const info = data.zones[z];
             if (!info || info.pct === 0) continue;
-            barHtml += `<div class="zone-segment" style="width: ${info.pct}%; background: ${zoneColors[z]};" title="${zoneLabels[z]}: ${info.minutes} min (${info.pct}%)"></div>`;
-            legendHtml += `<span class="zone-legend-item"><span class="zone-dot" style="background: ${zoneColors[z]};"></span>${zoneLabels[z]} ${info.minutes}m (${info.pct}%)</span>`;
+            barHtml += `<div class="zone-segment" style="width: ${info.pct}%; background: ${ZONE_HEX[z]};" title="${zoneLabels[z]}: ${info.minutes} min (${info.pct}%)"></div>`;
+            legendHtml += `<span class="zone-legend-item"><span class="zone-dot" style="background: ${ZONE_HEX[z]};"></span>${zoneLabels[z]} ${info.minutes}m (${info.pct}%)</span>`;
         }
         zoneBar.innerHTML = barHtml;
         zoneLegend.innerHTML = legendHtml;
@@ -1192,7 +1645,7 @@ function setupBriefingCards() {
                 e.stopPropagation();
                 const isExpanded = body.classList.contains('briefing-expanded');
                 body.classList.toggle('briefing-expanded', !isExpanded);
-                toggle.innerHTML = isExpanded ? '&#9660;' : '&#9650;';
+                toggle.textContent = isExpanded ? '\u25BC' : '\u25B2';
             });
         }
     });
@@ -1239,6 +1692,7 @@ function setupSettings() {
     const settingsBtn = document.getElementById('settings-btn');
     const settingsPanel = document.getElementById('settings-panel');
     const closeBtn = document.getElementById('settings-close-btn');
+    if (!settingsBtn || !settingsPanel || !closeBtn) return;
 
     settingsBtn.addEventListener('click', () => {
         settingsPanel.style.display = 'block';
@@ -1256,6 +1710,10 @@ function setupSettings() {
     if (speakerSetupBtn) {
         speakerSetupBtn.addEventListener('click', () => startEnrollment());
     }
+    const speakerEnhanceBtn = document.getElementById('speaker-enhance-btn');
+    if (speakerEnhanceBtn) {
+        speakerEnhanceBtn.addEventListener('click', () => openEnhanceOverlay());
+    }
     if (speakerDeleteBtn) {
         speakerDeleteBtn.addEventListener('click', async () => {
             if (confirm('Delete your voice profile? Attune will analyze all detected speech until you re-enroll.')) {
@@ -1271,18 +1729,29 @@ function setupSettings() {
 
     if (exportReadingsBtn) {
         exportReadingsBtn.addEventListener('click', () => {
+            const origText = exportReadingsBtn.textContent;
+            exportReadingsBtn.textContent = 'Exporting...';
+            exportReadingsBtn.disabled = true;
             window.location.href = `${API_BASE}/export/readings`;
+            setTimeout(() => { exportReadingsBtn.textContent = origText; exportReadingsBtn.disabled = false; }, 3000);
         });
     }
 
     if (exportSummariesBtn) {
         exportSummariesBtn.addEventListener('click', () => {
+            const origText = exportSummariesBtn.textContent;
+            exportSummariesBtn.textContent = 'Exporting...';
+            exportSummariesBtn.disabled = true;
             window.location.href = `${API_BASE}/export/summaries?days=30`;
+            setTimeout(() => { exportSummariesBtn.textContent = origText; exportSummariesBtn.disabled = false; }, 3000);
         });
     }
 
     if (exportJsonBtn) {
         exportJsonBtn.addEventListener('click', async () => {
+            const origText = exportJsonBtn.textContent;
+            exportJsonBtn.textContent = 'Exporting...';
+            exportJsonBtn.disabled = true;
             try {
                 const data = await API.exportJson(30);
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1294,66 +1763,15 @@ function setupSettings() {
                 URL.revokeObjectURL(url);
             } catch (e) {
                 console.error('JSON export failed:', e);
+            } finally {
+                exportJsonBtn.textContent = origText;
+                exportJsonBtn.disabled = false;
             }
         });
     }
 }
 
-// ========== First Spark — Instant Value from Reading #1 ==========
-
-async function loadFirstSpark() {
-    if (firstSparkLoaded) return;
-
-    try {
-        const data = await API.getFirstSpark();
-        const card = document.getElementById('first-spark-card');
-        if (!card) return;
-
-        if (!data.show_journey) {
-            card.style.display = 'none';
-            firstSparkLoaded = true;
-            return;
-        }
-
-        card.style.display = 'block';
-
-        const content = card.querySelector('.first-spark-content');
-        if (!content) return;
-
-        let html = '';
-
-        if (data.narrative) {
-            html += `<p class="spark-narrative">${sanitizeHTML(data.narrative)}</p>`;
-            if (data.percentile_text) {
-                html += `<div class="spark-percentile">${sanitizeHTML(data.percentile_text)}</div>`;
-            }
-        }
-
-        // Progressive unlock preview
-        if (data.unlocks) {
-            html += '<div class="spark-unlocks">';
-            for (const u of data.unlocks) {
-                const achieved = data.unlocked && data.unlocked[u.label.toLowerCase().replace(/\s+/g, '_')];
-                const dayLabel = `Day ${u.day}`;
-                const cls = (data.days_active >= u.day) ? 'spark-unlock achieved' : 'spark-unlock locked';
-                html += `<div class="${cls}">
-                    <span class="spark-day">${dayLabel}</span>
-                    <span class="spark-unlock-label">${sanitizeHTML(u.label)}</span>
-                    <span class="spark-unlock-desc">${sanitizeHTML(u.desc)}</span>
-                </div>`;
-            }
-            html += '</div>';
-        }
-
-        if (!data.has_readings) {
-            html = '<p class="spark-narrative">Start speaking and we\'ll capture your first voice reading. Your wellness journey begins with one sentence.</p>';
-        }
-
-        content.innerHTML = html;
-    } catch (e) {
-        console.error('Failed to load First Spark:', e);
-    }
-}
+// [Q-055] loadFirstSpark removed — first-spark-card HTML element no longer exists
 
 // ========== Weekly Wrapped ==========
 
@@ -1401,11 +1819,10 @@ async function loadWeeklyWrapped() {
             </div>
             <div class="wrapped-zones">`;
 
-        const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
         for (const z of ['calm', 'steady', 'tense', 'stressed']) {
             const info = data.zones[z];
             if (info && info.pct > 0) {
-                html += `<div class="wrapped-zone-bar" style="width: ${info.pct}%; background: ${zoneColors[z]};" title="${z}: ${info.min}m (${info.pct}%)"></div>`;
+                html += `<div class="wrapped-zone-bar" style="width: ${info.pct}%; background: ${ZONE_HEX[z]};" title="${z}: ${info.min}m (${info.pct}%)"></div>`;
             }
         }
 
@@ -1426,10 +1843,10 @@ async function loadWeeklyWrapped() {
         const toggle = card.querySelector('.wrapped-toggle');
         if (isCollapsed) {
             content.classList.remove('wrapped-expanded');
-            if (toggle) toggle.innerHTML = '&#9660;';
+            if (toggle) toggle.textContent = '\u25BC';
         } else {
             content.classList.add('wrapped-expanded');
-            if (toggle) toggle.innerHTML = '&#9650;';
+            if (toggle) toggle.textContent = '\u25B2';
         }
 
         // Set up toggle click handler (remove old listener by replacing element)
@@ -1439,7 +1856,7 @@ async function loadWeeklyWrapped() {
                 e.stopPropagation();
                 const expanded = content.classList.contains('wrapped-expanded');
                 content.classList.toggle('wrapped-expanded', !expanded);
-                toggle.innerHTML = expanded ? '&#9660;' : '&#9650;';
+                toggle.textContent = expanded ? '\u25BC' : '\u25B2';
                 localStorage.setItem('wrapped-collapsed', expanded ? 'true' : 'false');
             });
         }
@@ -1465,18 +1882,10 @@ async function pollBeacon() {
 }
 
 function updateBeaconFavicon(zone) {
-    if (zone === lastBeaconZone) return;
-    lastBeaconZone = zone;
+    if (zone === AppState.lastBeaconZone) return;
+    AppState.lastBeaconZone = zone;
 
-    const colors = {
-        calm: '#5a9a6e',
-        steady: '#b5a84a',
-        tense: '#d4943a',
-        stressed: '#c4584c',
-        idle: '#888888',
-    };
-
-    const color = colors[zone] || colors.idle;
+    const color = ZONE_HEX[zone] || ZONE_HEX.idle;
 
     // Update favicon to colored dot
     const canvas = document.createElement('canvas');
@@ -1514,7 +1923,7 @@ function shouldShowMorningSummary() {
 }
 
 async function loadMorningSummary() {
-    if (morningSummaryShown) return;
+    if (AppState.morningSummaryShown) return;
     try {
         const data = await API.getMorningSummary();
         if (data.briefing && data.briefing.has_data) {
@@ -1529,7 +1938,7 @@ function renderMorningSummary(data) {
     const overlay = document.getElementById('morning-summary-overlay');
     if (!overlay) return;
 
-    morningSummaryShown = true;
+    AppState.morningSummaryShown = true;
 
     // Greeting
     const hour = new Date().getHours();
@@ -1566,8 +1975,8 @@ function renderMorningSummary(data) {
     // Extract metric values for rings
     const metricValues = {
         stress: briefing.metrics?.avg_stress ? Math.round(briefing.metrics.avg_stress.value) : 0,
-        mood: briefing.metrics?.avg_mood ? Math.round(briefing.metrics.avg_mood.value) : 0,
-        energy: briefing.metrics?.avg_energy ? Math.round(briefing.metrics.avg_energy.value) : 0,
+        wellbeing: briefing.metrics?.avg_mood ? Math.round(briefing.metrics.avg_mood.value) : 0,
+        activation: briefing.metrics?.avg_energy ? Math.round(briefing.metrics.avg_energy.value) : 0,
         calm: briefing.metrics?.avg_calm ? Math.round(briefing.metrics.avg_calm.value) : 0,
     };
 
@@ -1576,12 +1985,12 @@ function renderMorningSummary(data) {
 
     // Update ring legend values
     const legendCalm = document.getElementById('morning-legend-calm');
-    const legendMood = document.getElementById('morning-legend-mood');
-    const legendEnergy = document.getElementById('morning-legend-energy');
+    const legendWellbeing = document.getElementById('morning-legend-wellbeing');
+    const legendActivation = document.getElementById('morning-legend-activation');
     const legendStress = document.getElementById('morning-legend-stress');
     if (legendCalm) legendCalm.textContent = metricValues.calm;
-    if (legendMood) legendMood.textContent = metricValues.mood;
-    if (legendEnergy) legendEnergy.textContent = metricValues.energy;
+    if (legendWellbeing) legendWellbeing.textContent = metricValues.wellbeing;
+    if (legendActivation) legendActivation.textContent = metricValues.activation;
     if (legendStress) legendStress.textContent = metricValues.stress;
 
     // Metric bars (right column)
@@ -1589,8 +1998,8 @@ function renderMorningSummary(data) {
     if (barsEl && briefing.metrics) {
         const barConfig = [
             { key: 'avg_stress', label: 'Stress', color: '#c4584c' },
-            { key: 'avg_mood', label: 'Mood', color: '#b8975c' },
-            { key: 'avg_energy', label: 'Energy', color: '#b5a84a' },
+            { key: 'avg_mood', label: 'Wellbeing', color: '#b8975c' },
+            { key: 'avg_energy', label: 'Activation', color: '#b5a84a' },
             { key: 'avg_calm', label: 'Calm', color: '#5a9a6e' },
         ];
         let barsHtml = '';
@@ -1622,12 +2031,11 @@ function renderMorningSummary(data) {
     // Zone timeline bar
     const timelineBar = document.getElementById('morning-timeline-bar');
     if (timelineBar && briefing.zones) {
-        const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
         let barHtml = '';
         for (const z of ['calm', 'steady', 'tense', 'stressed']) {
             const info = briefing.zones[z];
             if (!info || info.pct === 0) continue;
-            barHtml += `<div style="width: ${info.pct}%; background: ${zoneColors[z]};" title="${z}: ${info.minutes}m (${info.pct}%)"></div>`;
+            barHtml += `<div style="width: ${info.pct}%; background: ${ZONE_HEX[z]};" title="${z}: ${info.minutes}m (${info.pct}%)"></div>`;
         }
         timelineBar.innerHTML = barHtml;
     }
@@ -1649,8 +2057,7 @@ function renderMorningSummary(data) {
     const weatherContent = document.getElementById('morning-weather-content');
     if (weatherSection && weatherContent && data.voice_weather) {
         const vw = data.voice_weather;
-        const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
-        const color = zoneColors[vw.zone] || '#888';
+        const color = ZONE_HEX[vw.zone] || ZONE_HEX.idle;
         weatherContent.innerHTML = `
             <span class="morning-weather-zone" style="background: ${color};"></span>
             <span>${vw.zone.charAt(0).toUpperCase() + vw.zone.slice(1)} \u00B7 Stress ${vw.stress}</span>`;
@@ -1664,8 +2071,8 @@ function renderMorningSummary(data) {
 function animateMorningRings(values) {
     const rings = [
         { id: 'morning-ring-calm', value: values.calm, circumference: 973.9 },
-        { id: 'morning-ring-mood', value: values.mood, circumference: 816.8 },
-        { id: 'morning-ring-energy', value: values.energy, circumference: 659.7 },
+        { id: 'morning-ring-wellbeing', value: values.wellbeing, circumference: 816.8 },
+        { id: 'morning-ring-activation', value: values.activation, circumference: 659.7 },
         { id: 'morning-ring-stress', value: values.stress, circumference: 471.2 },
     ];
 
@@ -1733,7 +2140,7 @@ function shouldShowEveningSummary() {
 }
 
 async function loadEveningSummary() {
-    if (eveningSummaryShown) return;
+    if (AppState.eveningSummaryShown) return;
     try {
         const data = await API.getEveningSummary();
         if (data.has_data) {
@@ -1747,7 +2154,7 @@ async function loadEveningSummary() {
 function renderEveningSummary(data) {
     const overlay = document.getElementById('evening-summary-overlay');
     if (!overlay) return;
-    eveningSummaryShown = true;
+    AppState.eveningSummaryShown = true;
 
     // Date header
     const now = new Date();
@@ -1855,7 +2262,7 @@ function animateEveningScore(el, target, duration) {
 function renderEveningTimeline(timeline) {
     const svg = document.getElementById('evening-timeline-svg');
     if (!svg) return;
-    svg.innerHTML = '';
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
 
     const W = 520, H = 70;
     const pad = { left: 10, right: 10, top: 12, bottom: 12 };
@@ -1863,15 +2270,13 @@ function renderEveningTimeline(timeline) {
     const innerH = H - pad.top - pad.bottom;
 
     // Baseline
-    const baseline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    baseline.setAttribute('x1', pad.left); baseline.setAttribute('x2', W - pad.right);
-    baseline.setAttribute('y1', H - pad.bottom); baseline.setAttribute('y2', H - pad.bottom);
-    baseline.setAttribute('stroke', 'rgba(255,255,255,0.1)'); baseline.setAttribute('stroke-width', '1');
-    svg.appendChild(baseline);
+    svg.appendChild(svgEl('line', {
+        x1: pad.left, x2: W - pad.right,
+        y1: H - pad.bottom, y2: H - pad.bottom,
+        stroke: 'rgba(255,255,255,0.1)', 'stroke-width': '1'
+    }));
 
     if (!timeline.length) return;
-
-    const zoneColors = { calm: '#5a9a6e', steady: '#b5a84a', tense: '#d4943a', stressed: '#c4584c' };
 
     // Connect dots with a soft polyline (behind dots)
     if (timeline.length >= 2) {
@@ -1880,27 +2285,22 @@ function renderEveningTimeline(timeline) {
             const y = pad.top + innerH * (1 - pt.stress / 100);
             return `${x},${y}`;
         }).join(' ');
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        poly.setAttribute('points', pts);
-        poly.setAttribute('fill', 'none');
-        poly.setAttribute('stroke', 'rgba(255,255,255,0.15)');
-        poly.setAttribute('stroke-width', '1.5');
-        poly.setAttribute('stroke-linecap', 'round');
-        poly.setAttribute('stroke-linejoin', 'round');
-        svg.appendChild(poly);
+        svg.appendChild(svgEl('polyline', {
+            points: pts, fill: 'none',
+            stroke: 'rgba(255,255,255,0.15)', 'stroke-width': '1.5',
+            'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+        }));
     }
 
     // Dots on top
     timeline.forEach(pt => {
         const x = pad.left + ((pt.hour - 6) / 14) * innerW;
         const y = pad.top + innerH * (1 - pt.stress / 100);
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x);
-        circle.setAttribute('cy', y);
-        circle.setAttribute('r', 5);
-        circle.setAttribute('fill', zoneColors[pt.zone] || '#b5a84a');
-        circle.setAttribute('opacity', '0.9');
-        svg.appendChild(circle);
+        svg.appendChild(svgEl('circle', {
+            cx: x, cy: y, r: 5,
+            fill: ZONE_HEX[pt.zone] || ZONE_HEX.steady,
+            opacity: '0.9'
+        }));
     });
 }
 
@@ -1992,8 +2392,10 @@ async function saveQuietHours() {
     const end = document.getElementById('quiet-end');
     if (start && end) {
         try {
-            await API.setNotifPref('quiet_start', start.value);
-            await API.setNotifPref('quiet_end', end.value);
+            await Promise.all([
+                API.setNotifPref('quiet_start', start.value),
+                API.setNotifPref('quiet_end', end.value),
+            ]);
         } catch (e) {
             console.error('Failed to save quiet hours:', e);
         }
@@ -2006,6 +2408,7 @@ async function saveQuietHours() {
 async function loadSpeakerStatus() {
     const badge = document.getElementById('speaker-status-badge');
     const setupBtn = document.getElementById('speaker-setup-btn');
+    const enhanceBtn = document.getElementById('speaker-enhance-btn');
     const deleteBtn = document.getElementById('speaker-delete-btn');
     if (!badge) return;
 
@@ -2015,11 +2418,13 @@ async function loadSpeakerStatus() {
             badge.textContent = 'Active';
             badge.className = 'speaker-badge speaker-badge-active';
             setupBtn.textContent = 'Re-enroll Voice Profile';
+            if (enhanceBtn) enhanceBtn.style.display = 'block';
             deleteBtn.style.display = 'block';
         } else {
             badge.textContent = 'Not Set Up';
             badge.className = 'speaker-badge speaker-badge-inactive';
             setupBtn.textContent = 'Set Up Voice Profile';
+            if (enhanceBtn) enhanceBtn.style.display = 'none';
             deleteBtn.style.display = 'none';
         }
 
@@ -2042,6 +2447,9 @@ let enrollmentState = {
     animFrameId: null,
     chunks: [],
     isRecording: false,
+    isListening: false,
+    speechStartTime: null,
+    smoothedRms: 0,
 };
 
 async function startEnrollment() {
@@ -2064,7 +2472,6 @@ async function startEnrollment() {
 
     // Wire up buttons
     document.getElementById('enrollment-close-btn').onclick = closeEnrollment;
-    document.getElementById('enrollment-record-btn').onclick = toggleRecording;
     document.getElementById('enrollment-finish-btn').onclick = () => {
         closeEnrollment();
         loadSpeakerStatus();
@@ -2096,26 +2503,32 @@ function updateEnrollmentUI() {
     }
 
     // Reset recorder UI
-    const recordBtn = document.getElementById('enrollment-record-btn');
     const countdown = document.getElementById('enrollment-countdown');
-    recordBtn.textContent = 'Start Recording';
-    recordBtn.classList.remove('recording');
-    recordBtn.disabled = false;
+    const statusLabel = document.getElementById('enrollment-status-label');
     countdown.className = 'enrollment-countdown';
     countdown.textContent = '10';
+    if (statusLabel) statusLabel.textContent = 'Preparing microphone...';
+
+    // Reset level bars
+    document.querySelectorAll('#enrollment-level-bars .level-bar').forEach(bar => {
+        bar.classList.remove('active');
+        bar.style.height = '4px';
+    });
 
     // Show recorder, hide processing/done
     document.getElementById('enrollment-recorder').style.display = 'block';
     document.getElementById('enrollment-processing').style.display = 'none';
     document.getElementById('enrollment-done').style.display = 'none';
     document.getElementById('enrollment-steps').querySelector('.step-indicators').style.display = 'flex';
+
+    // Auto-start listening for this step
+    startListening();
 }
 
-async function toggleRecording() {
-    if (enrollmentState.isRecording) return;
+async function startListening() {
+    if (enrollmentState.isListening || enrollmentState.isRecording) return;
 
-    const recordBtn = document.getElementById('enrollment-record-btn');
-    const countdown = document.getElementById('enrollment-countdown');
+    const statusLabel = document.getElementById('enrollment-status-label');
 
     try {
         // Request microphone access
@@ -2129,7 +2542,7 @@ async function toggleRecording() {
         });
         enrollmentState.audioStream = stream;
 
-        // Set up audio context for waveform visualization
+        // Set up audio context
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
         enrollmentState.audioContext = audioCtx;
         const source = audioCtx.createMediaStreamSource(stream);
@@ -2138,18 +2551,14 @@ async function toggleRecording() {
         source.connect(analyser);
         enrollmentState.analyserNode = analyser;
 
-        // Start waveform animation
-        drawEnrollmentWaveform();
-
         // Use ScriptProcessorNode to capture raw PCM at 16kHz
         const bufferSize = 4096;
         const scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
         enrollmentState.chunks = [];
 
         scriptNode.onaudioprocess = (e) => {
-            if (!enrollmentState.isRecording) return;
+            if (!enrollmentState.isRecording) return; // Only capture during recording phase
             const channelData = e.inputBuffer.getChannelData(0);
-            // Convert float32 to int16
             const int16 = new Int16Array(channelData.length);
             for (let i = 0; i < channelData.length; i++) {
                 const s = Math.max(-1, Math.min(1, channelData[i]));
@@ -2163,32 +2572,48 @@ async function toggleRecording() {
         enrollmentState.scriptNode = scriptNode;
         enrollmentState.sourceNode = source;
 
-        enrollmentState.isRecording = true;
-        recordBtn.textContent = 'Recording...';
-        recordBtn.classList.add('recording');
-        recordBtn.disabled = true;
-        countdown.className = 'enrollment-countdown active';
+        enrollmentState.isListening = true;
+        enrollmentState.speechStartTime = null;
+        enrollmentState.smoothedRms = 0;
 
-        // Countdown timer
-        let remaining = 10;
-        countdown.textContent = remaining;
+        if (statusLabel) statusLabel.textContent = 'Start speaking when ready...';
 
-        const countdownInterval = setInterval(() => {
-            remaining--;
-            countdown.textContent = remaining;
-            if (remaining <= 0) {
-                clearInterval(countdownInterval);
-                finishRecordingStep();
-            }
-        }, 1000);
-
-        enrollmentState.countdownInterval = countdownInterval;
+        // Start level bar animation (runs during both listening and recording)
+        drawEnrollmentLevelBars();
 
     } catch (e) {
         console.error('Microphone access denied:', e);
-        recordBtn.textContent = 'Microphone Access Required';
-        recordBtn.disabled = true;
+        if (statusLabel) statusLabel.textContent = 'Microphone access required';
     }
+}
+
+function beginRecording() {
+    if (enrollmentState.isRecording) return;
+
+    const countdown = document.getElementById('enrollment-countdown');
+    const statusLabel = document.getElementById('enrollment-status-label');
+
+    enrollmentState.isRecording = true;
+    enrollmentState.isListening = false;
+    enrollmentState.chunks = [];
+
+    if (statusLabel) statusLabel.textContent = 'Recording...';
+    countdown.className = 'enrollment-countdown active';
+
+    // Countdown timer
+    let remaining = 10;
+    countdown.textContent = remaining;
+
+    const countdownInterval = setInterval(() => {
+        remaining--;
+        countdown.textContent = remaining;
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            finishRecordingStep();
+        }
+    }, 1000);
+
+    enrollmentState.countdownInterval = countdownInterval;
 }
 
 async function finishRecordingStep() {
@@ -2214,14 +2639,16 @@ async function finishRecordingStep() {
 
     const step = enrollmentState.currentStep;
     const moodLabel = enrollmentState.moodLabels[step - 1];
-    const recordBtn = document.getElementById('enrollment-record-btn');
+    const statusLabel = document.getElementById('enrollment-status-label');
 
-    recordBtn.textContent = 'Uploading...';
+    if (statusLabel) statusLabel.textContent = 'Uploading...';
 
     try {
         // Send raw PCM bytes to server
-        const result = await API.enrollSpeakerSample(combined.buffer, moodLabel);
-        console.log(`[Enrollment] Step ${step} complete:`, result);
+        const result = await Promise.race([
+            API.enrollSpeakerSample(combined.buffer, moodLabel),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
+        ]);
 
         if (step < enrollmentState.totalSteps) {
             // Move to next step
@@ -2230,8 +2657,10 @@ async function finishRecordingStep() {
         } else {
             // All samples collected — compute centroid
             showEnrollmentProcessing();
-            const enrollResult = await API.completeSpeakerEnrollment();
-            console.log('[Enrollment] Profile created:', enrollResult);
+            const enrollResult = await Promise.race([
+                API.completeSpeakerEnrollment(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
+            ]);
             showEnrollmentDone();
             // Hide enrollment-required banner
             const banner = document.getElementById('enrollment-required-banner');
@@ -2239,14 +2668,35 @@ async function finishRecordingStep() {
         }
     } catch (e) {
         console.error('Enrollment step failed:', e);
-        recordBtn.textContent = 'Failed — Try Again';
-        recordBtn.classList.remove('recording');
-        recordBtn.disabled = false;
+        const isLoading = e.status === 503 || (e.message && e.message.includes('loading'));
+        if (isLoading) {
+            if (statusLabel) {
+                statusLabel.textContent = 'Models still loading — please wait...';
+                statusLabel.removeAttribute('data-retry');
+            }
+            setTimeout(() => startListening(), 3000);
+            return;
+        }
+        const msg = e.message === 'timeout'
+            ? 'Request timed out — tap to retry'
+            : 'Failed — tap to retry';
+        if (statusLabel) {
+            statusLabel.textContent = msg;
+            statusLabel.setAttribute('data-retry', 'true');
+            statusLabel.onclick = () => {
+                statusLabel.onclick = null;
+                statusLabel.removeAttribute('data-retry');
+                startListening();
+            };
+        }
     }
 }
 
 function stopRecordingCleanup() {
     enrollmentState.isRecording = false;
+    enrollmentState.isListening = false;
+    enrollmentState.speechStartTime = null;
+    enrollmentState.smoothedRms = 0;
 
     if (enrollmentState.countdownInterval) {
         clearInterval(enrollmentState.countdownInterval);
@@ -2294,6 +2744,205 @@ function showEnrollmentDone() {
     document.getElementById('enrollment-steps').querySelector('.step-indicators').style.display = 'none';
 }
 
+// ========== Enhance Voice Profile ==========
+
+const enhancePrompts = [
+    "Speak as if you're on a video call — slightly louder and clearer than normal.",
+    "Talk softly, as if someone is sleeping nearby.",
+    "Describe what you had for lunch today, with natural energy.",
+    "Read this aloud in a tired, end-of-day voice: 'I'm wrapping up for today and heading out soon.'",
+    "Say something with enthusiasm, like telling a friend exciting news.",
+];
+
+let enhanceState = {
+    isRecording: false,
+    chunks: [],
+    audioStream: null,
+    audioContext: null,
+    analyserNode: null,
+    scriptNode: null,
+    sourceNode: null,
+    animFrameId: null,
+    countdownInterval: null,
+    sampleCount: 0,
+};
+
+function openEnhanceOverlay() {
+    const overlay = document.getElementById('enhance-overlay');
+    overlay.style.display = 'flex';
+    enhanceState.sampleCount = 0;
+    prepareEnhanceSample();
+
+    document.getElementById('enhance-close-btn').onclick = closeEnhanceOverlay;
+    document.getElementById('enhance-record-btn').onclick = startEnhanceRecording;
+    document.getElementById('enhance-another-btn').onclick = () => {
+        enhanceState.sampleCount++;
+        prepareEnhanceSample();
+    };
+    document.getElementById('enhance-finish-btn').onclick = closeEnhanceOverlay;
+}
+
+function prepareEnhanceSample() {
+    const prompt = enhancePrompts[enhanceState.sampleCount % enhancePrompts.length];
+    document.getElementById('enhance-prompt').textContent = prompt;
+    document.getElementById('enhance-recorder').style.display = 'block';
+    document.getElementById('enhance-processing').style.display = 'none';
+    document.getElementById('enhance-done').style.display = 'none';
+    const btn = document.getElementById('enhance-record-btn');
+    btn.textContent = 'Start Recording';
+    btn.disabled = false;
+    btn.classList.remove('recording');
+    document.getElementById('enhance-countdown').textContent = '10';
+    document.getElementById('enhance-countdown').className = 'enrollment-countdown';
+}
+
+async function startEnhanceRecording() {
+    if (enhanceState.isRecording) return;
+    const btn = document.getElementById('enhance-record-btn');
+    const countdown = document.getElementById('enhance-countdown');
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+        });
+        enhanceState.audioStream = stream;
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+        enhanceState.audioContext = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        enhanceState.analyserNode = analyser;
+
+        // Waveform animation
+        drawEnhanceWaveform();
+
+        const bufferSize = 4096;
+        const scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
+        enhanceState.chunks = [];
+        scriptNode.onaudioprocess = (e) => {
+            if (!enhanceState.isRecording) return;
+            const channelData = e.inputBuffer.getChannelData(0);
+            const int16 = new Int16Array(channelData.length);
+            for (let i = 0; i < channelData.length; i++) {
+                const s = Math.max(-1, Math.min(1, channelData[i]));
+                int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            enhanceState.chunks.push(int16);
+        };
+        source.connect(scriptNode);
+        scriptNode.connect(audioCtx.destination);
+        enhanceState.scriptNode = scriptNode;
+        enhanceState.sourceNode = source;
+
+        enhanceState.isRecording = true;
+        btn.textContent = 'Recording...';
+        btn.classList.add('recording');
+        btn.disabled = true;
+        countdown.className = 'enrollment-countdown active';
+
+        let remaining = 10;
+        countdown.textContent = remaining;
+        enhanceState.countdownInterval = setInterval(() => {
+            remaining--;
+            countdown.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(enhanceState.countdownInterval);
+                finishEnhanceRecording();
+            }
+        }, 1000);
+    } catch (e) {
+        console.error('Microphone access denied:', e);
+        btn.textContent = 'Microphone Access Required';
+        btn.disabled = true;
+    }
+}
+
+async function finishEnhanceRecording() {
+    enhanceState.isRecording = false;
+    if (enhanceState.animFrameId) {
+        cancelAnimationFrame(enhanceState.animFrameId);
+        enhanceState.animFrameId = null;
+    }
+
+    const totalLength = enhanceState.chunks.reduce((acc, c) => acc + c.length, 0);
+    const combined = new Int16Array(totalLength);
+    let offset = 0;
+    for (const chunk of enhanceState.chunks) {
+        combined.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    cleanupEnhanceAudio();
+
+    document.getElementById('enhance-recorder').style.display = 'none';
+    document.getElementById('enhance-processing').style.display = 'block';
+
+    try {
+        const moodLabel = `enhance_${enhanceState.sampleCount}`;
+        await API.enrollSpeakerSample(combined.buffer, moodLabel);
+        await API.completeSpeakerEnrollment();
+        document.getElementById('enhance-processing').style.display = 'none';
+        document.getElementById('enhance-done').style.display = 'block';
+    } catch (e) {
+        console.error('Enhance sample failed:', e);
+        document.getElementById('enhance-processing').style.display = 'none';
+        document.getElementById('enhance-recorder').style.display = 'block';
+        const btn = document.getElementById('enhance-record-btn');
+        btn.textContent = 'Failed — Try Again';
+        btn.disabled = false;
+        btn.classList.remove('recording');
+    }
+}
+
+function cleanupEnhanceAudio() {
+    if (enhanceState.countdownInterval) { clearInterval(enhanceState.countdownInterval); enhanceState.countdownInterval = null; }
+    if (enhanceState.animFrameId) { cancelAnimationFrame(enhanceState.animFrameId); enhanceState.animFrameId = null; }
+    if (enhanceState.scriptNode) { try { enhanceState.scriptNode.disconnect(); } catch(e){} enhanceState.scriptNode = null; }
+    if (enhanceState.sourceNode) { try { enhanceState.sourceNode.disconnect(); } catch(e){} enhanceState.sourceNode = null; }
+    if (enhanceState.audioContext) { try { enhanceState.audioContext.close(); } catch(e){} enhanceState.audioContext = null; }
+    if (enhanceState.audioStream) { enhanceState.audioStream.getTracks().forEach(t => t.stop()); enhanceState.audioStream = null; }
+}
+
+function closeEnhanceOverlay() {
+    cleanupEnhanceAudio();
+    document.getElementById('enhance-overlay').style.display = 'none';
+    loadSpeakerStatus();
+}
+
+function drawEnhanceWaveform() {
+    const canvas = document.getElementById('enhance-canvas');
+    if (!canvas || !enhanceState.analyserNode) return;
+    const ctx = canvas.getContext('2d');
+    const analyser = enhanceState.analyserNode;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function draw() {
+        if (!enhanceState.isRecording) return;
+        enhanceState.animFrameId = requestAnimationFrame(draw);
+        analyser.getByteTimeDomainData(dataArray);
+        ctx.fillStyle = 'rgba(248, 249, 250, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#5a6270';
+        ctx.beginPath();
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = v * canvas.height / 2;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            x += sliceWidth;
+        }
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+    }
+    draw();
+}
+
 // ========== Science Modal (Rec #2) ==========
 
 function openScienceModal() {
@@ -2306,46 +2955,107 @@ function closeScienceModal() {
     if (modal) modal.style.display = 'none';
 }
 
-// Close on Escape
+// Close overlays on Escape (priority-ordered: only one closes per keypress)
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeScienceModal();
+    if (e.key !== 'Escape') return;
+
+    // Settings panel
+    const settings = document.getElementById('settings-panel');
+    if (settings && settings.style.display !== 'none' && settings.style.display !== '') {
+        settings.style.display = 'none';
+        return;
+    }
+
+    // Enrollment overlay
+    const enrollment = document.getElementById('enrollment-overlay');
+    if (enrollment && enrollment.style.display !== 'none' && enrollment.style.display !== '') {
+        closeEnrollment();
+        return;
+    }
+
+    // Enhance overlay
+    const enhance = document.getElementById('enhance-overlay');
+    if (enhance && enhance.style.display !== 'none' && enhance.style.display !== '') {
+        closeEnhanceOverlay();
+        return;
+    }
+
+    // Morning summary
+    const morning = document.getElementById('morning-summary-overlay');
+    if (morning && morning.style.display !== 'none' && morning.style.display !== '') {
+        dismissMorningSummary();
+        return;
+    }
+
+    // Evening summary
+    const evening = document.getElementById('evening-summary-overlay');
+    if (evening && evening.style.display !== 'none' && evening.style.display !== '') {
+        dismissEveningSummary();
+        return;
+    }
+
+    // Science modal (lowest priority)
+    closeScienceModal();
 });
 
-function drawEnrollmentWaveform() {
-    const canvas = document.getElementById('enrollment-canvas');
-    if (!canvas || !enrollmentState.analyserNode) return;
+function drawEnrollmentLevelBars() {
+    const barsContainer = document.getElementById('enrollment-level-bars');
+    if (!barsContainer || !enrollmentState.analyserNode) return;
 
-    const ctx = canvas.getContext('2d');
+    const bars = barsContainer.querySelectorAll('.level-bar');
     const analyser = enrollmentState.analyserNode;
     const bufferLength = analyser.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
 
     function draw() {
-        if (!enrollmentState.isRecording) return;
+        if (!enrollmentState.isListening && !enrollmentState.isRecording) return;
         enrollmentState.animFrameId = requestAnimationFrame(draw);
 
         analyser.getByteTimeDomainData(dataArray);
 
-        ctx.fillStyle = 'rgba(235, 228, 218, 0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#5B5854';
-        ctx.beginPath();
-
-        const sliceWidth = canvas.width / bufferLength;
-        let x = 0;
-
+        // Compute RMS
+        let sumSq = 0;
         for (let i = 0; i < bufferLength; i++) {
-            const v = dataArray[i] / 128.0;
-            const y = (v * canvas.height) / 2;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-            x += sliceWidth;
+            const v = (dataArray[i] - 128) / 128.0;
+            sumSq += v * v;
         }
+        const rms = Math.sqrt(sumSq / bufferLength);
 
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.stroke();
+        // Smooth RMS with EMA
+        enrollmentState.smoothedRms = 0.3 * rms + 0.7 * enrollmentState.smoothedRms;
+        const smoothed = enrollmentState.smoothedRms;
+
+        // Log-scale mapping
+        const normalizedLevel = Math.min(1, Math.max(0, (Math.log10(smoothed + 0.001) + 2) / 2));
+
+        // Map to active bar count (0 to 20)
+        const activeBars = Math.round(normalizedLevel * bars.length);
+
+        bars.forEach((bar, i) => {
+            if (i < activeBars) {
+                bar.classList.add('active');
+                // Gradient height: 8px to 44px across bars
+                const t = i / (bars.length - 1);
+                const height = 8 + t * 36;
+                bar.style.height = height + 'px';
+            } else {
+                bar.classList.remove('active');
+                bar.style.height = '4px';
+            }
+        });
+
+        // Speech detection — only during listening phase
+        if (enrollmentState.isListening && !enrollmentState.isRecording) {
+            if (rms > 0.02) {
+                if (!enrollmentState.speechStartTime) {
+                    enrollmentState.speechStartTime = performance.now();
+                } else if (performance.now() - enrollmentState.speechStartTime >= 200) {
+                    beginRecording();
+                }
+            } else {
+                enrollmentState.speechStartTime = null;
+            }
+        }
     }
 
     draw();
@@ -2358,7 +3068,7 @@ async function initFirstLight() {
         const data = await API.getFirstLightQuest();
         if (!data.show) return;
 
-        firstLightState = data;
+        AppState.firstLightState = data;
         const panel = document.getElementById('first-light-panel');
         if (!panel) return;
 
@@ -2404,10 +3114,10 @@ function renderFirstLightPanel(data) {
         const taskKey = li.dataset.questTask;
         if (tasks[taskKey]) {
             li.classList.add('completed');
-            li.querySelector('.first-light-check').innerHTML = '&#9679;';
+            li.querySelector('.first-light-check').textContent = '\u25CF';
         } else {
             li.classList.remove('completed');
-            li.querySelector('.first-light-check').innerHTML = '&#9675;';
+            li.querySelector('.first-light-check').textContent = '\u25CB';
         }
     });
 
@@ -2419,23 +3129,23 @@ function renderFirstLightPanel(data) {
 }
 
 async function completeFirstLightTask(taskKey) {
-    if (!firstLightState || !firstLightState.show) return;
-    if (firstLightState.completed) return;
-    if (firstLightState.tasks[taskKey]) return; // Already done
+    if (!AppState.firstLightState || !AppState.firstLightState.show) return;
+    if (AppState.firstLightState.completed) return;
+    if (AppState.firstLightState.tasks[taskKey]) return; // Already done
 
     try {
         const result = await API.completeFirstLightTask(taskKey);
         if (!result.success) return;
 
         // Update local state
-        firstLightState.tasks[taskKey] = true;
+        AppState.firstLightState.tasks[taskKey] = true;
 
         if (result.just_completed) {
-            firstLightState.completed = true;
-            renderFirstLightPanel(firstLightState);
+            AppState.firstLightState.completed = true;
+            renderFirstLightPanel(AppState.firstLightState);
             onFirstLightComplete();
         } else {
-            renderFirstLightPanel(firstLightState);
+            renderFirstLightPanel(AppState.firstLightState);
         }
     } catch (e) {
         console.error('Failed to complete First Light task:', e);
@@ -2444,8 +3154,8 @@ async function completeFirstLightTask(taskKey) {
 
 function onFirstLightComplete() {
     // Bypass sanctuary cooldown for the celebration
-    const savedCooldown = lastSanctuaryTime;
-    lastSanctuaryTime = 0;
+    const savedCooldown = AppState.lastSanctuaryTime;
+    AppState.lastSanctuaryTime = 0;
     triggerSanctuary('first_light', 'First Light complete! A tree grows in your honor.');
     // Restore cooldown (sanctuary sets it internally)
 

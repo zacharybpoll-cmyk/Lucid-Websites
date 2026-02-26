@@ -87,19 +87,17 @@ class CorrelationExplorer {
             if (!dayMap[day]) {
                 dayMap[day] = {
                     stress: [],
-                    mood: [],
-                    energy: [],
+                    wellbeing: [],
+                    activation: [],
                     calm: [],
-                    depression: []
+                    emotional_stability: []
                 };
             }
             dayMap[day].stress.push(r.stress_score || 0);
-            dayMap[day].mood.push(r.mood_score || 0);
-            dayMap[day].energy.push(r.energy_score || 0);
+            dayMap[day].wellbeing.push(r.wellbeing_score || r.mood_score || 0);
+            dayMap[day].activation.push(r.activation_score || r.energy_score || 0);
             dayMap[day].calm.push(r.calm_score || 0);
-            // Normalize depression to 0-100
-            const depScore = Math.min(100, Math.max(0, (r.depression_raw || 0) / 27 * 100));
-            dayMap[day].depression.push(depScore);
+            dayMap[day].emotional_stability.push(r.emotional_stability_score || 50);
         });
 
         const days = Object.keys(dayMap).sort();
@@ -118,8 +116,8 @@ class CorrelationExplorer {
             },
             {
                 x: days,
-                y: days.map(d => avg(dayMap[d].mood)),
-                name: 'Mood',
+                y: days.map(d => avg(dayMap[d].wellbeing)),
+                name: 'Wellbeing',
                 type: 'scatter',
                 mode: 'lines+markers',
                 line: { color: '#5B8DB8', width: 2 },
@@ -127,8 +125,8 @@ class CorrelationExplorer {
             },
             {
                 x: days,
-                y: days.map(d => avg(dayMap[d].energy)),
-                name: 'Energy',
+                y: days.map(d => avg(dayMap[d].activation)),
+                name: 'Activation',
                 type: 'scatter',
                 mode: 'lines+markers',
                 line: { color: '#DD8452', width: 2 },
@@ -140,13 +138,13 @@ class CorrelationExplorer {
                 name: 'Calm',
                 type: 'scatter',
                 mode: 'lines+markers',
-                line: { color: '#5B5854', width: 2 },
+                line: { color: '#5a6270', width: 2 },
                 marker: { size: 6 }
             },
             {
                 x: days,
-                y: days.map(d => avg(dayMap[d].depression)),
-                name: 'Depression',
+                y: days.map(d => avg(dayMap[d].emotional_stability)),
+                name: 'Stability',
                 type: 'scatter',
                 mode: 'lines+markers',
                 line: { color: '#7B68EE', width: 2 },
@@ -160,11 +158,11 @@ class CorrelationExplorer {
             yaxis: {
                 title: { text: 'Score (0-100)', font: { size: 14 } },
                 range: [0, 100],
-                gridcolor: '#d4cdc3'
+                gridcolor: '#dce0e4'
             },
-            paper_bgcolor: '#EBE4DA',
-            plot_bgcolor: '#EBE4DA',
-            font: { family: 'Times New Roman', color: '#000' },
+            paper_bgcolor: '#f8f9fa',
+            plot_bgcolor: '#f8f9fa',
+            font: { family: 'Inter, sans-serif', color: '#1a1d21' },
             showlegend: true,
             legend: { x: 0, y: 1 },
             hovermode: 'x unified'
@@ -172,7 +170,7 @@ class CorrelationExplorer {
 
         Plotly.newPlot('plotly-chart', traces, layout, { displaylogo: false, responsive: true });
 
-        document.getElementById('correlation-controls').innerHTML = '';
+        document.getElementById('correlation-controls').textContent = '';
     }
 
     renderDailyPatterns() {
@@ -184,9 +182,12 @@ class CorrelationExplorer {
         const controlsHTML = `
             <label>Metric: <select id="pattern-metric" class="chart-select">
                 <option value="stress_score">Stress</option>
-                <option value="mood_score">Mood</option>
-                <option value="energy_score">Energy</option>
+                <option value="wellbeing_score">Wellbeing</option>
+                <option value="activation_score">Activation</option>
                 <option value="calm_score">Calm</option>
+                <option value="depression_risk_score">Depression Risk</option>
+                <option value="anxiety_risk_score">Anxiety Risk</option>
+                <option value="emotional_stability_score">Stability</option>
             </select></label>
         `;
         document.getElementById('correlation-controls').innerHTML = controlsHTML;
@@ -220,7 +221,7 @@ class CorrelationExplorer {
             type: 'scatter',
             mode: 'lines+markers',
             connectgaps: false,
-            line: { color: '#5B5854', width: 3 },
+            line: { color: '#5a6270', width: 3 },
             marker: { size: 8 }
         };
 
@@ -232,11 +233,11 @@ class CorrelationExplorer {
             yaxis: {
                 title: { text: 'Score (0-100)', font: { size: 14 } },
                 range: [0, 100],
-                gridcolor: '#d4cdc3'
+                gridcolor: '#dce0e4'
             },
-            paper_bgcolor: '#EBE4DA',
-            plot_bgcolor: '#EBE4DA',
-            font: { family: 'Times New Roman', color: '#000' }
+            paper_bgcolor: '#f8f9fa',
+            plot_bgcolor: '#f8f9fa',
+            font: { family: 'Inter, sans-serif', color: '#1a1d21' }
         };
 
         Plotly.newPlot('plotly-chart', [trace], layout, { displaylogo: false, responsive: true });

@@ -26,16 +26,18 @@ class TrendsView {
         }
 
         // Clear container
-        this.container.innerHTML = '';
+        this.container.textContent = '';
 
         // Create structure
         const header = document.createElement('div');
         header.className = 'trends-header';
-        header.innerHTML = '<h2>14-Day Trends & Resilience</h2>';
-        this.container.appendChild(header);
 
-        // Resilience display
-        this.renderResilience();
+        const trend = this.data.trend_direction || 'stable';
+        const trendArrow = trend === 'improving' ? '\u2191' : trend === 'declining' ? '\u2193' : '\u2192';
+        const trendColor = trend === 'improving' ? '#5a9a6e' : trend === 'declining' ? '#C44E52' : '#5a6270';
+
+        header.innerHTML = `<h2>14-Day Trends <span class="trend-arrow" style="color: ${trendColor}; font-size: 18px;">${trendArrow} ${trend}</span></h2>`;
+        this.container.appendChild(header);
 
         // Line charts
         this.renderLineCharts();
@@ -44,47 +46,17 @@ class TrendsView {
         this.renderZoneBreakdown();
     }
 
-    renderResilience() {
-        const container = document.createElement('div');
-        container.className = 'resilience-container';
-
-        const burnoutRisk = this.data.burnout_risk || 0;
-        const resilience = this.data.resilience_score || 100;
-        const trend = this.data.trend_direction || 'stable';
-
-        // Color based on resilience level (high = good)
-        let resColor = '#5a9a6e'; // green
-        if (resilience < 40) resColor = '#C44E52'; // red
-        else if (resilience < 70) resColor = '#DD8452'; // amber
-
-        // Trend arrow — improving = ↑ green, declining = ↓ red
-        const trendArrow = trend === 'improving' ? '\u2191' : trend === 'declining' ? '\u2193' : '\u2192';
-        const trendColor = trend === 'improving' ? '#5a9a6e' : trend === 'declining' ? '#C44E52' : '#5B5854';
-
-        container.innerHTML = `
-            <div class="resilience-display" style="color: ${resColor}">
-                ${Math.round(resilience)}
-                <div class="resilience-label">Resilience</div>
-            </div>
-            <div class="resilience-secondary">
-                Burnout risk: ${Math.round(burnoutRisk)}/100
-                <span class="trend-arrow" style="color: ${trendColor}">${trendArrow} ${trend}</span>
-            </div>
-        `;
-
-        this.container.appendChild(container);
-    }
-
     renderLineCharts() {
         const chartsContainer = document.createElement('div');
         chartsContainer.className = 'trends-charts';
 
-        // 4 metrics to chart
+        // 5 metrics to chart
         const metrics = [
             { key: 'avg_stress', label: 'Stress', color: '#C44E52' },
-            { key: 'avg_mood', label: 'Mood', color: '#5B8DB8' },
-            { key: 'avg_energy', label: 'Energy', color: '#DD8452' },
-            { key: 'avg_calm', label: 'Calm', color: '#5B5854' }
+            { key: 'avg_wellbeing', label: 'Wellbeing', color: '#5B8DB8', fallback: 'avg_mood' },
+            { key: 'avg_activation', label: 'Activation', color: '#6a90a8', fallback: 'avg_energy' },
+            { key: 'avg_calm', label: 'Calm', color: '#7a9eb8' },
+            { key: 'avg_emotional_stability', label: 'Stability', color: '#7B68EE' }
         ];
 
         metrics.forEach(metric => {
@@ -124,28 +96,46 @@ class TrendsView {
         // Band definitions per metric
         const bandDefs = {
             'avg_stress': [
-                { min: 0, max: 25, label: 'Low', color: '#e8f0e8' },
-                { min: 25, max: 50, label: 'Moderate', color: '#fff8e8' },
-                { min: 50, max: 75, label: 'High', color: '#fde8d8' },
-                { min: 75, max: 100, label: 'V. High', color: '#f5d0d0' }
+                { min: 0, max: 25, label: 'Low', color: 'rgba(90,154,110,0.07)' },
+                { min: 25, max: 50, label: 'Moderate', color: 'rgba(168,192,208,0.04)' },
+                { min: 50, max: 75, label: 'High', color: 'rgba(196,130,58,0.07)' },
+                { min: 75, max: 100, label: 'V. High', color: 'rgba(196,88,76,0.10)' }
             ],
             'avg_mood': [
-                { min: 0, max: 25, label: 'Low', color: '#f5d0d0' },
-                { min: 25, max: 50, label: 'Fair', color: '#fde8d8' },
-                { min: 50, max: 75, label: 'Good', color: '#fff8e8' },
-                { min: 75, max: 100, label: 'Great', color: '#e8f0e8' }
+                { min: 0, max: 25, label: 'Low', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Fair', color: 'rgba(196,130,58,0.07)' },
+                { min: 50, max: 75, label: 'Good', color: 'rgba(168,192,208,0.04)' },
+                { min: 75, max: 100, label: 'Great', color: 'rgba(90,154,110,0.07)' }
             ],
             'avg_energy': [
-                { min: 0, max: 25, label: 'Low', color: '#f5d0d0' },
-                { min: 25, max: 50, label: 'Moderate', color: '#fff8e8' },
-                { min: 50, max: 75, label: 'Good', color: '#e8f4e8' },
-                { min: 75, max: 100, label: 'High', color: '#e8f0e8' }
+                { min: 0, max: 25, label: 'Low', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Moderate', color: 'rgba(168,192,208,0.04)' },
+                { min: 50, max: 75, label: 'Good', color: 'rgba(90,154,110,0.07)' },
+                { min: 75, max: 100, label: 'High', color: 'rgba(90,154,110,0.07)' }
             ],
             'avg_calm': [
-                { min: 0, max: 25, label: 'Low', color: '#f5d0d0' },
-                { min: 25, max: 50, label: 'Fair', color: '#fde8d8' },
-                { min: 50, max: 75, label: 'Good', color: '#fff8e8' },
-                { min: 75, max: 100, label: 'V. Calm', color: '#e8f0e8' }
+                { min: 0, max: 25, label: 'Low', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Fair', color: 'rgba(196,130,58,0.07)' },
+                { min: 50, max: 75, label: 'Good', color: 'rgba(168,192,208,0.04)' },
+                { min: 75, max: 100, label: 'V. Calm', color: 'rgba(90,154,110,0.07)' }
+            ],
+            'avg_wellbeing': [
+                { min: 0, max: 25, label: 'Low', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Fair', color: 'rgba(196,130,58,0.07)' },
+                { min: 50, max: 75, label: 'Good', color: 'rgba(168,192,208,0.04)' },
+                { min: 75, max: 100, label: 'Great', color: 'rgba(90,154,110,0.07)' }
+            ],
+            'avg_activation': [
+                { min: 0, max: 25, label: 'Low', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Moderate', color: 'rgba(168,192,208,0.04)' },
+                { min: 50, max: 75, label: 'Good', color: 'rgba(90,154,110,0.07)' },
+                { min: 75, max: 100, label: 'High', color: 'rgba(90,154,110,0.07)' }
+            ],
+            'avg_emotional_stability': [
+                { min: 0, max: 25, label: 'Volatile', color: 'rgba(196,88,76,0.10)' },
+                { min: 25, max: 50, label: 'Variable', color: 'rgba(196,130,58,0.07)' },
+                { min: 50, max: 75, label: 'Steady', color: 'rgba(168,192,208,0.04)' },
+                { min: 75, max: 100, label: 'Stable', color: 'rgba(90,154,110,0.07)' }
             ]
         };
 
@@ -167,8 +157,8 @@ class TrendsView {
             label.setAttribute('x', margin.left + plotWidth + 4);
             label.setAttribute('y', (y1 + y2) / 2 + 3);
             label.setAttribute('font-size', '8');
-            label.setAttribute('font-family', 'Times New Roman');
-            label.setAttribute('fill', '#9a9490');
+            label.setAttribute('font-family', 'Inter, sans-serif');
+            label.setAttribute('fill', 'rgba(168,192,208,0.35)');
             label.textContent = band.label;
             svg.appendChild(label);
         });
@@ -179,7 +169,7 @@ class TrendsView {
         title.setAttribute('y', 15);
         title.setAttribute('text-anchor', 'middle');
         title.setAttribute('font-size', '14');
-        title.setAttribute('fill', '#000');
+        title.setAttribute('fill', 'rgba(168,192,208,0.75)');
         title.textContent = metric.label;
         svg.appendChild(title);
 
@@ -189,7 +179,7 @@ class TrendsView {
         yAxis.setAttribute('y1', margin.top);
         yAxis.setAttribute('x2', margin.left);
         yAxis.setAttribute('y2', height - margin.bottom);
-        yAxis.setAttribute('stroke', '#5B5854');
+        yAxis.setAttribute('stroke', 'rgba(168,192,208,0.2)');
         yAxis.setAttribute('stroke-width', '1');
         svg.appendChild(yAxis);
 
@@ -199,7 +189,7 @@ class TrendsView {
         xAxis.setAttribute('y1', height - margin.bottom);
         xAxis.setAttribute('x2', width - margin.right);
         xAxis.setAttribute('y2', height - margin.bottom);
-        xAxis.setAttribute('stroke', '#5B5854');
+        xAxis.setAttribute('stroke', 'rgba(168,192,208,0.2)');
         xAxis.setAttribute('stroke-width', '1');
         svg.appendChild(xAxis);
 
@@ -211,15 +201,16 @@ class TrendsView {
             label.setAttribute('y', y + 4);
             label.setAttribute('text-anchor', 'end');
             label.setAttribute('font-size', '10');
-            label.setAttribute('fill', '#5B5854');
+            label.setAttribute('fill', 'rgba(168,192,208,0.45)');
             label.textContent = val;
             svg.appendChild(label);
         });
 
-        // Line path
+        // Line path (with fallback key support for backward compat)
+        const getVal = (s) => s[metric.key] || (metric.fallback ? s[metric.fallback] : null) || 50;
         const points = summaries.map((s, i) => {
             const x = xScale(i);
-            const y = yScale(s[metric.key] || 50);
+            const y = yScale(getVal(s));
             return `${x},${y}`;
         });
 
@@ -233,14 +224,14 @@ class TrendsView {
         // Dots
         summaries.forEach((s, i) => {
             const x = xScale(i);
-            const y = yScale(s[metric.key] || 50);
+            const y = yScale(getVal(s));
 
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('cx', x);
             circle.setAttribute('cy', y);
             circle.setAttribute('r', 4);
             circle.setAttribute('fill', metric.color);
-            circle.setAttribute('stroke', '#000');
+            circle.setAttribute('stroke', 'rgba(168,192,208,0.3)');
             circle.setAttribute('stroke-width', '1');
             svg.appendChild(circle);
         });

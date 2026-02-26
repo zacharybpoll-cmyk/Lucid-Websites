@@ -5,14 +5,41 @@
 
 const API_BASE = window.location.origin + '/api';
 
+// Cached application config (fetched once from /api/config)
+let _appConfig = null;
+async function getAppConfig() {
+    if (_appConfig) return _appConfig;
+    try {
+        const resp = await fetch(`${API_BASE}/config`);
+        _appConfig = await resp.json();
+    } catch (e) {
+        // Fallback defaults if config endpoint is unreachable
+        _appConfig = {
+            api_port: parseInt(window.location.port) || 8765,
+            speech_threshold_sec: 60,
+            analysis_interval_sec: 5,
+            zone_thresholds: { stressed: 70, tense: 40 },
+            zone_colors: { calm: '#5B8DB8', steady: '#5a6270', tense: '#DD8452', stressed: '#C44E52' },
+            brand_colors: { primary: '#f8f9fa', secondary: '#5a6270' },
+        };
+    }
+    return _appConfig;
+}
+
 // API helper function
 async function apiCall(endpoint, options = {}) {
     try {
         const response = await fetch(`${API_BASE}${endpoint}`, options);
         if (!response.ok) {
-            throw new Error(`API error: ${response.statusText}`);
+            const err = new Error(`API error: ${response.statusText}`);
+            err.status = response.status;
+            throw err;
         }
-        return await response.json();
+        try {
+            return await response.json();
+        } catch (parseError) {
+            throw new Error(`Invalid JSON response from ${endpoint}: ${parseError.message}`);
+        }
     } catch (error) {
         console.error(`API call failed for ${endpoint}:`, error);
         throw error;
@@ -21,6 +48,7 @@ async function apiCall(endpoint, options = {}) {
 
 // API functions
 const API = {
+    async getConfig() { return await getAppConfig(); },
     async getHealth() { return await apiCall('/health'); },
     async getStatus() { return await apiCall('/status'); },
     async getToday() { return await apiCall('/today'); },
@@ -148,7 +176,11 @@ const API = {
             headers: { 'Content-Type': 'application/octet-stream' },
             body: audioBlob,
         });
-        if (!response.ok) throw new Error(`Enroll failed: ${response.statusText}`);
+        if (!response.ok) {
+            const err = new Error(`Enroll failed: ${response.statusText}`);
+            err.status = response.status;
+            throw err;
+        }
         return await response.json();
     },
     async completeSpeakerEnrollment() {
