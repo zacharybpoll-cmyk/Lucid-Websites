@@ -1204,6 +1204,14 @@ class Database:
         """Add a single enrollment audio sample."""
         with self.lock:
             cursor = self.conn.cursor()
+            # Ensure placeholder profile exists so FK constraint is satisfied
+            cursor.execute("SELECT id FROM speaker_profiles WHERE id = ?", (profile_id,))
+            if cursor.fetchone() is None:
+                now = datetime.now().isoformat()
+                cursor.execute("""
+                    INSERT INTO speaker_profiles (id, name, enrollment_completed, created_at, updated_at)
+                    VALUES (?, 'default', 0, ?, ?)
+                """, (profile_id, now, now))
             cursor.execute("""
                 INSERT INTO enrollment_samples (profile_id, mood_label, embedding, duration_sec, created_at)
                 VALUES (?, ?, ?, ?, ?)
