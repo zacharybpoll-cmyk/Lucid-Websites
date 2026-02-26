@@ -74,6 +74,8 @@ def api_client():
     without the real orchestrator / insight engine / meeting detector.
     """
     import api.routes as routes
+    import api.dependencies as deps
+    from api.routers import readings as readings_router
 
     real_db, db_path = _make_db()
 
@@ -94,35 +96,37 @@ def api_client():
     }
     mock_orch.calibrator = MagicMock()
     mock_orch.calibrator.get_calibration_status.return_value = {'is_calibrated': False}
+    mock_orch.speaker_verifier = MagicMock()
+    mock_orch.speaker_verifier.get_status.return_value = {'enrolled': True}
 
     # Stash originals
-    orig_db = routes.db
-    orig_orch = routes.orchestrator
-    orig_meeting = routes.meeting_detector
-    orig_insight = routes.insight_engine
-    orig_notif = routes.notification_manager
+    orig_db = deps.db
+    orig_orch = deps.orchestrator
+    orig_meeting = deps.meeting_detector
+    orig_insight = deps.insight_engine
+    orig_notif = deps.notification_manager
 
-    # Patch
-    routes.db = real_db
-    routes.orchestrator = mock_orch
-    routes.meeting_detector = MagicMock()
-    routes.insight_engine = MagicMock()
-    routes.notification_manager = MagicMock()
+    # Patch dependencies module (where routers read globals from)
+    deps.db = real_db
+    deps.orchestrator = mock_orch
+    deps.meeting_detector = MagicMock()
+    deps.insight_engine = MagicMock()
+    deps.notification_manager = MagicMock()
 
-    # Reset daily summary cache (module-level state)
-    routes._daily_summary_cache = None
-    routes._daily_summary_reading_count = None
+    # Reset daily summary cache (module-level state in readings router)
+    readings_router._daily_summary_cache = None
+    readings_router._daily_summary_reading_count = None
 
     client = TestClient(routes.app)
 
     yield client, real_db
 
     # Restore
-    routes.db = orig_db
-    routes.orchestrator = orig_orch
-    routes.meeting_detector = orig_meeting
-    routes.insight_engine = orig_insight
-    routes.notification_manager = orig_notif
+    deps.db = orig_db
+    deps.orchestrator = orig_orch
+    deps.meeting_detector = orig_meeting
+    deps.insight_engine = orig_insight
+    deps.notification_manager = orig_notif
 
     # Cleanup
     real_db.close()
@@ -146,26 +150,27 @@ class TestHealthEndpoint:
         assert data['status'] == 'ready'
 
     def test_health_returns_initializing_when_no_orchestrator(self, api_client):
-        """When orchestrator is None, health reports initializing."""
+        """When orchestrator is None, health reports 503 + initializing."""
         client, _ = api_client
-        import api.routes as routes
-        saved = routes.orchestrator
-        routes.orchestrator = None
+        import api.dependencies as deps
+        saved = deps.orchestrator
+        deps.orchestrator = None
         try:
             resp = client.get('/api/health')
-            assert resp.status_code == 200
+            assert resp.status_code == 503
             data = resp.json()
             assert data['ready'] is False
             assert 'initializing' in data['status']
         finally:
-            routes.orchestrator = saved
+            deps.orchestrator = saved
 
     def test_health_loading_models(self, api_client):
-        """When models not yet loaded, status says loading."""
+        """When models not yet loaded, status says loading with 503."""
         client, _ = api_client
-        import api.routes as routes
-        routes.orchestrator.models_ready.is_set.return_value = False
+        import api.dependencies as deps
+        deps.orchestrator.models_ready.is_set.return_value = False
         resp = client.get('/api/health')
+        assert resp.status_code == 503
         data = resp.json()
         assert data['ready'] is False
         assert 'loading' in data['status']

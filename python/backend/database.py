@@ -4,10 +4,15 @@ SQLite storage for readings, daily summaries, tags, and baselines
 """
 import sqlite3
 import threading
+import logging
+import os
+import shutil
 from datetime import datetime, date, timedelta
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 import app_config as config
+
+logger = logging.getLogger(__name__)
 
 
 class Database:
@@ -26,6 +31,24 @@ class Database:
 
         # Enable WAL mode for concurrent reads while writing
         cursor.execute("PRAGMA journal_mode=WAL")
+
+        # Enable foreign key enforcement
+        cursor.execute("PRAGMA foreign_keys = ON")
+
+        # WAL auto-checkpoint every 500 pages (~2MB)
+        cursor.execute("PRAGMA wal_autocheckpoint = 500")
+
+        # Auto-backup on startup if DB has data (>10KB)
+        try:
+            db_size = os.path.getsize(str(self.db_path)) if os.path.exists(str(self.db_path)) else 0
+            if db_size > 10240:
+                backup_path = str(self.db_path) + '.backup'
+                backup_conn = sqlite3.connect(backup_path)
+                self.conn.backup(backup_conn)
+                backup_conn.close()
+                logger.info(f"Auto-backup created ({db_size // 1024}KB)")
+        except Exception as e:
+            logger.warning(f"Auto-backup on startup failed (non-fatal): {e}")
 
         # Readings table - individual analysis points
         cursor.execute("""
@@ -295,17 +318,185 @@ class Database:
             ("readings", "calm_score_raw", "REAL"),
             ("readings", "speaker_verified", "INTEGER DEFAULT -1"),
             ("readings", "speaker_similarity", "REAL"),
+            # Next-gen scores
+            ("readings", "wellbeing_score", "REAL"),
+            ("readings", "wellbeing_score_raw", "REAL"),
+            ("readings", "depression_risk_score", "REAL"),
+            ("readings", "depression_risk_score_raw", "REAL"),
+            ("readings", "activation_score", "REAL"),
+            ("readings", "activation_score_raw", "REAL"),
+            ("readings", "anxiety_risk_score", "REAL"),
+            ("readings", "anxiety_risk_score_raw", "REAL"),
+            ("readings", "emotional_stability_score", "REAL"),
+            ("readings", "emotional_stability_score_raw", "REAL"),
+            # Next-gen acoustic features
+            ("readings", "alpha_ratio", "REAL"),
+            ("readings", "mfcc3", "REAL"),
+            ("readings", "pitch_range", "REAL"),
+            ("readings", "rms_sd", "REAL"),
+            ("readings", "phonation_ratio", "REAL"),
+            ("readings", "h1_h2", "REAL"),
+            ("readings", "hnr", "REAL"),
+            ("readings", "voice_tremor_index", "REAL"),
+            ("readings", "pause_mean", "REAL"),
+            ("readings", "pause_sd", "REAL"),
+            ("readings", "pause_rate", "REAL"),
+            # Next-gen daily summary columns
+            ("daily_summaries", "avg_wellbeing", "REAL"),
+            ("daily_summaries", "avg_activation", "REAL"),
+            ("daily_summaries", "avg_depression_risk", "REAL"),
+            ("daily_summaries", "avg_anxiety_risk", "REAL"),
+            ("daily_summaries", "avg_emotional_stability", "REAL"),
         ]
         for table, col, coltype in migrate_columns:
             try:
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col} {coltype}")
-            except sqlite3.OperationalError:
-                pass  # Column already exists
+            except sqlite3.OperationalError as e:
+                if "duplicate column name" not in str(e).lower():
+                    logger.warning("Unexpected ALTER TABLE error for %s.%s: %s", table, col, e)
+
+        # Schema version tracking
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS schema_version (
+                version INTEGER PRIMARY KEY,
+                applied_at TEXT NOT NULL,
+                description TEXT
+            )
+        """)
 
         self.conn.commit()
 
+        # Run versioned migrations
+        self._run_migrations()
+
+        # Auto-vacuum if database is large
+        self._maybe_vacuum()
+
+    def _run_migrations(self):
+        """Run pending schema migrations in order."""
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COALESCE(MAX(version), 0) FROM schema_version")
+        current = cursor.fetchone()[0]
+
+        migrations = [
+            (1, "Add performance indexes", self._migration_001_indexes),
+            (2, "Add FK on enrollment_samples", self._migration_002_enrollment_fk),
+        ]
+
+        for version, desc, func in migrations:
+            if version > current:
+                logger.info("Running migration %d: %s", version, desc)
+                try:
+                    func(cursor)
+                    cursor.execute(
+                        "INSERT INTO schema_version (version, applied_at, description) VALUES (?, ?, ?)",
+                        (version, datetime.now().isoformat(), desc)
+                    )
+                    self.conn.commit()
+                    logger.info("Migration %d complete", version)
+                except Exception as e:
+                    self.conn.rollback()
+                    logger.exception("Migration %d failed: %s", version, desc)
+                    raise
+
+    def _migration_001_indexes(self, cursor):
+        """Add indexes on frequently-queried columns."""
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_readings_timestamp ON readings(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_daily_summaries_date ON daily_summaries(date)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_notification_log_sent_at ON notification_log(sent_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_grove_date ON grove(date)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_echoes_discovered_at ON echoes(discovered_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_echoes_seen ON echoes(seen)")
+
+    def _migration_002_enrollment_fk(self, cursor):
+        """Recreate enrollment_samples with FK constraint on speaker_profiles."""
+        cursor.execute("SELECT COUNT(*) FROM enrollment_samples")
+        if cursor.fetchone()[0] == 0:
+            # No data — safe to drop and recreate with FK
+            cursor.execute("DROP TABLE IF EXISTS enrollment_samples")
+            cursor.execute("""
+                CREATE TABLE enrollment_samples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    profile_id INTEGER DEFAULT 1 REFERENCES speaker_profiles(id) ON DELETE CASCADE,
+                    mood_label TEXT,
+                    embedding BLOB,
+                    duration_sec REAL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+        else:
+            # Has data — create new table, copy, swap
+            cursor.execute("""
+                CREATE TABLE enrollment_samples_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    profile_id INTEGER DEFAULT 1 REFERENCES speaker_profiles(id) ON DELETE CASCADE,
+                    mood_label TEXT,
+                    embedding BLOB,
+                    duration_sec REAL,
+                    created_at TEXT NOT NULL
+                )
+            """)
+            cursor.execute("""
+                INSERT INTO enrollment_samples_new (id, profile_id, mood_label, embedding, duration_sec, created_at)
+                SELECT id, profile_id, mood_label, embedding, duration_sec, created_at
+                FROM enrollment_samples
+            """)
+            cursor.execute("DROP TABLE enrollment_samples")
+            cursor.execute("ALTER TABLE enrollment_samples_new RENAME TO enrollment_samples")
+
+    def _maybe_vacuum(self):
+        """VACUUM if database file is over 100MB to reclaim space."""
+        try:
+            db_size = os.path.getsize(self.db_path)
+            if db_size > 100 * 1024 * 1024:  # 100MB
+                logger.info("Database is %d MB, running VACUUM", db_size // (1024 * 1024))
+                self.conn.execute("VACUUM")
+                logger.info("VACUUM complete")
+        except OSError:
+            pass  # File doesn't exist yet or permission error
+
+    def health_check(self) -> bool:
+        """Verify database connection is alive."""
+        try:
+            with self.lock:
+                self.conn.execute("SELECT 1")
+            return True
+        except Exception as e:
+            logger.debug("Health check failed: %s", e)
+            return False
+
+    def check_and_repair(self) -> bool:
+        """Run integrity check. If corrupt, backup corrupt file and create fresh DB."""
+        try:
+            with self.lock:
+                result = self.conn.execute("PRAGMA integrity_check").fetchone()
+                if result[0] == 'ok':
+                    return True
+                logger.error(f"Database corruption detected: {result[0]}")
+                corrupt_path = str(self.db_path) + '.corrupt.' + date.today().isoformat()
+                shutil.copy2(str(self.db_path), corrupt_path)
+                logger.info(f"Corrupt database backed up to {corrupt_path}")
+                self.conn.close()
+                os.rename(str(self.db_path), corrupt_path)
+                self._init_db()
+                return False
+        except Exception as e:
+            logger.error(f"Integrity check failed: {e}")
+            return True  # assume OK if check itself fails
+
     def insert_reading(self, reading: Dict[str, Any]) -> int:
-        """Insert a new reading and return its ID"""
+        """Insert a new reading and return its ID.
+        Validates data through Pydantic ReadingInsert model before inserting."""
+        from api.schemas import ReadingInsert
+
+        # Validate and sanitize through Pydantic — clamps scores, checks ranges
+        validated = ReadingInsert(**reading)
+        r = validated.model_dump()
+
+        # Fill in timestamp if not provided
+        if r['timestamp'] is None:
+            r['timestamp'] = datetime.now().isoformat()
+
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("""
@@ -321,47 +512,75 @@ class Database:
                     depression_ci_lower, depression_ci_upper,
                     anxiety_ci_lower, anxiety_ci_upper,
                     uncertainty_flag, score_inconsistency,
-                    speaker_verified, speaker_similarity
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    speaker_verified, speaker_similarity,
+                    wellbeing_score, wellbeing_score_raw,
+                    depression_risk_score, depression_risk_score_raw,
+                    activation_score, activation_score_raw,
+                    anxiety_risk_score, anxiety_risk_score_raw,
+                    emotional_stability_score, emotional_stability_score_raw,
+                    alpha_ratio, mfcc3, pitch_range, rms_sd, phonation_ratio,
+                    h1_h2, hnr, voice_tremor_index, pause_mean, pause_sd, pause_rate
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
-                reading.get('timestamp', datetime.now().isoformat()),
-                reading.get('depression_raw'),
-                reading.get('anxiety_raw'),
-                reading.get('depression_quantized'),
-                reading.get('anxiety_quantized'),
-                reading.get('depression_mapped'),
-                reading.get('anxiety_mapped'),
-                reading.get('f0_mean'),
-                reading.get('f0_std'),
-                reading.get('speech_rate'),
-                reading.get('rms_energy'),
-                reading.get('spectral_centroid'),
-                reading.get('spectral_entropy'),
-                reading.get('zcr'),
-                reading.get('jitter'),
-                reading.get('shimmer'),
-                reading.get('voice_breaks'),
-                reading.get('stress_score'),
-                reading.get('mood_score'),
-                reading.get('energy_score'),
-                reading.get('calm_score'),
-                reading.get('stress_score_raw'),
-                reading.get('mood_score_raw'),
-                reading.get('energy_score_raw'),
-                reading.get('calm_score_raw'),
-                reading.get('zone'),
-                reading.get('speech_duration_sec'),
-                reading.get('meeting_detected', 0),
-                reading.get('vad_confidence'),
-                reading.get('low_confidence', 0),
-                reading.get('depression_ci_lower'),
-                reading.get('depression_ci_upper'),
-                reading.get('anxiety_ci_lower'),
-                reading.get('anxiety_ci_upper'),
-                reading.get('uncertainty_flag'),
-                reading.get('score_inconsistency', 0),
-                reading.get('speaker_verified', -1),
-                reading.get('speaker_similarity'),
+                r['timestamp'],
+                r['depression_raw'],
+                r['anxiety_raw'],
+                r['depression_quantized'],
+                r['anxiety_quantized'],
+                r['depression_mapped'],
+                r['anxiety_mapped'],
+                r['f0_mean'],
+                r['f0_std'],
+                r['speech_rate'],
+                r['rms_energy'],
+                r['spectral_centroid'],
+                r['spectral_entropy'],
+                r['zcr'],
+                r['jitter'],
+                r['shimmer'],
+                r['voice_breaks'],
+                r['stress_score'],
+                r['mood_score'],
+                r['energy_score'],
+                r['calm_score'],
+                r['stress_score_raw'],
+                r['mood_score_raw'],
+                r['energy_score_raw'],
+                r['calm_score_raw'],
+                r['zone'],
+                r['speech_duration_sec'],
+                r['meeting_detected'],
+                r['vad_confidence'],
+                r['low_confidence'],
+                r['depression_ci_lower'],
+                r['depression_ci_upper'],
+                r['anxiety_ci_lower'],
+                r['anxiety_ci_upper'],
+                r['uncertainty_flag'],
+                r['score_inconsistency'],
+                r['speaker_verified'],
+                r['speaker_similarity'],
+                r['wellbeing_score'],
+                r['wellbeing_score_raw'],
+                r['depression_risk_score'],
+                r['depression_risk_score_raw'],
+                r['activation_score'],
+                r['activation_score_raw'],
+                r['anxiety_risk_score'],
+                r['anxiety_risk_score_raw'],
+                r['emotional_stability_score'],
+                r['emotional_stability_score_raw'],
+                r['alpha_ratio'],
+                r['mfcc3'],
+                r['pitch_range'],
+                r['rms_sd'],
+                r['phonation_ratio'],
+                r['h1_h2'],
+                r['hnr'],
+                r['voice_tremor_index'],
+                r['pause_mean'],
+                r['pause_sd'],
+                r['pause_rate'],
             ))
             self.conn.commit()
             return cursor.lastrowid
@@ -395,6 +614,49 @@ class Database:
 
             return [dict(row) for row in cursor.fetchall()]
 
+    def count_readings(self) -> int:
+        """Return total number of readings (efficient COUNT query)."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM readings")
+            return cursor.fetchone()['cnt']
+
+    def get_first_reading_timestamp(self) -> Optional[str]:
+        """Return timestamp of the earliest reading."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT timestamp FROM readings ORDER BY timestamp ASC LIMIT 1")
+            row = cursor.fetchone()
+            return row['timestamp'] if row else None
+
+    def count_readings_since(self, start_time: str) -> int:
+        """Return count of readings since a given timestamp."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM readings WHERE timestamp >= ?", (start_time,))
+            return cursor.fetchone()['cnt']
+
+    def count_daily_summaries(self, days: int = 365) -> int:
+        """Return count of daily summaries in the last N days."""
+        with self.lock:
+            start_date = (date.today() - timedelta(days=days)).isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM daily_summaries WHERE date >= ?", (start_date,))
+            return cursor.fetchone()['cnt']
+
+    def prune_old_readings(self, retention_days: int = 90) -> int:
+        """Delete readings older than retention_days. Returns count deleted."""
+        with self.lock:
+            cutoff = (date.today() - timedelta(days=retention_days)).isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT COUNT(*) as cnt FROM readings WHERE timestamp < ?", (cutoff,))
+            count = cursor.fetchone()['cnt']
+            if count > 0:
+                cursor.execute("DELETE FROM readings WHERE timestamp < ?", (cutoff,))
+                self.conn.commit()
+                logger.info(f"Pruned {count} readings older than {retention_days} days")
+            return count
+
     def get_today_readings(self) -> List[Dict[str, Any]]:
         """Get all readings from today"""
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
@@ -415,24 +677,35 @@ class Database:
             if not readings:
                 return {}
 
+            # Helper for safe averaging (filters out None values)
+            def safe_avg(key):
+                vals = [r.get(key) for r in readings if r.get(key) is not None]
+                return sum(vals) / len(vals) if vals else 0
+
             # Calculate averages
             summary = {
                 'date': date_str,
-                'avg_depression': sum((r.get('depression_mapped') or r['depression_raw'] or 0) for r in readings) / len(readings),
-                'avg_anxiety': sum((r.get('anxiety_mapped') or r['anxiety_raw'] or 0) for r in readings) / len(readings),
-                'avg_stress': sum(r['stress_score'] or 0 for r in readings) / len(readings),
-                'avg_mood': sum(r['mood_score'] or 0 for r in readings) / len(readings),
-                'avg_energy': sum(r['energy_score'] or 0 for r in readings) / len(readings),
-                'avg_calm': sum(r['calm_score'] or 0 for r in readings) / len(readings),
-                'peak_stress': max((r['stress_score'] or 0 for r in readings), default=0),
-                'time_in_stressed_min': sum(1 for r in readings if r['zone'] == 'stressed') * 5,
-                'time_in_tense_min': sum(1 for r in readings if r['zone'] == 'tense') * 5,
-                'time_in_steady_min': sum(1 for r in readings if r['zone'] == 'steady') * 5,
-                'time_in_calm_min': sum(1 for r in readings if r['zone'] == 'calm') * 5,
-                'total_speech_min': sum(r['speech_duration_sec'] or 0 for r in readings) / 60,
-                'total_meetings': sum(r['meeting_detected'] or 0 for r in readings),
-                'burnout_risk': None,  # Computed separately from rolling window
-                'resilience_score': None  # Computed separately from rolling window
+                'avg_depression': sum((r.get('depression_mapped') or r.get('depression_raw') or 0) for r in readings) / len(readings),
+                'avg_anxiety': sum((r.get('anxiety_mapped') or r.get('anxiety_raw') or 0) for r in readings) / len(readings),
+                'avg_stress': safe_avg('stress_score'),
+                'avg_mood': safe_avg('mood_score'),
+                'avg_energy': safe_avg('energy_score'),
+                'avg_calm': safe_avg('calm_score'),
+                'peak_stress': max((r.get('stress_score') or 0 for r in readings), default=0),
+                'time_in_stressed_min': sum(1 for r in readings if r.get('zone') == 'stressed') * 5,
+                'time_in_tense_min': sum(1 for r in readings if r.get('zone') == 'tense') * 5,
+                'time_in_steady_min': sum(1 for r in readings if r.get('zone') == 'steady') * 5,
+                'time_in_calm_min': sum(1 for r in readings if r.get('zone') == 'calm') * 5,
+                'total_speech_min': sum(r.get('speech_duration_sec') or 0 for r in readings) / 60,
+                'total_meetings': sum(r.get('meeting_detected') or 0 for r in readings),
+                'burnout_risk': None,
+                'resilience_score': None,
+                # Next-gen averages
+                'avg_wellbeing': safe_avg('wellbeing_score'),
+                'avg_activation': safe_avg('activation_score'),
+                'avg_depression_risk': safe_avg('depression_risk_score'),
+                'avg_anxiety_risk': safe_avg('anxiety_risk_score'),
+                'avg_emotional_stability': safe_avg('emotional_stability_score'),
             }
 
             # Insert or update
@@ -441,15 +714,19 @@ class Database:
                 INSERT OR REPLACE INTO daily_summaries (
                     date, avg_depression, avg_anxiety, avg_stress, avg_mood, avg_energy, avg_calm,
                     peak_stress, time_in_stressed_min, time_in_tense_min, time_in_steady_min,
-                    time_in_calm_min, total_speech_min, total_meetings, burnout_risk, resilience_score
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    time_in_calm_min, total_speech_min, total_meetings, burnout_risk, resilience_score,
+                    avg_wellbeing, avg_activation, avg_depression_risk, avg_anxiety_risk, avg_emotional_stability
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 summary['date'], summary['avg_depression'], summary['avg_anxiety'],
                 summary['avg_stress'], summary['avg_mood'], summary['avg_energy'],
                 summary['avg_calm'], summary['peak_stress'], summary['time_in_stressed_min'],
                 summary['time_in_tense_min'], summary['time_in_steady_min'],
                 summary['time_in_calm_min'], summary['total_speech_min'],
-                summary['total_meetings'], summary['burnout_risk'], summary['resilience_score']
+                summary['total_meetings'], summary['burnout_risk'], summary['resilience_score'],
+                summary['avg_wellbeing'], summary['avg_activation'],
+                summary['avg_depression_risk'], summary['avg_anxiety_risk'],
+                summary['avg_emotional_stability'],
             ))
             self.conn.commit()
 
@@ -785,13 +1062,19 @@ class Database:
     def set_dashboard_layout(self, layouts: List[Dict[str, Any]]):
         with self.lock:
             cursor = self.conn.cursor()
-            cursor.execute("DELETE FROM dashboard_layout")
-            for item in layouts:
-                cursor.execute("""
-                    INSERT INTO dashboard_layout (card_id, sort_order, visible)
-                    VALUES (?, ?, ?)
-                """, (item['card_id'], item.get('sort_order', 0), item.get('visible', 1)))
-            self.conn.commit()
+            try:
+                cursor.execute("BEGIN")
+                cursor.execute("DELETE FROM dashboard_layout")
+                for item in layouts:
+                    cursor.execute("""
+                        INSERT INTO dashboard_layout (card_id, sort_order, visible)
+                        VALUES (?, ?, ?)
+                    """, (item['card_id'], item.get('sort_order', 0), item.get('visible', 1)))
+                self.conn.commit()
+            except Exception as e:
+                self.conn.rollback()
+                logger.error("Failed to save dashboard layout: %s", e)
+                raise
 
     # ============ Notification Log Methods ============
 
@@ -908,41 +1191,100 @@ class Database:
             """, (embedding, datetime.now().isoformat()))
             self.conn.commit()
 
-    def delete_speaker_profile(self):
+    def delete_speaker_profile(self, profile_id: int = 1):
         """Delete speaker profile and enrollment samples."""
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("DELETE FROM speaker_profiles WHERE name = 'default'")
-            cursor.execute("DELETE FROM enrollment_samples WHERE profile_id = 1")
+            cursor.execute("DELETE FROM enrollment_samples WHERE profile_id = ?", (profile_id,))
             self.conn.commit()
 
-    def add_enrollment_sample(self, mood_label: str, embedding: bytes, duration_sec: float):
+    def add_enrollment_sample(self, mood_label: str, embedding: bytes, duration_sec: float,
+                              profile_id: int = 1):
         """Add a single enrollment audio sample."""
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("""
                 INSERT INTO enrollment_samples (profile_id, mood_label, embedding, duration_sec, created_at)
-                VALUES (1, ?, ?, ?, ?)
-            """, (mood_label, embedding, duration_sec, datetime.now().isoformat()))
+                VALUES (?, ?, ?, ?, ?)
+            """, (profile_id, mood_label, embedding, duration_sec, datetime.now().isoformat()))
             self.conn.commit()
 
-    def get_enrollment_samples(self) -> List[Dict[str, Any]]:
-        """Get all enrollment samples for the default profile."""
+    def get_enrollment_samples(self, profile_id: int = 1) -> List[Dict[str, Any]]:
+        """Get all enrollment samples for the given profile."""
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("""
-                SELECT * FROM enrollment_samples WHERE profile_id = 1 ORDER BY id
-            """)
+                SELECT * FROM enrollment_samples WHERE profile_id = ? ORDER BY id
+            """, (profile_id,))
             return [dict(row) for row in cursor.fetchall()]
 
-    def clear_enrollment_samples(self):
+    def clear_enrollment_samples(self, profile_id: int = 1):
         """Clear enrollment samples (before re-enrollment)."""
         with self.lock:
             cursor = self.conn.cursor()
-            cursor.execute("DELETE FROM enrollment_samples WHERE profile_id = 1")
+            cursor.execute("DELETE FROM enrollment_samples WHERE profile_id = ?", (profile_id,))
             self.conn.commit()
 
+    def backup(self, dest_path=None):
+        """Create a backup of the database using SQLite backup API."""
+        if dest_path is None:
+            dest_path = str(self.db_path) + '.backup'
+        try:
+            with self.lock:
+                backup_conn = sqlite3.connect(dest_path)
+                self.conn.backup(backup_conn)
+                backup_conn.close()
+            logger.info(f"Database backed up to {dest_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Database backup failed: {e}")
+            return False
+
+    def integrity_check(self):
+        """Run SQLite integrity check. Returns True if database is healthy."""
+        try:
+            with self.lock:
+                cursor = self.conn.cursor()
+                cursor.execute("PRAGMA integrity_check")
+                result = cursor.fetchone()[0]
+            if result == 'ok':
+                logger.debug("Database integrity check passed")
+                return True
+            else:
+                logger.error(f"Database integrity check failed: {result}")
+                return False
+        except Exception as e:
+            logger.error(f"Database integrity check error: {e}")
+            return False
+
+    def restore_from_backup(self):
+        """Attempt to restore database from backup file."""
+        backup_path = str(self.db_path) + '.backup'
+        if not os.path.exists(backup_path):
+            logger.warning("No backup file found for restoration")
+            return False
+        try:
+            if self.conn:
+                self.conn.close()
+            shutil.copy2(backup_path, str(self.db_path))
+            self._init_db()
+            logger.info("Database restored from backup")
+            return True
+        except Exception as e:
+            logger.error(f"Database restore failed: {e}")
+            return False
+
     def close(self):
-        """Close database connection"""
-        if self.conn:
-            self.conn.close()
+        """Close database connection with WAL checkpoint."""
+        with self.lock:
+            if self.conn:
+                try:
+                    self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                except Exception as e:
+                    logger.warning("WAL checkpoint on close failed: %s", e)
+                try:
+                    self.conn.close()
+                except Exception as e:
+                    logger.warning("Database close failed: %s", e)
+                self.conn = None

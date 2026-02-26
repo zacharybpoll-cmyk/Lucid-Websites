@@ -31,9 +31,24 @@ const DATA_DIR = path.join(app.getPath('userData'), 'attune-data');
 
 const CRASH_LOG = path.join(DATA_DIR, 'crash_log.txt');
 
+function sanitizeCrashLog(text) {
+  // NOTE: Identical sanitization rules exist in python/main.py:_sanitize_crash_log()
+  // If you change these patterns, update both locations.
+  // Redact embedding vectors (arrays of 10+ floats)
+  text = text.replace(/\[(-?\d+\.\d+,\s*){9,}-?\d+\.\d+\]/g, '[<embedding redacted>]');
+  // Replace home directory paths with ~
+  const home = require('os').homedir();
+  text = text.split(home).join('~');
+  // Redact long base64 strings (40+ chars)
+  text = text.replace(/[A-Za-z0-9+/]{40,}={0,2}/g, '<base64 redacted>');
+  return text;
+}
+
 function logCrash(source, error) {
   const timestamp = new Date().toISOString();
-  const entry = `[${timestamp}] [${source}] ${error.stack || error.message || error}\n`;
+  let raw = `${error.stack || error.message || error}`;
+  raw = sanitizeCrashLog(raw);
+  const entry = `[${timestamp}] [${source}] ${raw}\n`;
   try {
     fs.appendFileSync(CRASH_LOG, entry);
   } catch {} // Don't crash while logging crashes
@@ -50,7 +65,10 @@ process.on('unhandledRejection', (reason) => {
 });
 
 const API_HOST = '127.0.0.1';
-const API_PORT = 8765;
+// Derive unique port per app variant to allow simultaneous operation
+const PKG_NAME = require('./package.json').name;
+const PORT_MAP = { 'attune-dev': 8765, 'attune-health': 8766, 'attune-steel': 8767 };
+const API_PORT = PORT_MAP[PKG_NAME] || 8765;
 const API_BASE = `http://${API_HOST}:${API_PORT}`;
 
 let splashWindow = null;
@@ -121,12 +139,14 @@ function spawnPython() {
     const env = {
       ...process.env,
       ATTUNE_DATA_DIR: DATA_DIR,
+      ATTUNE_API_PORT: String(API_PORT),
       PYTHONUNBUFFERED: '1',
     };
 
     console.log(`[Main] Python dir: ${PYTHON_DIR}`);
     console.log(`[Main] Python bin: ${VENV_PYTHON}`);
     console.log(`[Main] Data dir: ${DATA_DIR}`);
+    console.log(`[Main] API port: ${API_PORT}`);
 
     pythonProcess = spawn(VENV_PYTHON, [MAIN_PY, '--electron'], {
       cwd: PYTHON_DIR,
@@ -163,6 +183,9 @@ function spawnPython() {
             console.log('[Python] Restarted, waiting for server...');
             await pollForServer();
             console.log('[Python] Server back up after restart.');
+            if (mainWindow && mainWindow.webContents) {
+              mainWindow.webContents.send('backend-restarted');
+            }
             pythonRestartCount = 0;
           } catch (err) {
             console.error('[Python] Restart failed:', err);
@@ -196,7 +219,13 @@ function pollForServer(maxAttempts = 60) {
         res.on('end', () => {
           try {
             const data = JSON.parse(body);
-            resolve(data);
+            if (data.ready === true) {
+              resolve(data);
+            } else {
+              console.log(`[Main] Server not ready yet (attempt ${attempts}): ${data.status || 'loading...'}`);
+              if (attempts < maxAttempts) setTimeout(poll, 500);
+              else reject(new Error('Server did not become ready in time'));
+            }
           } catch {
             if (attempts < maxAttempts) setTimeout(poll, 500);
             else reject(new Error('Server responded but with invalid JSON'));
@@ -282,12 +311,22 @@ function showMainApp() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(getAppRoot(), 'preload.js'),
     },
   });
 
-  mainWindow.loadURL(`${API_BASE}/static/index.html`);
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error(`[Main] Page load failed: ${errorCode} ${errorDescription} (${validatedURL})`);
+  });
 
-  mainWindow.once('ready-to-show', () => {
+  mainWindow.loadURL(`${API_BASE}/static/index.html`).catch(err => {
+    console.error('[Main] loadURL failed:', err);
+  });
+
+  let shown = false;
+  const doShow = () => {
+    if (shown) return;
+    shown = true;
     if (splashWindow) {
       splashWindow.close();
       splashWindow = null;
@@ -297,7 +336,20 @@ function showMainApp() {
       onboardingWindow = null;
     }
     mainWindow.show();
+  };
+
+  mainWindow.once('ready-to-show', () => {
+    doShow();
   });
+
+  // Fallback: force show after 10s if ready-to-show hasn't fired
+  // (external CDN resources like Google Fonts can delay ready-to-show)
+  setTimeout(() => {
+    if (!shown) {
+      console.warn('[Main] ready-to-show timeout — forcing show');
+      doShow();
+    }
+  }, 10000);
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
@@ -457,29 +509,49 @@ if (!gotTheLock) {
 
   // ============ Power Monitor (Sleep/Wake) ============
 
+  // ERR-001: Retry helper for IPC API requests
+  function sendApiRequest(apiPath, retries = 3) {
+    let attempt = 0;
+    const tryRequest = () => {
+      attempt++;
+      const req = http.request({
+        hostname: API_HOST, port: API_PORT, path: apiPath, method: 'POST',
+      }, (res) => {
+        console.log(`[Main] ${apiPath} responded ${res.statusCode}`);
+      });
+      req.on('error', (e) => {
+        console.warn(`[Main] ${apiPath} failed (attempt ${attempt}/${retries}): ${e.message}`);
+        if (attempt < retries) setTimeout(tryRequest, 1000);
+      });
+      req.end();
+    };
+    tryRequest();
+  }
+
   app.whenReady().then(() => {
     powerMonitor.on('suspend', () => {
       console.log('[Main] System suspending, pausing analysis...');
-      const req = http.request({
-        hostname: API_HOST,
-        port: API_PORT,
-        path: '/api/pause',
-        method: 'POST',
-      }, () => {});
-      req.on('error', () => {});
-      req.end();
+      sendApiRequest('/api/pause');
     });
 
     powerMonitor.on('resume', () => {
       console.log('[Main] System resumed, resuming analysis...');
-      const req = http.request({
-        hostname: API_HOST,
-        port: API_PORT,
-        path: '/api/resume',
-        method: 'POST',
-      }, () => {});
-      req.on('error', () => {});
-      req.end();
+      sendApiRequest('/api/resume');
     });
+
+    // MEM-003: Periodic cache management — clear when cache exceeds 500MB
+    setInterval(async () => {
+      try {
+        const cacheSize = await session.defaultSession.getCacheSize();
+        const cacheMB = cacheSize / (1024 * 1024);
+        if (cacheMB > 500) {
+          console.log(`[Main] Cache size ${cacheMB.toFixed(0)}MB > 500MB threshold, clearing...`);
+          await session.defaultSession.clearCache();
+          console.log('[Main] Periodic cache clear complete');
+        }
+      } catch (e) {
+        console.error('[Main] Cache check failed:', e.message);
+      }
+    }, 30 * 60 * 1000); // every 30 minutes
   });
 }

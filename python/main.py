@@ -11,6 +11,7 @@ import socket
 import threading
 import time
 import argparse
+import gc
 import traceback
 import webbrowser
 import logging
@@ -25,7 +26,8 @@ from backend.insight_engine import InsightEngine
 from backend.notifications import NotificationManager
 import app_config as config
 
-# Import API routes and set global references
+# Import API dependencies and routes
+import api.dependencies as deps
 import api.routes as routes
 import uvicorn
 
@@ -34,18 +36,43 @@ logger = logging.getLogger('attune.main')
 
 # ============ Crash Reporting ============
 
+def _sanitize_crash_log(text: str) -> str:
+    """Redact sensitive data from crash log entries.
+    NOTE: Identical sanitization rules exist in main.js:sanitizeCrashLog()
+    If you change these patterns, update both locations."""
+    import re
+    # Redact embedding vectors (arrays of 10+ floats)
+    text = re.sub(r'\[(-?\d+\.\d+,\s*){9,}-?\d+\.\d+\]', '[<embedding redacted>]', text)
+    # Replace home directory paths with ~
+    home = os.path.expanduser('~')
+    text = text.replace(home, '~')
+    # Redact long base64 strings (40+ chars)
+    text = re.sub(r'[A-Za-z0-9+/]{40,}={0,2}', '<base64 redacted>', text)
+    return text
+
+
 def _setup_crash_reporting():
     crash_log = Path(os.environ.get('ATTUNE_DATA_DIR', '.')) / 'crash_log.txt'
+
+    # Truncate crash log if >1MB (keep last 500KB)
+    try:
+        if crash_log.exists() and crash_log.stat().st_size > 1_048_576:
+            data = crash_log.read_bytes()
+            crash_log.write_bytes(data[-512_000:])
+            logging.getLogger('attune.main').info("Truncated crash log (was >1MB)")
+    except Exception as e:
+        pass  # Crash log truncation is best-effort
 
     def excepthook(exc_type, exc_value, exc_tb):
         timestamp = datetime.now().isoformat()
         tb_str = ''.join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        tb_str = _sanitize_crash_log(tb_str)
         entry = f"[{timestamp}] [python-uncaught] {tb_str}\n"
         try:
             with open(crash_log, 'a') as f:
                 f.write(entry)
         except Exception:
-            pass
+            pass  # Can't log crash-log write failures (circular)
         # Call the default hook too
         sys.__excepthook__(exc_type, exc_value, exc_tb)
 
@@ -54,51 +81,43 @@ def _setup_crash_reporting():
 
 # ============ Memory Monitoring ============
 
-def _start_memory_monitor(interval_sec=300):
-    """Check memory usage every 5 minutes, warn if >2GB."""
+def _start_memory_monitor(interval_sec=300, orchestrator=None, insight_engine=None):
+    """Check memory usage every 5 minutes. Active throttling at >2GB."""
     def monitor():
         while True:
             time.sleep(interval_sec)
             process = psutil.Process()
             mem_mb = process.memory_info().rss / (1024 * 1024)
-            if mem_mb > 2048:
-                logger.warning(f"Memory usage high: {mem_mb:.0f}MB (>2GB)")
+
+            if mem_mb > 2560:
+                # Critical: >2.5GB — pause analysis for 60s after GC
+                logger.critical(f"Memory critical: {mem_mb:.0f}MB (>2.5GB) — forcing GC and pausing analysis")
+                gc.collect()
+                if insight_engine and hasattr(insight_engine, '_cache'):
+                    try:
+                        insight_engine._cache.clear()
+                    except Exception as e:
+                        pass  # Cache clear is best-effort
+                if orchestrator and orchestrator.is_running:
+                    orchestrator.pause()
+                    time.sleep(60)
+                    orchestrator.resume()
+                    logger.info("Analysis resumed after memory cooldown")
+            elif mem_mb > 2048:
+                # Warning: >2GB — run GC and clear caches
+                logger.warning(f"Memory usage high: {mem_mb:.0f}MB (>2GB) — running GC")
+                gc.collect()
+                if insight_engine and hasattr(insight_engine, '_cache'):
+                    try:
+                        insight_engine._cache.clear()
+                    except Exception as e:
+                        pass  # Cache clear is best-effort
             elif mem_mb > 1024:
                 logger.info(f"Memory usage: {mem_mb:.0f}MB")
 
     thread = threading.Thread(target=monitor, daemon=True)
     thread.start()
 
-
-# ============ The Beacon — Dynamic Menubar Icon ============
-
-def _create_beacon_icons():
-    """Generate colored dot icons for menubar using PIL."""
-    try:
-        from PIL import Image, ImageDraw
-    except ImportError:
-        logger.warning("PIL not available, menubar icons disabled")
-        return {}
-
-    icons = {}
-    colors = {
-        'calm': '#5a9a6e',
-        'steady': '#b5a84a',
-        'tense': '#d4943a',
-        'stressed': '#c4584c',
-        'idle': '#888888',
-    }
-
-    for zone, color in colors.items():
-        img = Image.new('RGBA', (22, 22), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        # Draw filled circle with slight border
-        draw.ellipse([3, 3, 19, 19], fill=color, outline=color)
-        # Inner highlight for depth
-        draw.ellipse([6, 6, 16, 16], fill=color)
-        icons[zone] = img
-
-    return icons
 
 
 def _wait_for_server_socket(host, port, timeout=10.0):
@@ -125,9 +144,6 @@ class Attune:
         self.notification_manager = None
         self.server = None
         self._shutdown = threading.Event()
-        # Beacon state
-        self._beacon_icons = {}
-        self._beacon_current_zone = 'idle'
 
     def run(self):
         logger.info("=" * 60)
@@ -137,6 +153,8 @@ class Attune:
         # --- Fast init (< 1s) ---
         logger.info("Initializing database...")
         self.db = Database(config.DB_PATH)
+        self.db.check_and_repair()       # EDGE-002: integrity check on startup
+        self.db.prune_old_readings(90)   # MEM-004: retention policy
         logger.info(f"Database ready at {config.DB_PATH}")
 
         # Create orchestrator with lazy model loading (fast)
@@ -158,18 +176,15 @@ class Attune:
         self.notification_manager = NotificationManager(self.db)
         self.notification_manager.schedule_curtain_call()
 
-        # Initialize Beacon icons
-        self._beacon_icons = _create_beacon_icons()
-
         # Wire notification manager into orchestrator
         self.orchestrator.notification_manager = self.notification_manager
 
-        # Wire up API routes
-        routes.db = self.db
-        routes.orchestrator = self.orchestrator
-        routes.meeting_detector = self.meeting_detector
-        routes.insight_engine = self.insight_engine
-        routes.notification_manager = self.notification_manager
+        # Wire up API dependencies
+        deps.db = self.db
+        deps.orchestrator = self.orchestrator
+        deps.meeting_detector = self.meeting_detector
+        deps.insight_engine = self.insight_engine
+        deps.notification_manager = self.notification_manager
 
         # --- Start uvicorn in a daemon thread ---
         logger.info(f"Starting server on http://{config.API_HOST}:{config.API_PORT}")
@@ -194,8 +209,18 @@ class Attune:
             logger.error(f"Run: lsof -ti :{config.API_PORT} | xargs kill -9")
             sys.exit(1)
 
-        # --- Start memory monitor ---
-        _start_memory_monitor()
+        # --- Start memory monitor (MEM-005: 60s interval for faster response) ---
+        _start_memory_monitor(interval_sec=60, orchestrator=self.orchestrator, insight_engine=self.insight_engine)
+
+        # --- Start periodic database backup (every 6 hours) ---
+        def _periodic_backup():
+            while not self._shutdown.is_set():
+                self._shutdown.wait(6 * 3600)  # 6 hours
+                if self._shutdown.is_set():
+                    break
+                if self.db:
+                    self.db.backup()
+        threading.Thread(target=_periodic_backup, daemon=True).start()
 
         # --- Load models in background thread ---
         def _load_models():
@@ -238,7 +263,7 @@ class Attune:
                 urllib.request.urlopen(url, timeout=2)
                 return
             except Exception:
-                time.sleep(0.3)
+                time.sleep(0.3)  # Expected during startup polling
         logger.warning("Server did not respond within timeout, opening browser anyway")
 
     def _cleanup(self):
@@ -254,15 +279,6 @@ class Attune:
         if self.db:
             self.db.close()
         logger.info("Goodbye.")
-
-    def update_beacon(self, zone: str):
-        """Update the menubar beacon icon color based on current zone."""
-        if zone == self._beacon_current_zone:
-            return
-        self._beacon_current_zone = zone
-        # Beacon icons are informational only (no pystray in browser mode)
-        # The actual icon state is tracked and available via /api/status
-
 
 def main():
     setup_logging()

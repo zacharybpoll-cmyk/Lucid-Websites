@@ -4,8 +4,16 @@
 
 // ============ Configuration ============
 
-const API_PORT = 8765;
-let API_BASE = `http://127.0.0.1:${API_PORT}`;
+let API_BASE = 'http://127.0.0.1:8765'; // default, overridden by IPC
+const _apiBaseReady = (async () => {
+  if (window.attune && window.attune.getApiBase) {
+    try {
+      API_BASE = await window.attune.getApiBase();
+    } catch (e) {
+      console.warn('Could not get API base from preload, using default');
+    }
+  }
+})();
 
 const RECORDING_PROMPTS = [
   { label: 'Sample 1 — Normal Voice',  text: 'Read this aloud: "I\'m setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day. This way it only tracks my voice and no one else\'s."' },
@@ -47,25 +55,77 @@ let carouselPaused = false;
 let carouselProgressStart = 0;
 let carouselProgressRAF = null;
 let particleRAF = null;
+let enrollmentVerified = false;
 const CAROUSEL_DURATION = 6000; // ms per slide
 const TOTAL_SLIDES = 10;
 
-// ============ Init ============
+// ============ Retry Helper ============
 
-(async function init() {
-  // Get API base from Electron preload
-  if (window.attune && window.attune.getApiBase) {
+/**
+ * Fetch with exponential backoff retry.
+ * @param {string} url
+ * @param {RequestInit} opts
+ * @param {number} maxRetries - maximum retry attempts (default 3)
+ * @param {number} baseDelayMs - initial backoff delay in ms (default 1000)
+ * @returns {Promise<Response>}
+ */
+async function fetchWithRetry(url, opts = {}, maxRetries = 3, baseDelayMs = 1000) {
+  await _apiBaseReady;
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      API_BASE = await window.attune.getApiBase();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch(url, { ...opts, signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      // Retry on 503 (server still initializing)
+      if (res.status === 503 && attempt < maxRetries) {
+        const retryAfter = parseInt(res.headers.get('Retry-After') || '5', 10);
+        const delay = Math.min(retryAfter * 1000, baseDelayMs * Math.pow(2, attempt));
+        console.warn(`[Onboarding] 503 from ${url}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+
+      return res;
     } catch (e) {
-      console.warn('Could not get API base from preload, using default');
+      lastError = e;
+      if (e.name === 'AbortError') {
+        // Timeout — retry with backoff
+        if (attempt < maxRetries) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          console.warn(`[Onboarding] Timeout for ${url}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, delay));
+          continue;
+        }
+      }
+      // Network error — retry with backoff
+      if (attempt < maxRetries) {
+        const delay = baseDelayMs * Math.pow(2, attempt);
+        console.warn(`[Onboarding] Network error for ${url}: ${e.message}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
     }
   }
-})();
+  throw lastError || new Error(`Failed after ${maxRetries + 1} attempts`);
+}
+
+// ============ Init ============
+// API_BASE initialization handled by _apiBaseReady promise at top of file.
 
 // ============ Step Navigation ============
 
 function goToStep(step) {
+  // [R-007] Enrollment guard: steps beyond enrollment require verified enrollment
+  if (step > 5 && !enrollmentVerified) {
+    console.warn('[Onboarding] Cannot advance to step', step, 'without verified enrollment');
+    const voiceStatus = document.getElementById('voiceStatus');
+    if (voiceStatus) voiceStatus.textContent = 'Please complete voice enrollment before continuing.';
+    return;
+  }
+
   // Deactivate current
   const currentEl = document.getElementById(`step-${currentStep}`);
   if (currentEl) currentEl.classList.remove('active');
@@ -97,8 +157,12 @@ function goToStep(step) {
   // Start carousel auto-advance for step 2
   if (step === 2) startCarousel();
 
-  // Start particle animation for step 6
-  if (step === 6) startParticles();
+  // Start particle animation for step 6 and verify enrollment
+  if (step === 6) {
+    startParticles();
+    // Delay first verification poll to let server finish enrollment processing
+    setTimeout(() => verifyEnrollmentForComplete(), 500);
+  }
 }
 
 // ============ Step 2: Carousel ============
@@ -239,8 +303,29 @@ async function requestMicPermission() {
 
   } catch (e) {
     console.error('Mic permission denied:', e);
-    btn.style.display = 'none';
+    btn.textContent = 'Try Again';
+    btn.disabled = false;
+    btn.style.background = '#c0392b';
     error.style.display = 'block';
+
+    // ERR-003: Allow re-attempt directly from the button
+    btn.onclick = requestMicPermission;
+
+    // Poll for permission change every 3 seconds after denial
+    let permissionPollId = setInterval(async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+        clearInterval(permissionPollId);
+        btn.textContent = 'Access Granted';
+        btn.style.background = '#5a9a6e';
+        btn.disabled = true;
+        error.style.display = 'none';
+        setTimeout(() => goToStep(4), 800);
+      } catch (_) {
+        // Still denied — keep polling
+      }
+    }, 3000);
   }
 }
 
@@ -290,9 +375,24 @@ function updateRecordingUI() {
 async function startRecording() {
   if (isRecording) return;
 
+  // [R-046] Model-readiness pre-check before recording
+  await _apiBaseReady;
+  const voiceStatus = document.getElementById('voiceStatus');
+  try {
+    const healthRes = await fetch(`${API_BASE}/api/health`);
+    const health = await healthRes.json();
+    // ERR-002: Health returns 503 when not ready — check ready field regardless of status code
+    if (health.ready === false) {
+      if (voiceStatus) voiceStatus.textContent = 'Models still loading — please wait a moment and try again.';
+      return;
+    }
+  } catch (e) {
+    // Backend unreachable — let recording proceed, enrollment will fail later with a clear error
+  }
+
   const recordBtn = document.getElementById('recordBtn');
   const countdownEl = document.getElementById('countdown');
-  const voiceStatus = document.getElementById('voiceStatus');
+  // voiceStatus already declared above (line 380)
 
   try {
     audioStream = await navigator.mediaDevices.getUserMedia({
@@ -318,7 +418,6 @@ async function startRecording() {
       };
       sourceNode.connect(workletNode);
       workletNode.connect(audioContext.destination);
-      console.log('[Onboarding] Using AudioWorklet for PCM capture');
     } catch (workletErr) {
       console.warn('[Onboarding] AudioWorklet unavailable, falling back to ScriptProcessorNode:', workletErr.message);
       const bufferSize = 4096;
@@ -449,10 +548,12 @@ async function finishRecording() {
   // Show uploading state
   document.getElementById('recordBtn').disabled = true;
   document.getElementById('countdown').classList.remove('active');
+  const instructions = document.getElementById('recordingInstructions');
+  instructions.textContent = 'Uploading sample...';
 
   try {
-    // Send PCM to server
-    const res = await fetch(`${API_BASE}/api/speaker/enroll?mood_label=${moodLabel}`, {
+    // Send PCM to server with retry
+    const res = await fetchWithRetry(`${API_BASE}/api/speaker/enroll?mood_label=${moodLabel}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/octet-stream' },
       body: combined.buffer,
@@ -461,7 +562,6 @@ async function finishRecording() {
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
     const result = await res.json();
-    console.log(`[Onboarding] Sample ${currentSample + 1} enrolled (speech: ${Math.round(speechMs/1000)}s, passed: ${passed}):`, result);
 
     currentSample++;
 
@@ -493,9 +593,11 @@ async function finishRecording() {
 
   } catch (e) {
     console.error('Failed to upload sample:', e);
-    // Allow retry of this sample
+    const msg = e.name === 'AbortError'
+      ? 'Upload timed out after retries. Please check your connection and try again.'
+      : 'Upload failed after retries. Please try again.';
     updateRecordingUI();
-    document.getElementById('recordingInstructions').textContent = 'Upload failed. Please try again.';
+    document.getElementById('recordingInstructions').textContent = msg;
   }
 }
 
@@ -516,11 +618,18 @@ async function finalizeEnrollment() {
   showProcessing();
 
   try {
-    const enrollRes = await fetch(`${API_BASE}/api/speaker/enroll/complete`, { method: 'POST' });
-    if (!enrollRes.ok) throw new Error(`Enrollment failed: ${enrollRes.status}`);
+    const enrollRes = await fetchWithRetry(`${API_BASE}/api/speaker/enroll/complete`, {
+      method: 'POST',
+    });
+    if (!enrollRes.ok) {
+      const body = await enrollRes.json().catch(() => ({}));
+      throw new Error(body.detail || `Enrollment failed: ${enrollRes.status}`);
+    }
 
     const enrollResult = await enrollRes.json();
-    console.log('[Onboarding] Voice profile created:', enrollResult);
+
+    // Mark enrollment success so step 6 knows the profile is ready
+    enrollmentVerified = true;
 
     // Show completion checkmark briefly then advance
     hideProcessing();
@@ -536,7 +645,8 @@ async function finalizeEnrollment() {
     currentSample = 0;
     sampleResults = [];
     updateRecordingUI();
-    document.getElementById('recordingInstructions').textContent = 'Enrollment failed. Please try again.';
+    document.getElementById('recordingInstructions').textContent =
+      'Enrollment failed. Please try again.';
   }
 }
 
@@ -707,9 +817,64 @@ function stopParticles() {
   }
 }
 
+// ============ Enrollment Verification for Step 6 ============
+
+/**
+ * Verify speaker enrollment via the API before enabling the "Open Dashboard" button.
+ * Called when entering step 6. If enrollment was already verified during finalizeEnrollment(),
+ * this enables the button immediately. Otherwise, polls the API as a fallback.
+ */
+async function verifyEnrollmentForComplete() {
+  const btn = document.querySelector('#step-6 .btn-primary');
+  if (!btn) return;
+
+  if (enrollmentVerified) {
+    btn.disabled = false;
+    btn.textContent = 'Open Dashboard';
+    return;
+  }
+
+  // Fallback: poll the speaker status API to verify enrollment
+  btn.disabled = true;
+  btn.textContent = 'Verifying enrollment...';
+
+  const maxAttempts = 10;
+  for (let i = 0; i < maxAttempts; i++) {
+    try {
+      const res = await fetchWithRetry(`${API_BASE}/api/speaker/status`, {}, 1, 1000);
+      if (res.ok) {
+        const status = await res.json();
+        if (status.enrolled) {
+          enrollmentVerified = true;
+          btn.disabled = false;
+          btn.textContent = 'Open Dashboard';
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('[Onboarding] Enrollment verification check failed:', e.message);
+    }
+    // Wait before next poll
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  // [R-007] After all attempts, show error instead of silently enabling
+  console.error('[Onboarding] Could not verify enrollment after polling');
+  btn.disabled = false;
+  btn.textContent = 'Retry Enrollment';
+  btn.onclick = () => goToStep(4); // Send back to enrollment step
+}
+
+
 // ============ Complete Onboarding ============
 
 async function completeOnboarding() {
+  const btn = document.querySelector('#step-6 .btn-primary');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+  }
+
   if (window.attune && window.attune.completeOnboarding) {
     await window.attune.completeOnboarding();
   }

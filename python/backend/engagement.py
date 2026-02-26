@@ -1,3 +1,4 @@
+import logging
 """
 Engagement tracker with streaks, milestones, grove, waypoints, rhythm rings
 """
@@ -9,6 +10,9 @@ import json
 import math
 
 
+logger = logging.getLogger('attune.engagement')
+
+
 class EngagementTracker:
     def __init__(self, db):
         self.db = db
@@ -16,7 +20,10 @@ class EngagementTracker:
     def compute_streak(self) -> int:
         """Compute current daily streak (consecutive days with readings)"""
         summaries = self.db.get_daily_summaries(days=365)
+        return self._compute_streak_from_summaries(summaries)
 
+    def _compute_streak_from_summaries(self, summaries: List[Dict]) -> int:
+        """Compute streak from pre-fetched summaries."""
         if not summaries:
             return 0
 
@@ -137,56 +144,57 @@ class EngagementTracker:
 
     # ============ Waypoints (Feature #4) ============
 
+    # Waypoint lambdas: (summaries, reading_count: int, state) -> bool
     WAYPOINTS = [
         # Tier: Seedling (Days 1-3) - first 2 pre-completed
         {'id': 'wp_welcome', 'name': 'Welcome', 'desc': 'Opened Attune for the first time', 'tier': 'Seedling', 'order': 1, 'auto': True},
         {'id': 'wp_first_voice', 'name': 'First Voice', 'desc': 'Recorded your first voice sample', 'tier': 'Seedling', 'order': 2, 'auto': True},
-        {'id': 'wp_3_readings', 'name': 'Getting Started', 'desc': 'Complete 3 voice readings', 'tier': 'Seedling', 'order': 3, 'check': lambda s, r, st: len(r) >= 3},
-        {'id': 'wp_first_calm', 'name': 'First Calm', 'desc': 'Reach the Calm zone', 'tier': 'Seedling', 'order': 4, 'check': lambda s, r, st: any(rd.get('zone') == 'calm' for rd in r)},
-        {'id': 'wp_day3', 'name': 'Day 3', 'desc': 'Use Attune for 3 days', 'tier': 'Seedling', 'order': 5, 'check': lambda s, r, st: len(s) >= 3},
+        {'id': 'wp_3_readings', 'name': 'Getting Started', 'desc': 'Complete 3 voice readings', 'tier': 'Seedling', 'order': 3, 'check': lambda s, rc, st: rc >= 3},
+        {'id': 'wp_first_calm', 'name': 'First Calm', 'desc': 'Reach the Calm zone', 'tier': 'Seedling', 'order': 4, 'check': lambda s, rc, st: any(d.get('time_in_calm_min', 0) > 0 for d in s)},
+        {'id': 'wp_day3', 'name': 'Day 3', 'desc': 'Use Attune for 3 days', 'tier': 'Seedling', 'order': 5, 'check': lambda s, rc, st: len(s) >= 3},
 
         # Tier: Sapling (Days 4-7)
-        {'id': 'wp_10_readings', 'name': '10 Readings', 'desc': 'Complete 10 voice readings', 'tier': 'Sapling', 'order': 6, 'check': lambda s, r, st: len(r) >= 10},
-        {'id': 'wp_calibrated', 'name': 'Calibrated', 'desc': 'Personal baseline established', 'tier': 'Sapling', 'order': 7, 'check': lambda s, r, st: st.get('calibrated', False)},
-        {'id': 'wp_5_calm_min', 'name': '5 Min Calm', 'desc': '5+ minutes in Calm zone in one day', 'tier': 'Sapling', 'order': 8, 'check': lambda s, r, st: any(d.get('time_in_calm_min', 0) >= 5 for d in s)},
-        {'id': 'wp_first_meeting', 'name': 'Meeting Tracked', 'desc': 'Track your first meeting', 'tier': 'Sapling', 'order': 9, 'check': lambda s, r, st: any(d.get('total_meetings', 0) >= 1 for d in s)},
-        {'id': 'wp_week', 'name': 'One Week', 'desc': '7-day streak', 'tier': 'Sapling', 'order': 10, 'check': lambda s, r, st: st.get('streak', 0) >= 7},
+        {'id': 'wp_10_readings', 'name': '10 Readings', 'desc': 'Complete 10 voice readings', 'tier': 'Sapling', 'order': 6, 'check': lambda s, rc, st: rc >= 10},
+        {'id': 'wp_calibrated', 'name': 'Calibrated', 'desc': 'Personal baseline established', 'tier': 'Sapling', 'order': 7, 'check': lambda s, rc, st: st.get('calibrated', False)},
+        {'id': 'wp_5_calm_min', 'name': '5 Min Calm', 'desc': '5+ minutes in Calm zone in one day', 'tier': 'Sapling', 'order': 8, 'check': lambda s, rc, st: any(d.get('time_in_calm_min', 0) >= 5 for d in s)},
+        {'id': 'wp_first_meeting', 'name': 'Meeting Tracked', 'desc': 'Track your first meeting', 'tier': 'Sapling', 'order': 9, 'check': lambda s, rc, st: any(d.get('total_meetings', 0) >= 1 for d in s)},
+        {'id': 'wp_week', 'name': 'One Week', 'desc': '7-day streak', 'tier': 'Sapling', 'order': 10, 'check': lambda s, rc, st: st.get('streak', 0) >= 7},
 
         # Tier: Young Tree (Days 8-14)
-        {'id': 'wp_25_readings', 'name': '25 Readings', 'desc': 'Complete 25 voice readings', 'tier': 'Young Tree', 'order': 11, 'check': lambda s, r, st: len(r) >= 25},
-        {'id': 'wp_calm_champ', 'name': 'Calm Champion', 'desc': '60+ minutes in Calm zone in one day', 'tier': 'Young Tree', 'order': 12, 'check': lambda s, r, st: any(d.get('time_in_calm_min', 0) >= 60 for d in s)},
-        {'id': 'wp_low_stress_day', 'name': 'Low Stress Day', 'desc': 'Average stress below 30 for a full day', 'tier': 'Young Tree', 'order': 13, 'check': lambda s, r, st: any(d.get('avg_stress', 100) < 30 for d in s)},
-        {'id': 'wp_rings_closed', 'name': 'Rings Closed', 'desc': 'Close all 3 Rhythm Rings in one day', 'tier': 'Young Tree', 'order': 14, 'check': lambda s, r, st: st.get('rings_closed', False)},
-        {'id': 'wp_fortnight', 'name': 'Two Weeks', 'desc': '14-day streak', 'tier': 'Young Tree', 'order': 15, 'check': lambda s, r, st: st.get('streak', 0) >= 14},
+        {'id': 'wp_25_readings', 'name': '25 Readings', 'desc': 'Complete 25 voice readings', 'tier': 'Young Tree', 'order': 11, 'check': lambda s, rc, st: rc >= 25},
+        {'id': 'wp_calm_champ', 'name': 'Calm Champion', 'desc': '60+ minutes in Calm zone in one day', 'tier': 'Young Tree', 'order': 12, 'check': lambda s, rc, st: any(d.get('time_in_calm_min', 0) >= 60 for d in s)},
+        {'id': 'wp_low_stress_day', 'name': 'Low Stress Day', 'desc': 'Average stress below 30 for a full day', 'tier': 'Young Tree', 'order': 13, 'check': lambda s, rc, st: any(d.get('avg_stress', 100) < 30 for d in s)},
+        {'id': 'wp_rings_closed', 'name': 'Rings Closed', 'desc': 'Close all 3 Rhythm Rings in one day', 'tier': 'Young Tree', 'order': 14, 'check': lambda s, rc, st: st.get('rings_closed', False)},
+        {'id': 'wp_fortnight', 'name': 'Two Weeks', 'desc': '14-day streak', 'tier': 'Young Tree', 'order': 15, 'check': lambda s, rc, st: st.get('streak', 0) >= 14},
 
         # Tier: Mature Tree (Days 15-30)
-        {'id': 'wp_50_readings', 'name': 'Half Century', 'desc': 'Complete 50 voice readings', 'tier': 'Mature Tree', 'order': 16, 'check': lambda s, r, st: len(r) >= 50},
-        {'id': 'wp_meeting_survivor', 'name': 'Meeting Survivor', 'desc': '5+ meetings, stress < 50', 'tier': 'Mature Tree', 'order': 17, 'check': lambda s, r, st: any(d.get('total_meetings', 0) >= 5 and d.get('avg_stress', 100) < 50 for d in s)},
-        {'id': 'wp_recovery_pro', 'name': 'Recovery Pro', 'desc': 'Peak Recovery of 30+ points', 'tier': 'Mature Tree', 'order': 18, 'check': lambda s, r, st: st.get('peak_recovery', 0) >= 30},
-        {'id': 'wp_3_day_zen', 'name': 'Zen Master', 'desc': '3 consecutive low-stress days', 'tier': 'Mature Tree', 'order': 19, 'check': lambda s, r, st: st.get('zen_achieved', False)},
-        {'id': 'wp_month', 'name': 'One Month', 'desc': '30-day streak', 'tier': 'Mature Tree', 'order': 20, 'check': lambda s, r, st: st.get('streak', 0) >= 30},
+        {'id': 'wp_50_readings', 'name': 'Half Century', 'desc': 'Complete 50 voice readings', 'tier': 'Mature Tree', 'order': 16, 'check': lambda s, rc, st: rc >= 50},
+        {'id': 'wp_meeting_survivor', 'name': 'Meeting Survivor', 'desc': '5+ meetings, stress < 50', 'tier': 'Mature Tree', 'order': 17, 'check': lambda s, rc, st: any(d.get('total_meetings', 0) >= 5 and d.get('avg_stress', 100) < 50 for d in s)},
+        {'id': 'wp_recovery_pro', 'name': 'Recovery Pro', 'desc': 'Peak Recovery of 30+ points', 'tier': 'Mature Tree', 'order': 18, 'check': lambda s, rc, st: st.get('peak_recovery', 0) >= 30},
+        {'id': 'wp_3_day_zen', 'name': 'Zen Master', 'desc': '3 consecutive low-stress days', 'tier': 'Mature Tree', 'order': 19, 'check': lambda s, rc, st: st.get('zen_achieved', False)},
+        {'id': 'wp_month', 'name': 'One Month', 'desc': '30-day streak', 'tier': 'Mature Tree', 'order': 20, 'check': lambda s, rc, st: st.get('streak', 0) >= 30},
 
         # Tier: Old Growth (Days 31-90)
-        {'id': 'wp_100_readings', 'name': 'Centurion', 'desc': 'Complete 100 voice readings', 'tier': 'Old Growth', 'order': 21, 'check': lambda s, r, st: len(r) >= 100},
-        {'id': 'wp_canopy_90', 'name': 'Canopy 90', 'desc': 'Achieve a Canopy Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, r, st: st.get('best_canopy', 0) >= 90},
-        {'id': 'wp_5_ring_days', 'name': 'Ring Master', 'desc': 'Close all rings 5 different days', 'tier': 'Old Growth', 'order': 23, 'check': lambda s, r, st: st.get('ring_close_days', 0) >= 5},
-        {'id': 'wp_10_echoes', 'name': 'Pattern Seeker', 'desc': 'Discover 10 Echoes', 'tier': 'Old Growth', 'order': 24, 'check': lambda s, r, st: st.get('echo_count', 0) >= 10},
-        {'id': 'wp_60_days', 'name': 'Two Months', 'desc': '60-day streak', 'tier': 'Old Growth', 'order': 25, 'check': lambda s, r, st: st.get('streak', 0) >= 60},
+        {'id': 'wp_100_readings', 'name': 'Centurion', 'desc': 'Complete 100 voice readings', 'tier': 'Old Growth', 'order': 21, 'check': lambda s, rc, st: rc >= 100},
+        {'id': 'wp_canopy_90', 'name': 'Canopy 90', 'desc': 'Achieve a Canopy Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, rc, st: st.get('best_canopy', 0) >= 90},
+        {'id': 'wp_5_ring_days', 'name': 'Ring Master', 'desc': 'Close all rings 5 different days', 'tier': 'Old Growth', 'order': 23, 'check': lambda s, rc, st: st.get('ring_close_days', 0) >= 5},
+        {'id': 'wp_10_echoes', 'name': 'Pattern Seeker', 'desc': 'Discover 10 Echoes', 'tier': 'Old Growth', 'order': 24, 'check': lambda s, rc, st: st.get('echo_count', 0) >= 10},
+        {'id': 'wp_60_days', 'name': 'Two Months', 'desc': '60-day streak', 'tier': 'Old Growth', 'order': 25, 'check': lambda s, rc, st: st.get('streak', 0) >= 60},
 
         # Tier: Ancient (90+)
-        {'id': 'wp_250_readings', 'name': 'Voice Veteran', 'desc': '250 voice readings', 'tier': 'Ancient', 'order': 26, 'check': lambda s, r, st: len(r) >= 250},
-        {'id': 'wp_full_grove', 'name': 'Full Grove', 'desc': '30 healthy trees in your Grove', 'tier': 'Ancient', 'order': 27, 'check': lambda s, r, st: st.get('growing_trees', 0) >= 30},
-        {'id': 'wp_all_records', 'name': 'Veteran Listener', 'desc': '200+ voice readings', 'tier': 'Ancient', 'order': 28, 'check': lambda s, r, st: len(r) >= 200},
-        {'id': 'wp_90_days', 'name': 'Quarter Year', 'desc': '90-day streak', 'tier': 'Ancient', 'order': 29, 'check': lambda s, r, st: st.get('streak', 0) >= 90},
-        {'id': 'wp_ancient', 'name': 'Ancient Grove', 'desc': 'Use Attune for 90+ days', 'tier': 'Ancient', 'order': 30, 'check': lambda s, r, st: len(s) >= 90},
+        {'id': 'wp_250_readings', 'name': 'Voice Veteran', 'desc': '250 voice readings', 'tier': 'Ancient', 'order': 26, 'check': lambda s, rc, st: rc >= 250},
+        {'id': 'wp_full_grove', 'name': 'Full Grove', 'desc': '30 healthy trees in your Grove', 'tier': 'Ancient', 'order': 27, 'check': lambda s, rc, st: st.get('growing_trees', 0) >= 30},
+        {'id': 'wp_all_records', 'name': 'Veteran Listener', 'desc': '200+ voice readings', 'tier': 'Ancient', 'order': 28, 'check': lambda s, rc, st: rc >= 200},
+        {'id': 'wp_90_days', 'name': 'Quarter Year', 'desc': '90-day streak', 'tier': 'Ancient', 'order': 29, 'check': lambda s, rc, st: st.get('streak', 0) >= 90},
+        {'id': 'wp_ancient', 'name': 'Ancient Grove', 'desc': 'Use Attune for 90+ days', 'tier': 'Ancient', 'order': 30, 'check': lambda s, rc, st: len(s) >= 90},
     ]
 
     def compute_waypoints(self) -> Dict[str, Any]:
         """Compute all 30 waypoints with progress."""
-        all_readings = self.db.get_readings(limit=10000)
+        reading_count = self.db.count_readings()
         all_summaries = self.db.get_daily_summaries(days=365)
         baselines = self.db.get_all_baselines()
-        streak = self.compute_streak()
+        streak = self._compute_streak_from_summaries(all_summaries)
         grove = self.get_grove_state()
         echoes = self.db.get_echoes(limit=100)
 
@@ -222,8 +230,8 @@ class EngagementTracker:
             row = cursor.fetchone()
             if row and row['max_score'] is not None:
                 best_canopy = row['max_score']
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Canopy score query failed: %s", e)
 
         state = {
             'streak': streak,
@@ -244,8 +252,9 @@ class EngagementTracker:
                 achieved = True  # Pre-completed (endowed progress)
             elif wp.get('check'):
                 try:
-                    achieved = wp['check'](all_summaries, all_readings, state)
-                except Exception:
+                    achieved = wp['check'](all_summaries, reading_count, state)
+                except Exception as e:
+                    logger.debug("Waypoint check failed for %s: %s", wp.get('id', '?'), e)
                     achieved = False
 
             # Persist to DB
@@ -269,6 +278,7 @@ class EngagementTracker:
             'waypoints': waypoints,
             'by_tier': grouped,
             'total': len(waypoints),
+            'total_readings': reading_count,
             'achieved': total_achieved,
             'progress_pct': round(total_achieved / len(waypoints) * 100),
         }
@@ -342,18 +352,32 @@ class EngagementTracker:
     # ============ Legacy Milestones (kept for backward compat) ============
 
     def compute_milestones(self) -> List[Dict[str, Any]]:
-        """Check milestone achievements (legacy 7 milestones)"""
-        milestones = []
-        all_readings = self.db.get_readings(limit=10000)
+        """Check milestone achievements (legacy 7 milestones).
+        Public wrapper that fetches its own data for direct API calls."""
+        total_readings = self.db.count_readings()
+        first_timestamp = self.db.get_first_reading_timestamp()
         all_summaries = self.db.get_daily_summaries(days=365)
         baselines = self.db.get_all_baselines()
-        streak = self.compute_streak()
+        streak = self._compute_streak_from_summaries(all_summaries)
+        return self._compute_milestones_with_data(
+            total_readings, first_timestamp, all_summaries, baselines, streak)
+
+    def _compute_milestones_with_data(self, total_readings: int,
+                                       first_timestamp: Optional[str],
+                                       all_summaries: List[Dict],
+                                       baselines: Dict = None,
+                                       streak: int = 0) -> List[Dict[str, Any]]:
+        """Compute milestones from pre-fetched data (avoids redundant queries)."""
+        if baselines is None:
+            baselines = self.db.get_all_baselines()
+
+        milestones = []
 
         milestones.append({
             'id': 'first_reading', 'name': 'First Reading',
             'description': 'Recorded your first voice sample',
-            'achieved': len(all_readings) >= 1,
-            'achieved_date': all_readings[0]['timestamp'] if all_readings else None,
+            'achieved': total_readings >= 1,
+            'achieved_date': first_timestamp,
             'icon': '\U0001F3A4'
         })
 
@@ -416,15 +440,19 @@ class EngagementTracker:
         return milestones
 
     def get_engagement_summary(self) -> Dict[str, Any]:
-        """Return full engagement summary"""
-        all_readings = self.db.get_readings(limit=10000)
+        """Return full engagement summary using efficient targeted queries."""
+        total_readings = self.db.count_readings()
+        first_timestamp = self.db.get_first_reading_timestamp()
         all_summaries = self.db.get_daily_summaries(days=365)
+        baselines = self.db.get_all_baselines()
+        streak = self._compute_streak_from_summaries(all_summaries)
         total_meetings = sum(s.get('total_meetings', 0) for s in all_summaries)
 
         return {
-            'streak': self.compute_streak(),
-            'milestones': self.compute_milestones(),
-            'total_readings': len(all_readings),
+            'streak': streak,
+            'milestones': self._compute_milestones_with_data(
+                total_readings, first_timestamp, all_summaries, baselines, streak),
+            'total_readings': total_readings,
             'total_days': len(all_summaries),
             'total_meetings': total_meetings
         }

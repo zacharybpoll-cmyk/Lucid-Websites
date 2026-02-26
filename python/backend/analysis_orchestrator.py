@@ -11,6 +11,7 @@ Includes:
 import logging
 import threading
 import time
+from collections import deque
 import numpy as np
 from datetime import datetime
 from typing import Optional
@@ -33,8 +34,8 @@ class AnalysisOrchestrator:
             lazy: If True, defer model loading to load_models()
         """
         self.db = db
-        self.is_running = False
-        self.is_paused = False
+        self._running_event = threading.Event()   # Thread-safe is_running
+        self._paused_event = threading.Event()     # Thread-safe is_paused
         self.meeting_active = False
         # Notification manager — set by main.py after init
         self.notification_manager = None
@@ -60,15 +61,61 @@ class AnalysisOrchestrator:
         # One-time enrollment warning (avoid spamming logs)
         self._enrollment_warned = False
 
+        # Bootstrap: auto-enroll one high-confidence segment on first verified reading
+        self._bootstrap_done = False
+
         # Thread lock for meeting state
         self.meeting_lock = threading.Lock()
 
-        # Analysis-in-progress flag (read by frontend via status poll)
-        self._is_analyzing = False
+        # TS-001: Analysis-in-progress guard — Lock instead of bare boolean.
+        # acquire(blocking=False) acts as both flag and mutex.
+        self._analysis_lock = threading.Lock()
+        self._analysis_thread: Optional[threading.Thread] = None
+        # EDGE-001: Watchdog for stuck analysis threads
+        self._analysis_start_time: Optional[float] = None
+        self._ANALYSIS_TIMEOUT = 120  # seconds
 
-        # Grace period checker thread
+        # TS-004: RLock protecting shared mutable state read by frontend
+        self._state_lock = threading.RLock()
+        # Analysis outcome tracking (protected by _state_lock)
+        self._last_analysis_error: Optional[str] = None
+        self._last_analysis_time: Optional[str] = None
+        self._analysis_success_count: int = 0
+
+        # TS-003: Graceful shutdown event — replaces daemon=True termination
+        self._shutdown_event = threading.Event()
+
+    # Thread-safe properties for is_running / is_paused
+    @property
+    def is_running(self) -> bool:
+        return self._running_event.is_set()
+
+    @is_running.setter
+    def is_running(self, value: bool):
+        if value:
+            self._running_event.set()
+        else:
+            self._running_event.clear()
+
+    @property
+    def is_paused(self) -> bool:
+        return self._paused_event.is_set()
+
+    @is_paused.setter
+    def is_paused(self, value: bool):
+        if value:
+            self._paused_event.set()
+        else:
+            self._paused_event.clear()
+
+        # Mic disconnect tracking (for user notification)
+        self._mic_disconnected = False
+        # EDGE-003: Audio reconnect debounce
+        self._reconnect_cooldown = 2.0  # seconds
+        self._last_reconnect_time: float = 0
+
+        # Grace period checker thread (uses _shutdown_event)
         self._grace_thread = None
-        self._grace_stop = threading.Event()
 
         # Speech buffer (instant - no model loading)
         self.speech_buffer = SpeechBuffer(
@@ -97,6 +144,12 @@ class AnalysisOrchestrator:
             on_audio_callback=self._on_audio_chunk
         )
 
+        # Wire mic disconnect/reconnect callbacks
+        self.audio_capture.set_disconnect_callback(
+            on_disconnect=self._on_mic_disconnect,
+            on_reconnect=self._on_mic_reconnect,
+        )
+
         if not lazy:
             self.load_models()
 
@@ -110,11 +163,19 @@ class AnalysisOrchestrator:
         self.vad_processor = VADProcessor(sample_rate=config.SAMPLE_RATE)
 
         logger.info("Loading DAM model...")
-        try:
-            self.dam_analyzer = DAMAnalyzer()
-        except Exception as e:
-            logger.warning(f"DAM model failed to load (non-fatal): {e}")
-            self.dam_analyzer = None
+        for attempt in range(3):
+            try:
+                self.dam_analyzer = DAMAnalyzer()
+                break
+            except Exception as e:
+                delay = 2 ** attempt  # 1s, 2s, 4s
+                if attempt < 2:
+                    logger.warning(f"DAM model load attempt {attempt + 1}/3 failed: {e}. Retrying in {delay}s...")
+                    import time
+                    time.sleep(delay)
+                else:
+                    logger.warning(f"DAM model failed to load after 3 attempts (non-fatal): {e}")
+                    self.dam_analyzer = None
 
         logger.info("Loading Speaker Verification model...")
         try:
@@ -124,6 +185,8 @@ class AnalysisOrchestrator:
             # Initialize SpeakerGate if enrolled
             if self.speaker_verifier.is_enrolled():
                 self._init_speaker_gate()
+                # Load bootstrap state
+                self._bootstrap_done = self.db.get_user_state('speaker_bootstrap_done', '0') == '1'
         except Exception as e:
             logger.warning(f"Speaker verifier failed to load (non-fatal): {e}")
             self.speaker_verifier = None
@@ -225,46 +288,95 @@ class AnalysisOrchestrator:
                          vad_confidence: float = 1.0):
         """
         Callback when speech buffer reaches threshold.
-        Triggers full analysis: DAM + features + scores.
+        Dispatches analysis to a dedicated thread (non-blocking).
 
-        Buffer-level speaker verification acts as a safety net
-        (segments are already pre-verified by SpeakerGate).
+        TS-001: Uses _analysis_lock.acquire(blocking=False) as an atomic
+        test-and-set — no bare boolean race between check and assignment.
         """
         if not self.models_ready.is_set():
             return
 
-        self._is_analyzing = True
-        logger.info(f"Starting analysis of {duration_sec:.1f}s speech segment "
-                    f"(VAD confidence: {vad_confidence:.2f})")
+        if not self._analysis_lock.acquire(blocking=False):
+            logger.warning(f"Analysis already in progress, dropping {duration_sec:.1f}s segment")
+            return  # Lock already held — analysis in progress
 
-        # Buffer-level speaker verification (safety net)
-        speaker_verified = -1   # -1 = not enrolled (pass-through)
-        speaker_similarity = None
-        if self.speaker_verifier and self.speaker_verifier.is_enrolled():
-            verified, similarity = self.speaker_verifier.verify(speech_audio)
-            speaker_verified = 1 if verified else 0
-            speaker_similarity = similarity
-            if not verified:
-                logger.info(f"Speaker rejected at buffer level "
-                            f"(similarity={similarity:.3f}), skipping segment")
-                self._is_analyzing = False
-                return
-            logger.info(f"Speaker verified (similarity={similarity:.3f})")
+        with self._state_lock:
+            self._last_analysis_error = None
 
+        self._analysis_start_time = time.time()  # EDGE-001: watchdog timestamp
+        self._analysis_thread = threading.Thread(
+            target=self._run_analysis,
+            args=(speech_audio, duration_sec, vad_confidence),
+            name="analysis-worker"
+        )
+        self._analysis_thread.start()
+        logger.debug("Analysis thread started")
+
+    def _run_analysis(self, speech_audio: np.ndarray, duration_sec: float,
+                      vad_confidence: float = 1.0):
+        """
+        Full analysis pipeline on dedicated thread.
+        DAM + features + scores + DB.
+
+        TS-001: Lock is acquired in _on_speech_ready and released in finally here.
+        TS-004: Shared outcome state updated under _state_lock.
+        """
         try:
+            logger.info(f"Starting analysis of {duration_sec:.1f}s speech segment "
+                        f"(VAD confidence: {vad_confidence:.2f})")
+
+            # Guard: DAM must be loaded
+            if self.dam_analyzer is None:
+                with self._state_lock:
+                    self._last_analysis_error = "DAM model not loaded — voice analysis unavailable"
+                logger.error("DAM model not loaded — voice analysis unavailable")
+                return
+
+            # Buffer-level speaker verification (safety net)
+            speaker_verified = -1   # -1 = not enrolled (pass-through)
+            speaker_similarity = None
+            if self.speaker_verifier and self.speaker_verifier.is_enrolled():
+                verified, similarity = self.speaker_verifier.verify(speech_audio)
+                speaker_verified = 1 if verified else 0
+                speaker_similarity = similarity
+                if not verified:
+                    with self._state_lock:
+                        self._last_analysis_error = f"Speaker verification failed (similarity={similarity:.3f})"
+                    logger.info(f"Speaker rejected at buffer level "
+                                f"(similarity={similarity:.3f}), skipping segment")
+                    return
+                logger.info(f"Speaker verified (similarity={similarity:.3f})")
+
+                # Bootstrap: auto-enroll this high-confidence segment (one-time)
+                if not self._bootstrap_done and similarity >= 0.60:
+                    try:
+                        self.speaker_verifier.enroll_sample(speech_audio, 'bootstrap')
+                        self.speaker_verifier.complete_enrollment()
+                        self._bootstrap_done = True
+                        self.db.set_user_state('speaker_bootstrap_done', '1')
+                        logger.info(f"Bootstrap enrollment complete (similarity={similarity:.3f})")
+                    except Exception as be:
+                        logger.warning(f"Bootstrap enrollment failed (non-fatal): {be}")
+
             # Run DAM analysis
             dam_output = self.dam_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
 
             if dam_output is None:
+                with self._state_lock:
+                    self._last_analysis_error = "DAM analysis returned no results"
                 logger.warning("DAM analysis returned None (error), skipping this segment")
-                self._is_analyzing = False
                 return
 
             # Extract acoustic features (includes shimmer + voice_breaks)
             acoustic_features = self.feature_extractor.extract(speech_audio)
 
-            # Compute derived scores (includes EMA smoothing + shimmer weight)
+            # Compute derived scores (includes EMA smoothing)
             scores = self.score_engine.compute_scores(dam_output, acoustic_features)
+
+            # Compute emotional stability from rolling data
+            emotional_stability = self._compute_emotional_stability(scores, acoustic_features)
+            scores['emotional_stability_score'] = emotional_stability
+            scores['emotional_stability_score_raw'] = emotional_stability
 
             # Determine low-confidence flag (Step 4)
             low_confidence = 1 if vad_confidence < 0.65 else 0
@@ -325,13 +437,89 @@ class AnalysisOrchestrator:
                 except Exception as ne:
                     logger.error(f"Notification error: {ne}")
 
-            self._is_analyzing = False
+            # Success — update shared state under lock
+            with self._state_lock:
+                self._last_analysis_error = None
+                self._last_analysis_time = datetime.now().isoformat()
+                self._analysis_success_count += 1
 
         except Exception as e:
-            self._is_analyzing = False
+            with self._state_lock:
+                self._last_analysis_error = f"Analysis error: {str(e)}"
             logger.error(f"Error during analysis: {e}")
             import traceback
             traceback.print_exc()
+        finally:
+            self._analysis_start_time = None  # EDGE-001: clear watchdog
+            self._analysis_lock.release()
+            logger.debug("Analysis thread finished")
+
+    def _compute_emotional_stability(self, scores: dict, af: dict) -> float:
+        """Compute emotional stability from rolling score variance + acoustic CV.
+        100 = perfectly stable, 0 = highly volatile. Default 75 with <3 readings."""
+        try:
+            # Get recent readings from last 2 hours
+            from datetime import datetime, timedelta
+            two_hours_ago = (datetime.now() - timedelta(hours=2)).isoformat()
+            recent = self.db.get_readings(start_time=two_hours_ago, limit=50)
+
+            if len(recent) < 3:
+                return 75.0
+
+            # Rolling std of 4 core scores
+            score_keys = ['stress_score', 'wellbeing_score', 'calm_score', 'activation_score']
+            stds = []
+            for key in score_keys:
+                # Fall back to old names for backward compat
+                vals = []
+                for r in recent:
+                    v = r.get(key)
+                    if v is None and key == 'wellbeing_score':
+                        v = r.get('mood_score')
+                    if v is None and key == 'activation_score':
+                        v = r.get('energy_score')
+                    if v is not None:
+                        vals.append(v)
+                if len(vals) >= 2:
+                    stds.append(float(np.std(vals)))
+
+            if not stds:
+                return 75.0
+
+            rolling_std = np.mean(stds)
+            norm_rolling_std = min(100.0, rolling_std / 15.0 * 100.0)
+
+            # Acoustic CV from current features
+            acoustic_vals = [
+                af.get('f0_std', 0) / max(af.get('f0_mean', 1), 1) * 100,
+                af.get('rms_sd', 0) / max(af.get('rms_energy', 0.001), 0.001) * 100,
+            ]
+            acoustic_cv = min(100.0, np.mean(acoustic_vals))
+
+            stability = 100.0 - (0.60 * norm_rolling_std + 0.40 * acoustic_cv)
+            return float(np.clip(stability, 0, 100))
+        except Exception as e:
+            logger.error(f"Error computing emotional stability: {e}")
+            return 75.0
+
+    def _on_mic_disconnect(self, permanent=False):
+        """Called when microphone disconnects."""
+        if permanent:
+            self._mic_disconnected = True
+            logger.error("Microphone permanently disconnected — user notification required")
+        else:
+            logger.warning("Microphone disconnected, attempting reconnection...")
+
+    def _on_mic_reconnect(self):
+        """Called when microphone reconnects after disconnect.
+        EDGE-003: Debounced to prevent rapid reconnect/disconnect cycles."""
+        now = time.time()
+        if now - self._last_reconnect_time < self._reconnect_cooldown:
+            logger.debug("Reconnect debounced — too soon after last reconnect")
+            return
+        self._last_reconnect_time = now
+        self._mic_disconnected = False
+        logger.info("Microphone reconnected successfully")
 
     def on_enrollment_complete(self):
         """Called after voice enrollment finishes. Initializes speaker gate."""
@@ -348,11 +536,27 @@ class AnalysisOrchestrator:
         logger.info("Voice profile deleted — speaker gate deactivated")
 
     def _grace_check_loop(self):
-        """Background thread to check grace period timeout on speech buffer."""
-        while not self._grace_stop.is_set():
+        """Background thread to check grace period timeout on speech buffer.
+        TS-003/TS-007: Uses _shutdown_event.wait() for immediate shutdown response.
+        EDGE-001: Also acts as watchdog for stuck analysis threads."""
+        logger.debug("Grace-checker thread started")
+        while not self._shutdown_event.is_set():
             if self.is_running and not self.is_paused:
                 self.speech_buffer.check_grace_timeout()
-            self._grace_stop.wait(2.0)  # Check every 2 seconds
+
+                # EDGE-001: Watchdog — check for stuck analysis thread
+                if (self._analysis_start_time and
+                    time.time() - self._analysis_start_time > self._ANALYSIS_TIMEOUT):
+                    logger.critical(
+                        f"Analysis thread stuck for >{self._ANALYSIS_TIMEOUT}s — force-releasing lock")
+                    self._analysis_start_time = None
+                    try:
+                        self._analysis_lock.release()
+                    except RuntimeError:
+                        pass  # lock wasn't held
+
+            self._shutdown_event.wait(2.0)  # Wakes immediately on shutdown
+        logger.debug("Grace-checker thread stopped")
 
     def start(self):
         """Start the analysis pipeline"""
@@ -364,8 +568,10 @@ class AnalysisOrchestrator:
         self.is_running = True
         self.is_paused = False
 
+        # TS-003: Clear shutdown event so threads can run
+        self._shutdown_event.clear()
+
         # Start grace period checker thread
-        self._grace_stop.clear()
         self._grace_thread = threading.Thread(
             target=self._grace_check_loop, daemon=True, name="grace-checker"
         )
@@ -384,15 +590,28 @@ class AnalysisOrchestrator:
             logger.info("Analysis pipeline started")
 
     def stop(self):
-        """Stop the analysis pipeline"""
+        """Stop the analysis pipeline.
+        TS-003: Signals shutdown event and joins threads with timeout."""
         if not self.is_running:
             return
 
         logger.info("Stopping analysis pipeline")
         self.is_running = False
 
-        # Stop grace period checker
-        self._grace_stop.set()
+        # TS-003: Signal all threads to stop
+        self._shutdown_event.set()
+
+        # Join grace-checker thread
+        if self._grace_thread and self._grace_thread.is_alive():
+            self._grace_thread.join(timeout=5)
+            if self._grace_thread.is_alive():
+                logger.warning("Grace-checker thread did not stop within timeout")
+
+        # Join analysis thread if running
+        if self._analysis_thread and self._analysis_thread.is_alive():
+            self._analysis_thread.join(timeout=10)
+            if self._analysis_thread.is_alive():
+                logger.warning("Analysis thread did not stop within timeout")
 
         # Stop speaker gate
         if self.speaker_gate:
@@ -425,9 +644,19 @@ class AnalysisOrchestrator:
             logger.info(f"Meeting {status}")
 
     def get_status(self) -> dict:
-        """Get current orchestrator status"""
+        """Get current orchestrator status.
+        TS-001/TS-004: Reads analysis state under locks for thread safety."""
         enrolled = bool(self.speaker_verifier and self.speaker_verifier.is_enrolled())
         gate_stats = self.speaker_gate.get_stats() if self.speaker_gate else None
+        if gate_stats and self.speaker_verifier:
+            gate_stats['adaptive_threshold'] = round(self.speaker_verifier.threshold, 3)
+
+        # TS-001: Derive is_analyzing from lock state (locked = analysis in progress)
+        is_analyzing = self._analysis_lock.locked()
+
+        with self._state_lock:
+            last_error = self._last_analysis_error
+            success_count = self._analysis_success_count
 
         return {
             'is_running': self.is_running,
@@ -436,8 +665,11 @@ class AnalysisOrchestrator:
             'buffered_speech_sec': self.speech_buffer.get_current_duration(),
             'buffered_vad_confidence': self.speech_buffer.get_mean_confidence(),
             'calibration_status': self.calibrator.get_calibration_status(),
-            'is_analyzing': self._is_analyzing,
+            'is_analyzing': is_analyzing,
+            'last_analysis_error': last_error,
+            'analysis_success_count': success_count,
             'speaker_enrolled': enrolled,
             'enrollment_required': config.SPEAKER_ENROLLMENT_REQUIRED,
             'speaker_gate_stats': gate_stats,
+            'mic_disconnected': self._mic_disconnected,
         }
