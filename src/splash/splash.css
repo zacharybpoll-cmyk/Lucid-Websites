@@ -16,7 +16,7 @@ body {
 .splash-container {
   width: 400px;
   height: 300px;
-  background: linear-gradient(145deg, #2c3e2d 0%, #1a2a1c 40%, #0f1a10 100%);
+  background: linear-gradient(145deg, #f8f9fa 0%, #f0f2f4 40%, #e4e8ec 100%);
   border-radius: 16px;
   display: flex;
   flex-direction: column;
@@ -24,16 +24,17 @@ body {
   justify-content: center;
   position: relative;
   overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
-/* Subtle forest texture overlay */
+/* Subtle steel shimmer overlay */
 .splash-container::before {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 20% 80%, rgba(90, 154, 110, 0.15) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(90, 154, 110, 0.1) 0%, transparent 50%);
+    radial-gradient(ellipse at 20% 80%, rgba(91, 141, 184, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(91, 141, 184, 0.04) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -41,7 +42,7 @@ body {
   font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
   font-size: 48px;
   font-weight: 600;
-  color: #faf6ee;
+  color: #1a1d21;
   letter-spacing: 2px;
   margin-bottom: 8px;
   position: relative;
@@ -52,7 +53,7 @@ body {
   font-family: 'Inter', -apple-system, sans-serif;
   font-size: 14px;
   font-weight: 300;
-  color: rgba(250, 246, 238, 0.6);
+  color: #5a6270;
   font-style: italic;
   letter-spacing: 1px;
   margin-bottom: 40px;
@@ -63,7 +64,7 @@ body {
 .progress-track {
   width: 200px;
   height: 2px;
-  background: rgba(250, 246, 238, 0.15);
+  background: #e4e8ec;
   border-radius: 1px;
   overflow: hidden;
   position: relative;
@@ -73,7 +74,7 @@ body {
 .progress-fill {
   height: 100%;
   width: 30%;
-  background: linear-gradient(90deg, transparent, #b8975c, transparent);
+  background: linear-gradient(90deg, transparent, #5B8DB8, transparent);
   border-radius: 1px;
   animation: shimmer 1.8s ease-in-out infinite;
 }

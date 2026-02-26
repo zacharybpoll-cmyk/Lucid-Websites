@@ -296,7 +296,7 @@ async function requestMicPermission() {
 
     // Flash checkmark on button
     btn.textContent = 'Access Granted';
-    btn.style.background = '#5a9a6e';
+    btn.style.background = '#3d7a50';
 
     // Auto-advance after brief delay
     setTimeout(() => goToStep(4), 800);
@@ -318,7 +318,7 @@ async function requestMicPermission() {
         stream.getTracks().forEach(t => t.stop());
         clearInterval(permissionPollId);
         btn.textContent = 'Access Granted';
-        btn.style.background = '#5a9a6e';
+        btn.style.background = '#3d7a50';
         btn.disabled = true;
         error.style.display = 'none';
         setTimeout(() => goToStep(4), 800);
@@ -742,7 +742,7 @@ function drawWaveform() {
 
       // Gold gradient
       const alpha = 0.4 + (dataArray[i] / 255) * 0.6;
-      ctx.fillStyle = `rgba(184, 151, 92, ${alpha})`;
+      ctx.fillStyle = `rgba(91, 141, 184, ${alpha})`;
 
       // Mirror bars from center
       ctx.fillRect(x, midY - barHeight, barWidth - 1, barHeight);
@@ -780,7 +780,7 @@ function startParticles() {
       vy: -Math.random() * 0.8 - 0.2,
       r: Math.random() * 3 + 1,
       alpha: Math.random() * 0.5 + 0.2,
-      color: Math.random() > 0.5 ? '#b8975c' : '#5a9a6e',
+      color: Math.random() > 0.5 ? '#5B8DB8' : '#3d7a50',
     });
   }
 
