@@ -38,11 +38,11 @@
     --text-secondary: #5a6270;
     --text-muted: rgba(60,68,80,0.5);
     --text-light: #1a1d21;
-    --calm-color: #3d7a50;
-    --calm-light: rgba(61, 122, 80, 0.15);
-    --steady-color: #b5a84a;
-    --tense-color: #c07828;
-    --stressed-color: #a83c30;
+    --calm-color: #7BA7C9;
+    --calm-light: rgba(123, 167, 201, 0.15);
+    --steady-color: #8C96A0;
+    --tense-color: #6B7280;
+    --stressed-color: #4B5563;
     --energy-color: #3d7a50;
     --wellbeing-color: #5B8DB8;
     --depression-color: #c4584c;
@@ -635,7 +635,6 @@ body {
     color: var(--text-primary);
     margin-bottom: 8px;
     text-transform: uppercase;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .zone-bar {
@@ -1151,8 +1150,8 @@ body {
     gap: 8px;
     padding: 8px 12px;
     border-radius: var(--radius-md);
-    background: var(--cream);
-    border: 1px solid var(--cream-dark);
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .zone-color {
@@ -1169,6 +1168,11 @@ body {
 
 .zone-stat span { font-size: var(--text-xs); color: var(--text-secondary); }
 .zone-stat strong { font-weight: 600; color: var(--text-primary); font-size: var(--text-sm); }
+
+[data-theme="night"] .zone-stat {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
 
 /* Meetings section */
 .meetings-section {
@@ -2836,10 +2840,11 @@ body {
     --text-secondary: #a0b8c8;
     --text-muted: #5a7888;
     --text-light: rgba(255, 255, 255, 0.95);
-    --calm-color: #5a9a6e;
-    --calm-light: rgba(90, 154, 110, 0.15);
-    --tense-color: #d4943a;
-    --stressed-color: #c4584c;
+    --calm-color: #a8c0d0;
+    --calm-light: rgba(168, 192, 208, 0.15);
+    --steady-color: #8a95a4;
+    --tense-color: #6a7a8c;
+    --stressed-color: #4a5a6a;
     --energy-color: #5a9a6e;
     --gauge-bg: #141a1f;
     --ring-track: #1a2028;

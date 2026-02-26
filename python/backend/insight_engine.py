@@ -34,16 +34,16 @@ class InsightEngine:
         import random
 
         zone = "steady"
-        mood = 50
+        wellbeing = 50
         stress = 50
-        energy = 50
+        activation = 50
 
         if readings and len(readings) > 0:
             latest = readings[0]
             zone = latest.get('zone', 'steady')
-            mood = latest.get('mood_score', 50)
+            wellbeing = latest.get('wellbeing_score', latest.get('mood_score', 50))
             stress = latest.get('stress_score', 50)
-            energy = latest.get('energy_score', 50)
+            activation = latest.get('activation_score', latest.get('energy_score', 50))
 
         reading_count = len(readings) if readings else 0
         calm_time = summary.get('time_in_calm_min', 0) if summary else 0
@@ -58,7 +58,7 @@ class InsightEngine:
         # Zone-based observation
         zone_msgs = {
             "calm": f"You're currently in the calm zone — stress at {stress:.0f}. A good place to be.",
-            "steady": f"You're in a steady state right now — stress at {stress:.0f}, energy at {energy:.0f}.",
+            "steady": f"You're in a steady state right now — stress at {stress:.0f}, activation at {activation:.0f}.",
             "tense": f"Your voice is showing some tension — stress at {stress:.0f}. A short break could help.",
             "stressed": f"Stress is elevated at {stress:.0f}. Consider stepping away for a moment.",
         }
@@ -94,16 +94,13 @@ class InsightEngine:
 
         # --- Extract metrics ---
         avg_stress = summary.get('avg_stress', 50) or 0
-        avg_mood = summary.get('avg_mood', 50) or 0
-        avg_energy = summary.get('avg_energy', 50) or 0
+        avg_wellbeing = summary.get('avg_wellbeing', summary.get('avg_mood', 50)) or 0
+        avg_activation = summary.get('avg_activation', summary.get('avg_energy', 50)) or 0
         avg_calm = summary.get('avg_calm', 50) or 0
         peak_stress = summary.get('peak_stress', 0) or 0
-        avg_depression = summary.get('avg_depression', 0) or 0
-        avg_anxiety = summary.get('avg_anxiety', 0) or 0
-
-        # Normalize depression/anxiety to 0-100 scale for display
-        avg_depression_pct = max(0, min(100, avg_depression / 27 * 100))
-        avg_anxiety_pct = max(0, min(100, avg_anxiety / 21 * 100))
+        avg_depression_risk = summary.get('avg_depression_risk', 0) or 0
+        avg_anxiety_risk = summary.get('avg_anxiety_risk', 0) or 0
+        avg_emotional_stability = summary.get('avg_emotional_stability', 75) or 75
 
         calm_min = summary.get('time_in_calm_min', 0) or 0
         steady_min = summary.get('time_in_steady_min', 0) or 0
@@ -112,24 +109,14 @@ class InsightEngine:
         total_speech_min = summary.get('total_speech_min', 0) or 0
         total_meetings = summary.get('total_meetings', 0) or 0
 
-        # --- Overall mental health score (0-100) ---
-        dep_norm = max(0, min(avg_depression, 27)) / 27 * 100
-        anx_norm = max(0, min(avg_anxiety, 21)) / 21 * 100
-        score = (
-            0.25 * avg_mood
-            + 0.25 * (100 - avg_stress)
-            + 0.15 * avg_energy
-            + 0.15 * avg_calm
-            + 0.10 * (100 - dep_norm)
-            + 0.10 * (100 - anx_norm)
-        )
-        score = max(0, min(100, round(score)))
+        # --- Overall mental health score (0-100) — aligned with Canopy formula ---
+        score = self._compute_canopy_components(summary)
 
-        if score >= 80:
-            score_label = "Excellent"
-        elif score >= 65:
+        if score >= 85:
+            score_label = "Optimal"
+        elif score >= 70:
             score_label = "Good"
-        elif score >= 50:
+        elif score >= 55:
             score_label = "Fair"
         else:
             score_label = "Needs Attention"
@@ -163,13 +150,14 @@ class InsightEngine:
 
         # --- Metrics dict ---
         metrics = {
-            "avg_stress":     {"value": round(avg_stress, 1), "max": 100, "label": "Avg Stress",     "interpretation": interp_stress(avg_stress)},
-            "avg_mood":       {"value": round(avg_mood, 1),   "max": 100, "label": "Avg Mood",       "interpretation": interp_positive(avg_mood)},
-            "avg_energy":     {"value": round(avg_energy, 1), "max": 100, "label": "Avg Energy",     "interpretation": interp_positive(avg_energy)},
-            "avg_calm":       {"value": round(avg_calm, 1),   "max": 100, "label": "Avg Calm",       "interpretation": interp_positive(avg_calm)},
-            "peak_stress":    {"value": round(peak_stress, 1),"max": 100, "label": "Peak Stress",    "interpretation": interp_stress(peak_stress)},
-            "avg_depression": {"value": round(avg_depression_pct, 1), "max": 100, "label": "Avg Depression", "interpretation": interp_depression(avg_depression_pct)},
-            "avg_anxiety":    {"value": round(avg_anxiety_pct, 1),    "max": 100, "label": "Avg Anxiety",    "interpretation": interp_anxiety(avg_anxiety_pct)},
+            "avg_stress":       {"value": round(avg_stress, 1),       "max": 100, "label": "Avg Stress",       "interpretation": interp_stress(avg_stress)},
+            "avg_wellbeing":    {"value": round(avg_wellbeing, 1),    "max": 100, "label": "Avg Wellbeing",    "interpretation": interp_positive(avg_wellbeing)},
+            "avg_activation":   {"value": round(avg_activation, 1),   "max": 100, "label": "Avg Activation",   "interpretation": interp_positive(avg_activation)},
+            "avg_calm":         {"value": round(avg_calm, 1),         "max": 100, "label": "Avg Calm",         "interpretation": interp_positive(avg_calm)},
+            "peak_stress":      {"value": round(peak_stress, 1),      "max": 100, "label": "Peak Stress",      "interpretation": interp_stress(peak_stress)},
+            "avg_depression_risk": {"value": round(avg_depression_risk, 1), "max": 100, "label": "Depression Risk", "interpretation": interp_depression(avg_depression_risk)},
+            "avg_anxiety_risk":    {"value": round(avg_anxiety_risk, 1),    "max": 100, "label": "Anxiety Risk",    "interpretation": interp_anxiety(avg_anxiety_risk)},
+            "avg_emotional_stability": {"value": round(avg_emotional_stability, 1), "max": 100, "label": "Stability", "interpretation": interp_positive(avg_emotional_stability)},
         }
 
         # --- Zone breakdown ---
@@ -217,10 +205,10 @@ class InsightEngine:
             highlights.append(f"You spent {round(calm_min)} min in the calm zone — great regulation.")
         if stressed_min > 30:
             highlights.append(f"You had {round(stressed_min)} min in the stressed zone. Watch for early signs today.")
-        if avg_mood >= 80:
-            highlights.append(f"Mood was excellent ({avg_mood:.0f}/100).")
-        elif avg_mood < 40:
-            highlights.append(f"Mood was lower than usual ({avg_mood:.0f}/100). A good morning routine may help.")
+        if avg_wellbeing >= 80:
+            highlights.append(f"Wellbeing was excellent ({avg_wellbeing:.0f}/100).")
+        elif avg_wellbeing < 40:
+            highlights.append(f"Wellbeing was lower than usual ({avg_wellbeing:.0f}/100). A good morning routine may help.")
         if peak_stress > 60:
             highlights.append(f"Peak stress hit {peak_stress:.0f}. Planning breaks around intense tasks may help.")
         if total_speech_min > 30:
@@ -231,7 +219,7 @@ class InsightEngine:
             highlights.append(f"Overall score: {score}/100 ({score_label}). A balanced day.")
 
         # --- Coach's note ---
-        coach_note = self._get_coach_note(score, score_label, avg_stress, avg_mood, avg_energy, calm_min, peak_stress)
+        coach_note = self._get_coach_note(score, score_label, avg_stress, avg_wellbeing, avg_activation, calm_min, peak_stress)
 
         return {
             "has_data": True,
@@ -245,7 +233,7 @@ class InsightEngine:
             "coach_note": coach_note,
         }
 
-    def _get_coach_note(self, score, label, stress, mood, energy, calm_min, peak_stress) -> str:
+    def _get_coach_note(self, score, label, stress, wellbeing, activation, calm_min, peak_stress) -> str:
         """Generate a data-specific coach note from modular templates."""
         import random
         parts = []
@@ -291,15 +279,15 @@ class InsightEngine:
         elif peak_stress >= 50:
             observations.append(f"Stress peaked at {peak_stress:.0f}, which is manageable but worth watching.")
 
-        if mood >= 80:
-            observations.append(f"Mood was excellent at {mood:.0f} — that positive momentum can carry into today.")
-        elif mood < 40:
-            observations.append(f"Mood dipped to {mood:.0f} — a good morning routine can help reset your baseline.")
+        if wellbeing >= 80:
+            observations.append(f"Wellbeing was excellent at {wellbeing:.0f} — that positive momentum can carry into today.")
+        elif wellbeing < 40:
+            observations.append(f"Wellbeing dipped to {wellbeing:.0f} — a good morning routine can help reset your baseline.")
 
-        if energy < 35:
-            observations.append("Energy was running low — prioritize sleep and hydration today.")
-        elif energy >= 75:
-            observations.append(f"Energy was solid at {energy:.0f} — a good sign for tackling today's priorities.")
+        if activation < 35:
+            observations.append("Activation was running low — prioritize sleep and hydration today.")
+        elif activation >= 75:
+            observations.append(f"Activation was solid at {activation:.0f} — a good sign for tackling today's priorities.")
 
         if stress >= 60 and calm_min >= 30:
             observations.append(f"Despite average stress of {stress:.0f}, you still found {round(calm_min)} minutes of calm — that recovery matters.")
@@ -325,16 +313,90 @@ class InsightEngine:
                 "Aim for at least 15 minutes of calm time today — small pockets add up.",
                 "Try stepping away from your screen for a few minutes between meetings.",
             ])
-        if energy < 40:
+        if activation < 40:
             intentions.extend([
                 "Protect your energy today — say no to one non-essential task.",
-                "A short walk outside can do more for low energy than another coffee.",
+                "A short walk outside can do more for low activation than another coffee.",
             ])
         parts.append(random.choice(intentions))
 
         return " ".join(parts)
 
     # ============ Canopy Score (Feature #1) ============
+
+    def _compute_canopy_components(self, s: Dict) -> float:
+        """
+        Shared Canopy Score formula: 7 voice scores + recovery, weighted by validity.
+        Missing new scores (depression_risk, anxiety_risk, emotional_stability) get their
+        weight redistributed proportionally to the remaining components.
+        Returns score in [0, 100].
+        """
+        # Define components: (key, weight, inverted?)
+        components = [
+            ('stress',              0.15, True),
+            ('wellbeing',           0.13, False),
+            ('depression_risk',     0.13, True),
+            ('activation',          0.13, False),
+            ('calm',                0.12, False),
+            ('anxiety_risk',        0.12, True),
+            ('emotional_stability', 0.12, False),
+        ]
+
+        # Extract raw values (None = missing)
+        raw = {}
+        raw['stress'] = s.get('avg_stress')
+        raw['wellbeing'] = s.get('avg_wellbeing', s.get('avg_mood'))
+        raw['activation'] = s.get('avg_activation', s.get('avg_energy'))
+        raw['calm'] = s.get('avg_calm')
+        raw['depression_risk'] = s.get('avg_depression_risk')
+        raw['anxiety_risk'] = s.get('avg_anxiety_risk')
+        raw['emotional_stability'] = s.get('avg_emotional_stability')
+
+        # Recovery: calm-time ratio (always available from zone minutes)
+        calm_min = s.get('time_in_calm_min', 0) or 0
+        total_min = (calm_min
+                     + (s.get('time_in_steady_min', 0) or 0)
+                     + (s.get('time_in_tense_min', 0) or 0)
+                     + (s.get('time_in_stressed_min', 0) or 0))
+        recovery = (calm_min / total_min * 100) if total_min > 0 else 50
+        recovery_weight = 0.10
+
+        # Determine which voice components are present
+        present = []
+        missing_weight = 0.0
+        for key, weight, inverted in components:
+            val = raw[key]
+            if val is not None:
+                present.append((key, weight, inverted))
+            else:
+                missing_weight += weight
+
+        # Redistribute missing weight proportionally
+        total_present_weight = sum(w for _, w, _ in present)
+        if total_present_weight <= 0:
+            # No voice scores at all — return recovery only, scaled to 100
+            return max(0, min(100, round(recovery)))
+
+        redistribution_factor = (total_present_weight + missing_weight) / total_present_weight
+
+        # Compute weighted sum
+        score = 0.0
+        for key, weight, inverted in present:
+            val = min(100, max(0, raw[key] or 0))
+            if inverted:
+                val = 100 - val
+            score += weight * redistribution_factor * val
+
+        # Add recovery
+        score += recovery_weight * recovery
+
+        # Oura-style normalization: power curve maps raw average (~59) → ~75
+        # so a typical healthy user on a typical day lands in the "Good" zone.
+        # Bounds 0 and 100 are preserved. Great/terrible days compress naturally.
+        score = max(0, min(100, score))
+        score = round(100 * (score / 100) ** 0.55)
+
+        return score
 
     def compute_canopy_score(self, db, yesterday_summary: Dict) -> Dict[str, Any]:
         """Compute today's Canopy Score from yesterday's data with fixed daily wellness weights."""
@@ -347,27 +409,7 @@ class InsightEngine:
         # Fixed weights — daily resilience + recovery score
         profile_name = 'Daily Wellness'
 
-        s = yesterday_summary
-        calm = min(100, max(0, s.get('avg_calm', 50) or 0))
-        mood = min(100, max(0, s.get('avg_mood', 50) or 0))
-        energy = min(100, max(0, s.get('avg_energy', 50) or 0))
-        stress_inv = min(100, max(0, 100 - (s.get('avg_stress', 50) or 0)))
-
-        # Recovery: ratio of calm time to total zone time
-        calm_min = s.get('time_in_calm_min', 0) or 0
-        total_min = (calm_min + (s.get('time_in_steady_min', 0) or 0) +
-                     (s.get('time_in_tense_min', 0) or 0) + (s.get('time_in_stressed_min', 0) or 0))
-        recovery = (calm_min / total_min * 100) if total_min > 0 else 50
-
-        score = (
-            0.20 * calm +
-            0.20 * mood +
-            0.15 * energy +
-            0.25 * stress_inv +
-            0.20 * recovery
-        )
-
-        score = max(0, min(100, round(score)))
+        score = self._compute_canopy_components(yesterday_summary)
 
         # Store in DB
         db.set_canopy_score(today.isoformat(), score, dow, profile_name)
@@ -381,34 +423,22 @@ class InsightEngine:
         }
 
     def compute_intraday_canopy_score(self, db) -> Dict[str, Any]:
-        """Compute today's live intraday Canopy Score. Requires 3+ readings today."""
+        """Compute today's live intraday Canopy Score. Requires 1+ reading today."""
         readings = db.get_today_readings()
         reading_count = len(readings)
 
-        if reading_count < 3:
+        if reading_count < 1:
             return {
                 'has_data': False,
                 'reading_count': reading_count,
-                'readings_needed': 3 - reading_count,
+                'readings_needed': 1 - reading_count,
             }
 
         today_summary = db.compute_daily_summary()
         if not today_summary:
             return {'has_data': False, 'reading_count': reading_count, 'readings_needed': 0}
 
-        s = today_summary
-        calm = min(100, max(0, s.get('avg_calm', 50) or 0))
-        mood = min(100, max(0, s.get('avg_mood', 50) or 0))
-        energy = min(100, max(0, s.get('avg_energy', 50) or 0))
-        stress_inv = min(100, max(0, 100 - (s.get('avg_stress', 50) or 0)))
-
-        calm_min = s.get('time_in_calm_min', 0) or 0
-        total_min = (calm_min + (s.get('time_in_steady_min', 0) or 0) +
-                     (s.get('time_in_tense_min', 0) or 0) + (s.get('time_in_stressed_min', 0) or 0))
-        recovery = (calm_min / total_min * 100) if total_min > 0 else 50
-
-        score = (0.20 * calm + 0.20 * mood + 0.15 * energy + 0.25 * stress_inv + 0.20 * recovery)
-        score = max(0, min(100, round(score)))
+        score = self._compute_canopy_components(today_summary)
 
         return {
             'score': score,
@@ -445,8 +475,8 @@ class InsightEngine:
             return {'direction': 'holding', 'has_data': False}
 
         # Compare metrics
-        metrics = ['avg_stress', 'avg_mood', 'avg_energy', 'avg_calm']
-        labels = {'avg_stress': 'stress', 'avg_mood': 'mood', 'avg_energy': 'energy', 'avg_calm': 'calmness'}
+        metrics = ['avg_stress', 'avg_wellbeing', 'avg_activation', 'avg_calm']
+        labels = {'avg_stress': 'stress', 'avg_wellbeing': 'wellbeing', 'avg_activation': 'activation', 'avg_calm': 'calmness'}
 
         changes = {}
         for m in metrics:
@@ -457,8 +487,8 @@ class InsightEngine:
         # Overall direction based on weighted composite
         composite = (
             -changes.get('avg_stress', 0) * 0.3 +  # Less stress = positive
-            changes.get('avg_mood', 0) * 0.3 +
-            changes.get('avg_energy', 0) * 0.2 +
+            changes.get('avg_wellbeing', 0) * 0.3 +
+            changes.get('avg_activation', 0) * 0.2 +
             changes.get('avg_calm', 0) * 0.2
         )
 
@@ -539,11 +569,11 @@ class InsightEngine:
         # Day 31: Month in review
         if total_days >= 31:
             sorted_s = sorted(all_summaries, key=lambda s: s['date'])
-            week1_mood = sum(s.get('avg_mood', 50) for s in sorted_s[:7]) / 7
-            week4_mood = sum(s.get('avg_mood', 50) for s in sorted_s[-7:]) / 7
+            week1_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) for s in sorted_s[:7]) / 7
+            week4_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) for s in sorted_s[-7:]) / 7
             capsules.append({
                 'trigger_type': 'month_review',
-                'message': f'One month with Attune! Week 1 mood: {week1_mood:.0f} → Week 4 mood: {week4_mood:.0f}. {total_readings} readings captured.',
+                'message': f'One month with Attune! Week 1 wellbeing: {week1_wellbeing:.0f} → Week 4 wellbeing: {week4_wellbeing:.0f}. {total_readings} readings captured.',
             })
 
         # Hours-spoken milestones (logarithmic spacing)
@@ -578,8 +608,8 @@ class InsightEngine:
 
         # Metrics for this week
         tw_stress = sum(s.get('avg_stress', 50) or 50 for s in this_week) / len(this_week)
-        tw_mood = sum(s.get('avg_mood', 50) or 50 for s in this_week) / len(this_week)
-        tw_energy = sum(s.get('avg_energy', 50) or 50 for s in this_week) / len(this_week)
+        tw_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) or 50 for s in this_week) / len(this_week)
+        tw_activation = sum(s.get('avg_activation', s.get('avg_energy', 50)) or 50 for s in this_week) / len(this_week)
         tw_calm = sum(s.get('avg_calm', 50) or 50 for s in this_week) / len(this_week)
 
         # Canopy scores
@@ -610,7 +640,7 @@ class InsightEngine:
                 from datetime import date as dt_date
                 d = dt_date.fromisoformat(d_str)
                 return day_names[d.weekday()]
-            except Exception:
+            except (ValueError, AttributeError):
                 return d_str
 
         # Zone distribution
@@ -660,8 +690,8 @@ class InsightEngine:
         if prev_week:
             pw_stress = sum(s.get('avg_stress', 50) or 50 for s in prev_week) / len(prev_week)
             wow['stress'] = round(tw_stress - pw_stress, 1)
-            pw_mood = sum(s.get('avg_mood', 50) or 50 for s in prev_week) / len(prev_week)
-            wow['mood'] = round(tw_mood - pw_mood, 1)
+            pw_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) or 50 for s in prev_week) / len(prev_week)
+            wow['wellbeing'] = round(tw_wellbeing - pw_wellbeing, 1)
 
         return {
             'has_data': True,
@@ -673,8 +703,8 @@ class InsightEngine:
             },
             'metrics': {
                 'avg_stress': round(tw_stress, 1),
-                'avg_mood': round(tw_mood, 1),
-                'avg_energy': round(tw_energy, 1),
+                'avg_wellbeing': round(tw_wellbeing, 1),
+                'avg_activation': round(tw_activation, 1),
                 'avg_calm': round(tw_calm, 1),
             },
             'best_day': {
@@ -708,8 +738,8 @@ class InsightEngine:
         Returns text + population percentile.
         """
         stress = reading.get('stress_score', 50) or 50
-        mood = reading.get('mood_score', 50) or 50
-        energy = reading.get('energy_score', 50) or 50
+        wellbeing = reading.get('wellbeing_score', reading.get('mood_score', 50)) or 50
+        activation = reading.get('activation_score', reading.get('energy_score', 50)) or 50
         calm = reading.get('calm_score', 50) or 50
 
         # Determine overall tone
@@ -722,15 +752,15 @@ class InsightEngine:
         else:
             stress_desc = "high"
 
-        if energy > 60:
-            energy_desc = "good"
-        elif energy > 40:
-            energy_desc = "moderate"
+        if activation > 60:
+            activation_desc = "good"
+        elif activation > 40:
+            activation_desc = "moderate"
         else:
-            energy_desc = "low"
+            activation_desc = "low"
 
         narrative = (
-            f"Your voice shows {stress_desc} stress and {energy_desc} energy. "
+            f"Your voice shows {stress_desc} stress and {activation_desc} activation. "
             f"We've begun building your personal baseline. "
             f"After 3 more readings, we'll show how your voice compares to your own normal. "
             f"After 7 days, we'll start discovering patterns unique to you."
@@ -753,7 +783,7 @@ class InsightEngine:
             {'day': 3, 'label': 'Personalized Scores', 'desc': 'Calibrated to your voice'},
             {'day': 7, 'label': 'First Patterns', 'desc': 'Day-of-week & time-of-day insights'},
             {'day': 14, 'label': 'Deep Insights', 'desc': 'Recovery patterns & trend analysis'},
-            {'day': 30, 'label': 'Monthly Trajectory', 'desc': 'Burnout risk & long-term trends'},
+            {'day': 30, 'label': 'Monthly Trajectory', 'desc': 'Long-term trends & stability patterns'},
         ]
 
         return {
@@ -771,7 +801,6 @@ class InsightEngine:
         import random
 
         avg_stress = today_summary.get('avg_stress', 50)
-        avg_mood = today_summary.get('avg_mood', 50)
         peak_stress = today_summary.get('peak_stress', 0)
         calm_time = today_summary.get('time_in_calm_min', 0)
         stressed_time = today_summary.get('time_in_stressed_min', 0)
@@ -822,3 +851,114 @@ class InsightEngine:
         parts.append(random.choice(tips))
 
         return " ".join(parts)
+
+    # ================================================================
+    #  Evening Summary (extracted from /api/evening-summary endpoint)
+    # ================================================================
+
+    def compute_evening_summary(self, db):
+        """
+        Compute the evening summary data structure (sync portion).
+        Canopy score must be resolved async by the caller.
+
+        Returns:
+            dict with evening summary fields, or empty dict if no data.
+        """
+        from api.constants import ZONE_ORDER
+
+        today_readings = db.get_today_readings()
+        if not today_readings:
+            return None
+
+        yesterday = date.today() - timedelta(days=1)
+        today_summary = db.compute_daily_summary()
+
+        # Compact timeline (stress per 30-min bucket, 6 AM - 8 PM)
+        buckets = {}
+        for r in today_readings:
+            try:
+                ts = datetime.fromisoformat(r.get('timestamp', ''))
+                hour_bucket = ts.hour + (0.5 if ts.minute >= 30 else 0)
+                if 6 <= hour_bucket < 20:
+                    if hour_bucket not in buckets:
+                        buckets[hour_bucket] = []
+                    buckets[hour_bucket].append({
+                        'stress': r.get('stress_score', 50) or 50,
+                        'zone': r.get('zone', 'steady') or 'steady'
+                    })
+            except (ValueError, TypeError, KeyError):
+                continue
+        timeline = [
+            {
+                'hour': h,
+                'stress': round(sum(v['stress'] for v in vs) / len(vs)),
+                'zone': max(set(v['zone'] for v in vs),
+                            key=lambda z: ZONE_ORDER.index(z) if z in ZONE_ORDER else 0)
+            }
+            for h, vs in sorted(buckets.items())
+        ]
+
+        # Peak stress hour
+        peak_hour = None
+        peak_stress = 0
+        for r in today_readings:
+            s = r.get('stress_score', 0) or 0
+            if s > peak_stress:
+                peak_stress = s
+                try:
+                    ts = datetime.fromisoformat(r.get('timestamp', ''))
+                    peak_hour = ts.strftime('%-I %p')
+                except (ValueError, TypeError, KeyError):
+                    peak_hour = None
+
+        # Calm peak hour
+        hourly_stress = {}
+        for r in today_readings:
+            try:
+                ts = datetime.fromisoformat(r.get('timestamp', ''))
+                h = ts.hour
+                if h not in hourly_stress:
+                    hourly_stress[h] = []
+                hourly_stress[h].append(r.get('stress_score', 50) or 50)
+            except (ValueError, TypeError, KeyError):
+                continue
+        calm_hour = None
+        if hourly_stress:
+            best_h = min(hourly_stress, key=lambda h: sum(hourly_stress[h]) / len(hourly_stress[h]))
+            calm_hour = f"{best_h % 12 or 12}\u2013{(best_h + 1) % 12 or 12} {'AM' if best_h < 12 else 'PM'}"
+
+        # Comparison deltas
+        yesterday_summary = db.get_summary_for_date(yesterday)
+        canopy_yesterday = db.get_canopy_score(yesterday.isoformat())
+
+        stress_delta = None
+        if today_summary and yesterday_summary:
+            today_stress = today_summary.get('avg_stress') or 0
+            yest_stress = yesterday_summary.get('avg_stress') or 0
+            if today_stress and yest_stress:
+                stress_delta = round(today_stress - yest_stress)
+
+        # Insight line
+        insight = None
+        if calm_hour and peak_hour:
+            insight = f"Your calmest hour was {calm_hour}. Stress peaked around {peak_hour}."
+        elif calm_hour:
+            insight = f"Your calmest period was {calm_hour}."
+        elif today_summary:
+            calm_min = today_summary.get('time_in_calm_min', 0) or 0
+            if calm_min >= 60:
+                insight = f"You spent {round(calm_min / 60, 1)} hours in a calm state today."
+
+        return {
+            'has_data': True,
+            'canopy_yesterday': canopy_yesterday,
+            'avg_stress': round(today_summary.get('avg_stress') or 0) if today_summary else None,
+            'stress_delta': stress_delta,
+            'time_in_calm_min': round(today_summary.get('time_in_calm_min') or 0) if today_summary else 0,
+            'total_speech_min': round(today_summary.get('total_speech_min') or 0) if today_summary else 0,
+            'reading_count': len(today_readings),
+            'peak_stress_hour': peak_hour,
+            'calm_peak_hour': calm_hour,
+            'timeline': timeline,
+            'insight': insight,
+        }

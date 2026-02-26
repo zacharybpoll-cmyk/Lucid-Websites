@@ -5,10 +5,10 @@
 
 /* Legacy streak counter (hidden) */
 #streak-counter {
-    background: rgba(184, 151, 92, 0.15);
-    color: #8b7340;
+    background: rgba(168, 192, 208, 0.15);
+    color: var(--gold-dark);
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     font-size: 11px;
     font-weight: 600;
     display: none;
@@ -39,7 +39,7 @@
 }
 
 .canopy-number {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 130px;
     font-weight: 700;
     color: white;
@@ -115,7 +115,7 @@
     width: 220px;
     height: 8px;
     background: rgba(255, 255, 255, 0.18);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
 }
 
@@ -123,7 +123,7 @@
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--forest-light), var(--calm-color));
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     transition: width 0.6s ease;
 }
 
@@ -186,9 +186,9 @@
     align-items: center;
     gap: 6px;
     padding: 4px 12px;
-    background: rgba(90, 154, 110, 0.12);
+    background: rgba(168, 192, 208, 0.12);
     border-radius: 20px;
-    border: 1px solid rgba(90, 154, 110, 0.2);
+    border: 1px solid rgba(168, 192, 208, 0.2);
 }
 
 .rainfall-icon {
@@ -215,13 +215,13 @@
     align-items: center;
     gap: 2px;
     padding: 6px 4px;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     transition: background 0.2s ease;
     position: relative;
 }
 
 .grove-tree:hover {
-    background: rgba(90, 154, 110, 0.08);
+    background: rgba(168, 192, 208, 0.08);
 }
 
 .grove-tree.wilted {
@@ -249,8 +249,8 @@
     position: absolute;
     top: 0;
     right: 0;
-    background: rgba(90, 154, 110, 0.15);
-    border: 1px solid rgba(90, 154, 110, 0.3);
+    background: rgba(168, 192, 208, 0.15);
+    border: 1px solid rgba(168, 192, 208, 0.3);
     border-radius: 50%;
     width: 22px;
     height: 22px;
@@ -264,7 +264,7 @@
 }
 
 .grove-revive-btn:hover {
-    background: rgba(90, 154, 110, 0.3);
+    background: rgba(168, 192, 208, 0.3);
     transform: scale(1.1);
 }
 
@@ -285,7 +285,7 @@
 .waypoints-progress-bar {
     height: 8px;
     background: var(--cream-dark);
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     margin: 12px 0 8px;
 }
@@ -293,7 +293,7 @@
 .waypoints-progress-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--forest), var(--gold));
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     transition: width 1s ease;
 }
 
@@ -313,14 +313,14 @@
 .waypoint-tier {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 14px 18px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
 }
 
 .waypoint-tier-name {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
@@ -347,8 +347,8 @@
 }
 
 .waypoint-item.achieved {
-    background: rgba(90, 154, 110, 0.15);
-    border: 1px solid rgba(90, 154, 110, 0.3);
+    background: rgba(168, 192, 208, 0.15);
+    border: 1px solid rgba(168, 192, 208, 0.3);
     color: var(--forest);
 }
 
@@ -498,7 +498,7 @@
 }
 
 .rp-number {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 36px;
     font-weight: 700;
     color: var(--forest);
@@ -522,7 +522,7 @@
 }
 
 .rp-trend-improving {
-    color: #3a9a8e;
+    color: var(--recovery-improving);
 }
 
 .rp-trend-stable {
@@ -530,7 +530,7 @@
 }
 
 .rp-trend-declining {
-    color: #c4584c;
+    color: var(--stressed-color);
 }
 
 .rp-insight {
@@ -543,19 +543,7 @@
     text-overflow: ellipsis;
 }
 
-/* Responsive: stack recovery pulse below rings on narrow screens */
-@media (max-width: 768px) {
-    .rings-container {
-        flex-wrap: wrap;
-    }
-
-    .recovery-pulse-widget {
-        border-left: none;
-        border-top: 1px solid rgba(0, 0, 0, 0.08);
-        padding: 16px 0 0 0;
-        width: 100%;
-    }
-}
+/* Responsive: stack recovery pulse below rings — consolidated into main 768px block */
 
 /* ==========================================================
    6. ECHOES — Pattern Discovery Insights
@@ -586,13 +574,13 @@
     padding: 12px 14px;
     background: var(--cream);
     border: 1px solid var(--cream-dark);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     transition: all 0.3s ease;
 }
 
 .echo-item.echo-new {
-    border-color: rgba(184, 151, 92, 0.4);
-    background: rgba(184, 151, 92, 0.08);
+    border-color: rgba(168, 192, 208, 0.4);
+    background: rgba(168, 192, 208, 0.08);
 }
 
 .echo-icon {
@@ -637,8 +625,8 @@
 }
 
 @keyframes echo-pulse {
-    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(184, 151, 92, 0.6); }
-    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(184, 151, 92, 0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(168, 192, 208, 0.6); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(168, 192, 208, 0); }
 }
 
 /* ==========================================================
@@ -675,7 +663,7 @@
 }
 
 .compass-label {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 22px;
     font-weight: 600;
 }
@@ -717,8 +705,8 @@
     flex: 1;
     padding: 8px 14px;
     border: 1px solid var(--cream-dark);
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
     font-size: 13px;
     color: var(--text-primary);
     background: var(--cream);
@@ -751,18 +739,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(45, 74, 62, 0);
+    background: rgba(0, 0, 0, 0);
     pointer-events: none;
     transition: background 0.4s ease;
 }
 
 .sanctuary-overlay.sanctuary-active {
-    background: rgba(45, 74, 62, 0.4);
+    background: rgba(6, 10, 14, 0.85);
     pointer-events: auto;
 }
 
 .sanctuary-message {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 28px;
     font-weight: 600;
     color: white;
@@ -844,7 +832,7 @@
     padding: 14px 16px;
     background: var(--cream);
     border: 1px solid var(--cream-dark);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     border-left: 3px solid var(--gold);
 }
 
@@ -864,27 +852,16 @@
    10. VOICE GARDEN — Drag-and-Drop Layout Customization
    ========================================================== */
 
-/* Dashboard card wrapper */
+/* Dashboard card wrapper — all cards transparent, content floats on raw black */
 .dashboard-card {
-    transition: all 0.3s ease;
-    background: var(--card-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-radius: 16px;
-    border: 1px solid var(--card-border);
-    padding: 16px 20px;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-/* Canopy Score + Score Circles float on forest — no glass */
-.dashboard-card[data-card-id="canopy"],
-.dashboard-card[data-card-id="circles"] {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
     background: transparent;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border: none;
     padding: 0;
+    margin-bottom: 32px;
+    box-shadow: none;
 }
 
 /* Inner .glass-card defers to outer dashboard-card */
@@ -899,8 +876,8 @@
 
 /* Edit mode */
 .layout-editing .dashboard-card {
-    border: 2px dashed rgba(184, 151, 92, 0.4);
-    border-radius: 16px;
+    border: 2px dashed rgba(168, 192, 208, 0.4);
+    border-radius: var(--radius-xl);
     margin-bottom: 8px;
     cursor: grab;
     position: relative;
@@ -919,7 +896,7 @@
 
 .layout-editing .dashboard-card:hover {
     border-color: var(--gold);
-    background: rgba(184, 151, 92, 0.04);
+    background: rgba(168, 192, 208, 0.04);
 }
 
 /* Dragging state */
@@ -931,13 +908,13 @@
 /* Drop target indicator */
 .dashboard-card.drag-over {
     border-color: var(--forest);
-    background: rgba(90, 154, 110, 0.06);
-    box-shadow: 0 0 0 3px rgba(90, 154, 110, 0.15);
+    background: rgba(168, 192, 208, 0.06);
+    box-shadow: 0 0 0 3px rgba(168, 192, 208, 0.15);
 }
 
 /* Edit mode button active state */
 #layout-edit-btn.active {
-    background: rgba(184, 151, 92, 0.25);
+    background: rgba(168, 192, 208, 0.25);
     color: var(--gold-dark);
 }
 
@@ -1008,7 +985,7 @@
     margin-top: 8px;
     background: var(--cream);
     border: 1px solid var(--cream-dark);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     padding: 12px 14px;
     max-width: 280px;
     min-width: 220px;
@@ -1102,6 +1079,14 @@
         font-size: 11px;
         padding: 5px 10px;
     }
+
+    .recovery-pulse-widget {
+        border-left: none;
+        border-top: 1px solid rgba(0, 0, 0, 0.08);
+        padding: 16px 0 0 0;
+        width: 100%;
+    }
+
 }
 
 @media (max-width: 480px) {
@@ -1136,9 +1121,9 @@
 
 .spark-percentile {
     padding: 10px 16px;
-    background: rgba(90, 154, 110, 0.08);
-    border: 1px solid rgba(90, 154, 110, 0.15);
-    border-radius: 8px;
+    background: rgba(168, 192, 208, 0.08);
+    border: 1px solid rgba(168, 192, 208, 0.15);
+    border-radius: var(--radius-md);
     font-size: 13px;
     color: var(--calm-color);
     font-weight: 500;
@@ -1158,14 +1143,14 @@
     padding: 12px 14px;
     background: var(--cream);
     border: 1px solid var(--cream-dark);
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     text-align: center;
     transition: all 0.3s ease;
 }
 
 .spark-unlock.achieved {
-    background: rgba(90, 154, 110, 0.06);
-    border-color: rgba(90, 154, 110, 0.2);
+    background: rgba(168, 192, 208, 0.06);
+    border-color: rgba(168, 192, 208, 0.2);
 }
 
 .spark-unlock.locked {
@@ -1209,7 +1194,7 @@
 }
 
 .wrapped-summary-line {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 16px;
     color: var(--text-primary);
     font-weight: 500;
@@ -1225,7 +1210,7 @@
 }
 
 .wrapped-canopy-score {
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 42px;
     font-weight: 700;
     color: var(--text-primary);
@@ -1251,13 +1236,13 @@
 .wrapped-day-stat {
     flex: 1;
     padding: 10px 14px;
-    border-radius: 10px;
+    border-radius: var(--radius-lg);
     text-align: center;
 }
 
 .wrapped-best {
-    background: rgba(90, 154, 110, 0.08);
-    border: 1px solid rgba(90, 154, 110, 0.15);
+    background: rgba(168, 192, 208, 0.08);
+    border: 1px solid rgba(168, 192, 208, 0.15);
 }
 
 .wrapped-worst {
@@ -1277,7 +1262,7 @@
 
 .wrapped-day-name {
     display: block;
-    font-family: 'Playfair Display', Georgia, serif;
+    font-family: var(--font-heading);
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
@@ -1293,7 +1278,7 @@
 .wrapped-zones {
     display: flex;
     height: 8px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     overflow: hidden;
     margin-bottom: 14px;
 }
@@ -1373,9 +1358,9 @@
 .quiet-hours-row select {
     padding: 6px 10px;
     border: 1px solid var(--cream-dark);
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     font-size: 13px;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     background: var(--cream);
     color: var(--text-primary);
     cursor: pointer;
@@ -1386,191 +1371,188 @@
     color: var(--text-muted);
 }
 
+/* First Light section — removed */
+
+
 /* ==========================================================
-   14. FIRST LIGHT — Interactive Discovery Quest Panel
+   SPEAK HERO CARD — First-time-ever experience
    ========================================================== */
 
-.first-light-panel {
-    position: fixed;
-    top: 80px;
-    right: 16px;
-    width: 260px;
-    z-index: 200;
-    background: var(--card-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--card-border);
-    border-radius: 14px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+.speak-hero {
+    background: rgba(6, 10, 14, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(168, 192, 208, 0.2);
+    border-radius: var(--radius-xl);
+    padding: 32px 28px 20px;
+    margin-bottom: 12px;
+    text-align: center;
+    position: relative;
     overflow: hidden;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: max-height 0.5s ease, opacity 0.5s ease, padding 0.5s ease, margin 0.5s ease;
 }
 
-.first-light-header {
+.speak-hero.shrinking {
+    max-height: 0 !important;
+    opacity: 0;
+    padding: 0 28px;
+    margin-bottom: 0;
+    overflow: hidden;
+}
+
+.speak-hero-content {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 12px 14px;
-    cursor: pointer;
-    user-select: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-.first-light-star {
-    font-size: 18px;
-    color: var(--gold);
-}
-
-.first-light-title {
-    font-family: 'Playfair Display', Georgia, serif;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    flex: 1;
-}
-
-.first-light-collapse {
-    background: none;
-    border: none;
-    font-size: 12px;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 0;
-    transition: transform 0.3s ease;
-}
-
-.first-light-panel.collapsed .first-light-collapse {
-    transform: rotate(180deg);
-}
-
-.first-light-body {
-    padding: 10px 14px 14px;
-    transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
-    max-height: 500px;
-    opacity: 1;
-    overflow: hidden;
-}
-
-.first-light-panel.collapsed .first-light-body {
-    max-height: 0;
-    opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-}
-
-.first-light-subtitle {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: 0 0 10px;
-    font-style: italic;
-}
-
-.first-light-progress-wrap {
-    height: 6px;
-    background: rgba(0, 0, 0, 0.06);
-    border-radius: 3px;
-    overflow: hidden;
+.speak-hero-headline {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 500;
+    color: var(--cream);
     margin-bottom: 4px;
 }
 
-.first-light-progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--forest), var(--gold));
-    border-radius: 3px;
-    transition: width 0.6s ease;
+.speak-hero-body {
+    font-size: 14px;
+    color: rgba(224, 234, 240, 0.7);
+    line-height: 1.6;
+    max-width: 380px;
 }
 
-.first-light-progress-label {
-    font-size: 11px;
-    color: var(--text-muted);
-    display: block;
-    margin-bottom: 10px;
+.speak-hero-quote {
+    display: inline-block;
+    border: 1px solid rgba(168, 192, 208, 0.4);
+    border-radius: 20px;
+    padding: 8px 18px;
+    margin: 8px 0 16px;
 }
 
-.first-light-tasks {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.first-light-task {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 8px;
+.speak-hero-quote-text {
+    font-family: var(--font-heading);
+    font-style: italic;
     font-size: 13px;
-    color: var(--text-secondary);
-    transition: background 0.2s ease;
+    color: var(--gold-light);
 }
 
-.first-light-task:hover {
-    background: rgba(0, 0, 0, 0.03);
+/* Progress ring in hero card */
+.speak-hero-ring-wrap {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 4px auto;
 }
 
-.first-light-check {
+.hero-ring-track {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 6;
+}
+
+.hero-ring-fill {
+    fill: none;
+    stroke: url(#hero-gold-gradient);
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-dasharray: 339.3;
+    stroke-dashoffset: 339.3;
+    transition: stroke-dashoffset 0.5s ease;
+    filter: drop-shadow(0 0 4px rgba(168, 192, 208, 0.35));
+}
+
+.hero-ring-seconds {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.hero-ring-seconds #hero-seconds-value {
+    font-family: var(--font-heading);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--gold);
+    display: block;
+    line-height: 1;
+}
+
+.hero-ring-unit {
+    font-size: 11px;
+    color: rgba(168, 192, 208, 0.6);
+    transition: color 0.4s ease;
+}
+
+/* Hero ring — Analyzing state */
+.hero-ring-fill.hero-ring-analyzing {
+    stroke: var(--gold);
+    filter: drop-shadow(0 0 6px rgba(168, 192, 208, 0.4));
+    transition: stroke-dashoffset 0.3s ease;
+}
+
+#hero-seconds-value.analyzing-text {
+    font-family: var(--font-heading);
     font-size: 16px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-    transition: color 0.3s ease;
-}
-
-.first-light-task.completed .first-light-check {
-    color: var(--forest);
-}
-
-.first-light-task.completed .first-light-task-label {
-    text-decoration: line-through;
-    color: var(--text-muted);
-}
-
-.first-light-reward {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    padding: 10px 12px;
-    background: rgba(184, 151, 92, 0.08);
-    border: 1px solid rgba(184, 151, 92, 0.15);
-    border-radius: 8px;
-}
-
-.first-light-reward-icon {
-    font-size: 18px;
-}
-
-.first-light-reward-text {
-    font-size: 12px;
-    color: var(--gold-dark);
     font-weight: 500;
+    color: var(--gold);
 }
 
-/* Grove highlight animation for quest completion */
-@keyframes first-light-grove-highlight {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(184, 151, 92, 0); }
-    50% { box-shadow: 0 0 20px 4px rgba(184, 151, 92, 0.35); }
+.speak-hero-ring-wrap.analyzing .hero-ring-unit {
+    display: none;
 }
 
-.grove-highlight {
-    animation: first-light-grove-highlight 1.5s ease-in-out 2;
-    border-color: var(--gold) !important;
+/* Breathing mic dot in hero */
+.speak-hero-mic-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--calm-color);
+    margin: 4px auto 0;
+    animation: speak-hero-breathe 3s ease-in-out infinite;
 }
 
-/* Responsive: quest panel as bottom sheet on narrow screens */
-@media (max-width: 768px) {
-    .first-light-panel {
-        position: fixed;
-        top: auto;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        width: 100%;
-        border-radius: 14px 14px 0 0;
-        max-height: 60vh;
-        overflow-y: auto;
-    }
+@keyframes speak-hero-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.15); opacity: 1; }
+}
+
+.speak-hero-footnote {
+    font-size: 12px;
+    color: rgba(224, 234, 240, 0.4);
+    margin-top: 16px;
+    line-height: 1.5;
+}
+
+/* Hero card celebration flash */
+.speak-hero.celebrating {
+    border-color: var(--gold);
+    box-shadow: 0 0 30px rgba(168, 192, 208, 0.3);
+}
+
+/* Gold leaf burst particles (reuse sanctuary concept) */
+.hero-leaf-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    pointer-events: none;
+    animation: hero-leaf-burst 1s ease-out forwards;
+}
+
+.hero-leaf-particle:nth-child(odd) {
+    background: var(--gold-light);
+}
+
+.hero-leaf-particle:nth-child(3n) {
+    background: var(--calm-color);
+    width: 6px;
+    height: 6px;
+}
+
+@keyframes hero-leaf-burst {
+    0% { opacity: 1; transform: scale(0.5) translateY(0); }
+    100% { opacity: 0; transform: scale(1) translateY(-40px); }
 }

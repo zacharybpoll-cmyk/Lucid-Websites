@@ -57,17 +57,18 @@ const ZONE_COLORS = {
 
 // Resolved zone hex colors (for canvas/SVG contexts where CSS vars don't work)
 const ZONE_HEX = {
-    calm: '#5a9a6e',
-    steady: '#b5a84a',
-    tense: '#d4943a',
-    stressed: '#c4584c',
+    calm: '#7BA7C9',
+    steady: '#8C96A0',
+    tense: '#6B7280',
+    stressed: '#4B5563',
     idle: '#888888',
 };
 
 // Constants (not part of mutable state)
 const SPEECH_THRESHOLD_SEC = 30;
 const SANCTUARY_COOLDOWN = 300000; // 5 min
-const FIRST_LIGHT_TASKS = ['canopy', 'rings', 'grove', 'faq', 'trends'];
+// First Light removed — constant kept empty for any residual references
+const FIRST_LIGHT_TASKS = [];
 const HERO_RING_CIRCUMFERENCE = 2 * Math.PI * 54; // ~339.3
 
 // ========== AppState — single namespace for all mutable state ==========
@@ -213,7 +214,6 @@ function waitForBackend() {
                     const initialFetches = [
                         loadTodayData(),
                         loadFeatures(),
-                        initFirstLight(),
                     ];
                     if (shouldShowMorningSummary()) {
                         initialFetches.push(loadMorningSummary());
@@ -249,9 +249,6 @@ function setupNavigation() {
         icon.addEventListener('click', () => {
             const view = icon.dataset.view;
             switchView(view);
-            // First Light quest tracking
-            if (view === 'faq') completeFirstLightTask('faq');
-            if (view === 'trends') completeFirstLightTask('trends');
         });
     });
 }
@@ -885,8 +882,8 @@ async function loadCanopyScore() {
             const count = data.reading_count || 0;
             if (progressState) progressState.style.display = 'flex';
             if (scoreEl) scoreEl.style.display = 'none';
-            if (progressBar) progressBar.style.width = ((count / 3) * 100) + '%';
-            if (readingCountEl) readingCountEl.textContent = `${count} of 3 readings`;
+            if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
+            if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
             if (profileEl) profileEl.textContent = '';
             AppState.canopyRevealed = false; // Reset so animation fires on score unlock
         } else {
@@ -1669,11 +1666,6 @@ function setupInfoButtons() {
 
             popover.classList.toggle('visible');
 
-            // First Light quest tracking
-            const infoKey = btn.dataset.info;
-            if (infoKey && FIRST_LIGHT_TASKS.includes(infoKey)) {
-                completeFirstLightTask(infoKey);
-            }
             return;
         }
 
@@ -1802,7 +1794,7 @@ async function loadWeeklyWrapped() {
             <div class="wrapped-summary-line">${sanitizeHTML(data.summary_line)}</div>
             <div class="wrapped-canopy">
                 <span class="wrapped-canopy-score">${data.canopy.avg}</span>
-                <span class="wrapped-canopy-label">Avg Canopy</span>
+                <span class="wrapped-canopy-label">Avg Health Score</span>
                 <span class="wrapped-canopy-trend" style="color: ${trendColor}">${trendIcon} ${data.canopy.trend > 0 ? '+' : ''}${data.canopy.trend}</span>
             </div>
             <div class="wrapped-days">
@@ -3061,123 +3053,8 @@ function drawEnrollmentLevelBars() {
     draw();
 }
 
-// ========== First Light — Interactive Discovery Quest ==========
+// ========== First Light — Removed ==========
+// Stub functions kept for any residual calls
+function initFirstLight() {}
+function completeFirstLightTask() {}
 
-async function initFirstLight() {
-    try {
-        const data = await API.getFirstLightQuest();
-        if (!data.show) return;
-
-        AppState.firstLightState = data;
-        const panel = document.getElementById('first-light-panel');
-        if (!panel) return;
-
-        panel.style.display = 'block';
-
-        // Restore collapsed state from localStorage
-        const isCollapsed = localStorage.getItem('attune_first_light_collapsed') === 'true';
-        if (isCollapsed || data.completed) {
-            panel.classList.add('collapsed');
-        }
-
-        // Wire collapse toggle
-        const header = document.getElementById('first-light-header');
-        if (header) {
-            header.addEventListener('click', () => {
-                panel.classList.toggle('collapsed');
-                localStorage.setItem('attune_first_light_collapsed',
-                    panel.classList.contains('collapsed') ? 'true' : 'false');
-            });
-        }
-
-        renderFirstLightPanel(data);
-    } catch (e) {
-        console.error('Failed to init First Light:', e);
-    }
-}
-
-function renderFirstLightPanel(data) {
-    const tasks = data.tasks;
-    const completedCount = Object.values(tasks).filter(Boolean).length;
-    const total = FIRST_LIGHT_TASKS.length;
-
-    // Update progress bar
-    const bar = document.getElementById('first-light-progress-bar');
-    if (bar) bar.style.width = ((completedCount / total) * 100) + '%';
-
-    // Update progress label
-    const label = document.getElementById('first-light-progress-label');
-    if (label) label.textContent = `${completedCount} / ${total}`;
-
-    // Update task checkmarks
-    document.querySelectorAll('.first-light-task').forEach(li => {
-        const taskKey = li.dataset.questTask;
-        if (tasks[taskKey]) {
-            li.classList.add('completed');
-            li.querySelector('.first-light-check').textContent = '\u25CF';
-        } else {
-            li.classList.remove('completed');
-            li.querySelector('.first-light-check').textContent = '\u25CB';
-        }
-    });
-
-    // Update reward text
-    const reward = document.getElementById('first-light-reward');
-    if (reward && data.completed) {
-        reward.querySelector('.first-light-reward-text').textContent = 'Bonus tree planted!';
-    }
-}
-
-async function completeFirstLightTask(taskKey) {
-    if (!AppState.firstLightState || !AppState.firstLightState.show) return;
-    if (AppState.firstLightState.completed) return;
-    if (AppState.firstLightState.tasks[taskKey]) return; // Already done
-
-    try {
-        const result = await API.completeFirstLightTask(taskKey);
-        if (!result.success) return;
-
-        // Update local state
-        AppState.firstLightState.tasks[taskKey] = true;
-
-        if (result.just_completed) {
-            AppState.firstLightState.completed = true;
-            renderFirstLightPanel(AppState.firstLightState);
-            onFirstLightComplete();
-        } else {
-            renderFirstLightPanel(AppState.firstLightState);
-        }
-    } catch (e) {
-        console.error('Failed to complete First Light task:', e);
-    }
-}
-
-function onFirstLightComplete() {
-    // Bypass sanctuary cooldown for the celebration
-    const savedCooldown = AppState.lastSanctuaryTime;
-    AppState.lastSanctuaryTime = 0;
-    triggerSanctuary('first_light', 'First Light complete! A tree grows in your honor.');
-    // Restore cooldown (sanctuary sets it internally)
-
-    // After sanctuary dismisses (~3.5s), refresh grove and highlight it
-    setTimeout(() => {
-        updateGrove();
-
-        // Scroll to grove card and add highlight
-        const groveCard = document.querySelector('[data-card-id="grove"]');
-        if (groveCard) {
-            groveCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            groveCard.classList.add('grove-highlight');
-            setTimeout(() => groveCard.classList.remove('grove-highlight'), 4500);
-        }
-
-        // Auto-collapse panel after 5s
-        setTimeout(() => {
-            const panel = document.getElementById('first-light-panel');
-            if (panel) {
-                panel.classList.add('collapsed');
-                localStorage.setItem('attune_first_light_collapsed', 'true');
-            }
-        }, 5000);
-    }, 3500);
-}

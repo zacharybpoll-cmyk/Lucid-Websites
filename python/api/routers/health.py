@@ -6,7 +6,6 @@ from fastapi.responses import JSONResponse
 from datetime import date, timedelta
 
 from api import dependencies as deps
-from api.constants import FIRST_LIGHT_TASKS
 from api.schemas import StatusResponse, OnboardingStatusRequest, FirstLightTaskRequest
 
 router = APIRouter()
@@ -138,72 +137,14 @@ async def set_onboarding_status(req: OnboardingStatusRequest):
 
 @router.get("/api/quest/first-light")
 async def get_first_light_quest():
-    """Get First Light quest state. Only shown on the first day of usage."""
-    if deps.db is None:
-        return {"show": False}
-
-    onboarding = deps.db.get_user_state('onboarding_completed', '0')
-    if onboarding != '1':
-        return {"show": False}
-
-    # Record when First Light was first shown
-    first_shown = deps.db.get_user_state('first_light_first_shown', '')
-    today_str = date.today().isoformat()
-    if not first_shown:
-        # Migration: if quest already completed, user has been here before today
-        already_completed = deps.db.get_user_state('first_light_completed', '0') == '1'
-        if already_completed:
-            yesterday = (date.today() - timedelta(days=1)).isoformat()
-            deps.db.set_user_state('first_light_first_shown', yesterday)
-            return {"show": False}
-        deps.db.set_user_state('first_light_first_shown', today_str)
-        first_shown = today_str
-
-    # Hide permanently after the first day
-    if first_shown != today_str:
-        return {"show": False}
-
-    completed = deps.db.get_user_state('first_light_completed', '0') == '1'
-    tasks = {}
-    for task in FIRST_LIGHT_TASKS:
-        tasks[task] = deps.db.get_user_state(f'first_light_task_{task}', '0') == '1'
-
-    return {"show": True, "tasks": tasks, "completed": completed}
+    """First Light quest — removed. Stub returns show=false for backwards compat."""
+    return {"show": False}
 
 
 @router.post("/api/quest/first-light/complete")
 async def complete_first_light_task(req: FirstLightTaskRequest):
-    """Mark a First Light quest task as complete."""
-    if deps.db is None:
-        raise HTTPException(status_code=500, detail="Database not initialized")
-
-    if req.task not in FIRST_LIGHT_TASKS:
-        raise HTTPException(status_code=400, detail="Invalid task name")
-
-    # Mark task complete
-    deps.db.set_user_state(f'first_light_task_{req.task}', '1')
-
-    # Check if all tasks are now complete
-    all_done = all(
-        deps.db.get_user_state(f'first_light_task_{t}', '0') == '1'
-        for t in FIRST_LIGHT_TASKS
-    )
-
-    just_completed = False
-    if all_done and deps.db.get_user_state('first_light_completed', '0') != '1':
-        deps.db.set_user_state('first_light_completed', '1')
-        just_completed = True
-
-        # Plant a bonus grove tree (stage 3 = blooming)
-        today_str = date.today().isoformat()
-        deps.db.add_grove_tree(today_str, 'growing', 3)
-        deps.db.update_grove_tree(today_str, stage=3)
-
-        # Award +2 rainfall
-        current_rainfall = int(deps.db.get_user_state('rainfall', '0'))
-        deps.db.set_user_state('rainfall', str(current_rainfall + 2))
-
-    return {"success": True, "just_completed": just_completed}
+    """First Light quest — removed. Stub returns success for backwards compat."""
+    return {"success": True}
 
 
 @router.get("/api/config")

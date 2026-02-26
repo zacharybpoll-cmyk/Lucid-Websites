@@ -176,7 +176,7 @@ class EngagementTracker:
 
         # Tier: Old Growth (Days 31-90)
         {'id': 'wp_100_readings', 'name': 'Centurion', 'desc': 'Complete 100 voice readings', 'tier': 'Old Growth', 'order': 21, 'check': lambda s, rc, st: rc >= 100},
-        {'id': 'wp_canopy_90', 'name': 'Canopy 90', 'desc': 'Achieve a Canopy Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, rc, st: st.get('best_canopy', 0) >= 90},
+        {'id': 'wp_canopy_90', 'name': 'Health 90', 'desc': 'Achieve a Health Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, rc, st: st.get('best_canopy', 0) >= 90},
         {'id': 'wp_5_ring_days', 'name': 'Ring Master', 'desc': 'Close all rings 5 different days', 'tier': 'Old Growth', 'order': 23, 'check': lambda s, rc, st: st.get('ring_close_days', 0) >= 5},
         {'id': 'wp_10_echoes', 'name': 'Pattern Seeker', 'desc': 'Discover 10 Echoes', 'tier': 'Old Growth', 'order': 24, 'check': lambda s, rc, st: st.get('echo_count', 0) >= 10},
         {'id': 'wp_60_days', 'name': 'Two Months', 'desc': '60-day streak', 'tier': 'Old Growth', 'order': 25, 'check': lambda s, rc, st: st.get('streak', 0) >= 60},

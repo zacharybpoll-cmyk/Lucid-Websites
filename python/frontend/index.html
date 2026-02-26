@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://127.0.0.1:8765; script-src 'self' https://cdn.plot.ly 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:8765;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.plot.ly 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
     <title>Attune</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/main.css?v=21">
+    <link rel="stylesheet" href="css/main.css?v=23">
     <link rel="stylesheet" href="css/gauges.css?v=16">
     <link rel="stylesheet" href="css/anxiety_timeline.css?v=16">
     <link rel="stylesheet" href="css/trends.css?v=15">
-    <link rel="stylesheet" href="css/engagement.css?v=19">
+    <link rel="stylesheet" href="css/engagement.css?v=20">
     <link rel="stylesheet" href="css/correlation.css?v=15">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
@@ -33,11 +33,11 @@
             <div class="skeleton-gauge">
                 <svg viewBox="0 0 200 200" width="200" height="200">
                     <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
-                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(184,151,92,0.25)" stroke-width="8"
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(168,192,208,0.25)" stroke-width="8"
                         stroke-dasharray="180 373" stroke-linecap="round" transform="rotate(-90 100 100)">
                         <animate attributeName="stroke-dashoffset" values="0;-553" dur="3s" repeatCount="indefinite"/>
                     </circle>
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(184,151,92,0.12)" stroke-width="2"
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(168,192,208,0.12)" stroke-width="2"
                         filter="url(#glow)"/>
                     <!-- Needle silhouette -->
                     <line x1="100" y1="100" x2="100" y2="30" stroke="rgba(250,246,238,0.15)" stroke-width="2" stroke-linecap="round"/>
@@ -112,21 +112,21 @@
                         <!-- Progress circles -->
                         <circle id="morning-ring-calm" cx="170" cy="170" r="155" class="morning-ring-progress" stroke="#5a9a6e"
                             stroke-dasharray="973.9" stroke-dashoffset="973.9" transform="rotate(-90 170 170)"/>
-                        <circle id="morning-ring-mood" cx="170" cy="170" r="130" class="morning-ring-progress" stroke="#b8975c"
+                        <circle id="morning-ring-wellbeing" cx="170" cy="170" r="130" class="morning-ring-progress" stroke="#a8c0d0"
                             stroke-dasharray="816.8" stroke-dashoffset="816.8" transform="rotate(-90 170 170)"/>
-                        <circle id="morning-ring-energy" cx="170" cy="170" r="105" class="morning-ring-progress" stroke="#b5a84a"
+                        <circle id="morning-ring-activation" cx="170" cy="170" r="105" class="morning-ring-progress" stroke="#b5a84a"
                             stroke-dasharray="659.7" stroke-dashoffset="659.7" transform="rotate(-90 170 170)"/>
                         <circle id="morning-ring-stress" cx="170" cy="170" r="75" class="morning-ring-progress" stroke="#c4584c"
                             stroke-dasharray="471.2" stroke-dashoffset="471.2" transform="rotate(-90 170 170)"/>
                         <!-- Center text -->
-                        <text x="170" y="142" text-anchor="middle" class="morning-ring-center-label">CANOPY SCORE</text>
+                        <text x="170" y="142" text-anchor="middle" class="morning-ring-center-label">HEALTH SCORE</text>
                         <text x="170" y="184" text-anchor="middle" class="morning-ring-score-text" id="morning-ring-score">--</text>
                         <text x="170" y="214" text-anchor="middle" class="morning-ring-verdict-text" id="morning-ring-verdict"></text>
                     </svg>
                     <div class="morning-ring-legend">
                         <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#5a9a6e"></span>Calm <span class="morning-ring-val" id="morning-legend-calm">--</span></span>
-                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b8975c"></span>Mood <span class="morning-ring-val" id="morning-legend-mood">--</span></span>
-                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b5a84a"></span>Energy <span class="morning-ring-val" id="morning-legend-energy">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#a8c0d0"></span>Wellbeing <span class="morning-ring-val" id="morning-legend-wellbeing">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b5a84a"></span>Activation <span class="morning-ring-val" id="morning-legend-activation">--</span></span>
                         <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#c4584c"></span>Stress <span class="morning-ring-val" id="morning-legend-stress">--</span></span>
                     </div>
                     <div class="morning-date" id="morning-date"></div>
@@ -181,7 +181,7 @@
                     <circle cx="130" cy="130" r="110" class="evening-ring-track"/>
                     <circle cx="130" cy="130" r="110" class="evening-ring-progress" id="evening-ring-arc"
                         stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
-                    <text x="130" y="110" text-anchor="middle" class="evening-canopy-label">AVG CANOPY SCORE</text>
+                    <text x="130" y="110" text-anchor="middle" class="evening-canopy-label">AVG HEALTH SCORE</text>
                     <text x="130" y="160" text-anchor="middle" class="evening-canopy-score" id="evening-canopy-score">--</text>
                     <text x="130" y="185" text-anchor="middle" class="evening-canopy-verdict" id="evening-canopy-verdict"></text>
                 </svg>
@@ -247,18 +247,18 @@
     <div class="app-layout">
         <!-- Sidebar -->
         <nav class="sidebar">
-            <button class="sidebar-icon active" data-view="today" title="Dashboard">
+            <button class="sidebar-icon active" data-view="today" title="Dashboard" aria-label="Dashboard">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" data-view="trends" title="Trends">
+            <button class="sidebar-icon" data-view="trends" title="Trends" aria-label="Trends">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" data-view="history" title="History">
+            <button class="sidebar-icon" data-view="history" title="History" aria-label="History">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                     <line x1="16" y1="2" x2="16" y2="6"/>
@@ -266,14 +266,14 @@
                     <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" data-view="waypoints" title="Waypoints">
+            <button class="sidebar-icon" data-view="waypoints" title="Waypoints" aria-label="Waypoints">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                     <line x1="4" y1="22" x2="4" y2="15"/>
                 </svg>
             </button>
             <div class="sidebar-spacer"></div>
-            <button class="sidebar-icon" data-view="faq" title="FAQ">
+            <button class="sidebar-icon" data-view="faq" title="FAQ" aria-label="FAQ">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"/>
                     <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
@@ -281,13 +281,18 @@
                 </svg>
             </button>
             <!-- Layout edit button (Voice Garden) -->
-            <button class="sidebar-icon" id="layout-edit-btn" title="Customize Layout" onclick="layoutManager && layoutManager.toggleEditMode()">
+            <button class="sidebar-icon" id="layout-edit-btn" title="Customize Layout" aria-label="Customize Layout" onclick="layoutManager && layoutManager.toggleEditMode()">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" id="settings-btn" title="Settings">
+            <button class="sidebar-icon" id="theme-toggle-btn" title="Toggle day/night mode" aria-label="Toggle theme">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" id="theme-toggle-icon">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" id="settings-btn" title="Settings" aria-label="Settings">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="3"/>
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -300,7 +305,6 @@
             <!-- Header -->
             <header class="app-header">
                 <h1>Attune</h1>
-                <span class="header-tagline">Attuned to you.</span>
                 <div class="header-right">
                     <span id="current-date"></span>
                     <!-- Echo notification dot -->
@@ -334,10 +338,45 @@
                 <!-- TODAY VIEW -->
                 <div id="today-view" class="view active">
 
+                    <!-- Speak Hero Card (first-time-ever experience) -->
+                    <div id="speak-hero" class="speak-hero" style="display: none;">
+                        <div class="speak-hero-content">
+                            <h2 class="speak-hero-headline">Your voice tells a story</h2>
+                            <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. It takes about 10 seconds after you stop speaking for analysis to begin, so we can verify you've finished.</p>
+                            <div class="speak-hero-quote">
+                                <span class="speak-hero-quote-text">"Good morning. I'm starting my day and feeling..."</span>
+                            </div>
+                            <div class="speak-hero-ring-wrap">
+                                <svg viewBox="0 0 120 120" width="120" height="120">
+                                    <defs>
+                                        <linearGradient id="hero-gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#c4d8e8"/>
+                                            <stop offset="100%" stop-color="#a8c0d0"/>
+                                        </linearGradient>
+                                    </defs>
+                                    <circle cx="60" cy="60" r="54" class="hero-ring-track"/>
+                                    <circle cx="60" cy="60" r="54" class="hero-ring-fill" id="hero-ring-fill"
+                                        transform="rotate(-90 60 60)"/>
+                                </svg>
+                                <div class="hero-ring-seconds" id="hero-ring-seconds">
+                                    <span id="hero-seconds-value">0</span>
+                                    <span class="hero-ring-unit">sec</span>
+                                </div>
+                            </div>
+                            <div class="speak-hero-mic-dot" id="speak-hero-mic-dot"></div>
+                        </div>
+                        <p class="speak-hero-footnote">Attune listens passively during calls and conversations. This first reading helps calibrate your baseline.</p>
+                    </div>
+
+                    <!-- Daily greeting (returning user, no readings today) -->
+                    <div id="daily-greeting" class="daily-greeting">
+                        <span id="daily-greeting-text"></span>
+                    </div>
+
                     <!-- Mic progress row (top of dashboard) -->
-                    <div class="mic-progress-row">
+                    <div class="mic-progress-row" id="mic-progress-row">
                         <span id="mic-seconds" class="mic-seconds"></span>
-                        <div class="mic-progress-track">
+                        <div class="mic-progress-track" id="mic-progress-track">
                             <div id="mic-progress-bar" class="mic-progress-bar" style="width: 0%"></div>
                         </div>
                     </div>
@@ -359,92 +398,78 @@
                         <span id="calibration-progress"></span>
                     </div>
 
-                    <!-- Canopy Score (Feature #1) — Intraday Wellness -->
-                    <div class="dashboard-card" data-card-id="canopy">
-                        <div class="canopy-score-section">
-                            <span class="canopy-label" id="canopy-label" style="position: relative;">CANOPY SCORE
+                    <!-- Ring Gauge Hero (Canopy + 6 metric bars) -->
+                    <div class="dashboard-card ring-gauge-card" data-card-id="rings-hero">
+                        <div class="ring-gauge-header">
+                            <span class="canopy-label" id="canopy-label" style="position: relative;">HEALTH SCORE
                                 <button class="info-btn" data-info="canopy">i</button>
-                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), built from today's voice readings. Combines stress, calm, mood, energy, and recovery. Updates with each new reading throughout the day.</div>
+                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), built from today's voice readings. Combines seven voice dimensions — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and stability — plus your calm-time recovery. Higher-validity signals carry more weight.</div>
                             </span>
-
-                            <!-- Progress state: shown until 3 readings are complete -->
-                            <div class="canopy-progress-state" id="canopy-progress-state">
-                                <div class="canopy-reading-count" id="canopy-reading-count">0 of 3 readings</div>
-                                <div class="canopy-progress-bar-wrap">
-                                    <div class="canopy-progress-bar" id="canopy-progress-bar"></div>
-                                </div>
-                                <div class="canopy-progress-msg">Get 3 readings to unlock your Canopy Score for the day</div>
-                            </div>
-
-                            <!-- Score state: shown once 3+ readings exist -->
-                            <span class="canopy-number" id="canopy-score" style="display: none;">--</span>
-                            <div class="canopy-progress-circle" id="canopy-progress-circle" style="display: none;">
-                                <svg viewBox="0 0 120 120" width="90" height="90">
-                                    <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
-                                            fill="none" opacity="0.15"/>
-                                    <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
-                                            fill="none" stroke-dasharray="326.7" stroke-dashoffset="326.7"
-                                            stroke-linecap="round" id="canopy-progress-arc"
-                                            transform="rotate(-90 60 60)"/>
-                                </svg>
-                            </div>
-                            <span class="canopy-profile" id="canopy-profile"></span>
+                            <span class="ring-gauge-tagline">Attuned to you.</span>
                         </div>
-                    </div>
 
-                    <!-- Score Circles Row (Oura-style) -->
-                    <div class="dashboard-card" data-card-id="circles">
-                        <div class="score-circles-row">
-                            <div class="score-circle" id="circle-calm">
-                                <div class="circle-svg-wrap">
-                                    <svg viewBox="0 0 72 72">
-                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
-                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="calm" stroke="var(--calm-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
-                                    </svg>
-                                    <span class="circle-value" id="circle-calm-value">--</span>
-                                </div>
-                                <span class="circle-label">Calmness</span>
+                        <!-- Ring gauge SVG — JS fills this -->
+                        <svg id="ring-gauge-svg" viewBox="0 0 300 300" class="ring-gauge-svg"></svg>
+
+                        <!-- Hidden legacy elements (still updated by existing JS for canopy logic) -->
+                        <span class="canopy-number" id="canopy-score" style="display:none;">--</span>
+                        <div class="canopy-progress-circle" id="canopy-progress-circle" style="display:none;">
+                            <svg viewBox="0 0 120 120" width="90" height="90">
+                                <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5" fill="none" opacity="0.15"/>
+                                <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
+                                        fill="none" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+                                        stroke-linecap="round" id="canopy-progress-arc"
+                                        transform="rotate(-90 60 60)"/>
+                            </svg>
+                        </div>
+                        <span class="canopy-profile" id="canopy-profile" style="display:none;"></span>
+
+                        <!-- Calibration state (shown before 3 readings) -->
+                        <div class="ring-gauge-calibrating" id="canopy-progress-state">
+                            <div class="canopy-reading-count" id="canopy-reading-count">0 of 1 reading</div>
+                            <div class="canopy-progress-bar-wrap">
+                                <div class="canopy-progress-bar" id="canopy-progress-bar"></div>
                             </div>
-                            <div class="score-circle" id="circle-energy">
-                                <div class="circle-svg-wrap">
-                                    <svg viewBox="0 0 72 72">
-                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
-                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="energy" stroke="var(--energy-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
-                                    </svg>
-                                    <span class="circle-value" id="circle-energy-value">--</span>
-                                </div>
-                                <span class="circle-label">Energy</span>
+                            <div class="canopy-progress-msg">Get 1 reading to unlock your Health Score</div>
+                        </div>
+
+                        <!-- 6 Metric Bars (3-column grid) -->
+                        <div class="metric-bars-grid" id="metric-bars-grid">
+                            <div class="metbar-item" id="metbar-stability">
+                                <div class="metbar-header"><span class="metbar-name">STABILITY</span><span class="metbar-val" id="metbar-val-stability">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-stability" style="width:0%"></div></div>
                             </div>
-                            <div class="score-circle" id="circle-stress">
-                                <div class="circle-svg-wrap">
-                                    <svg viewBox="0 0 72 72">
-                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
-                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="stress" stroke="var(--stressed-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
-                                    </svg>
-                                    <span class="circle-value" id="circle-stress-value">--</span>
-                                </div>
-                                <span class="circle-label">Stress</span>
+                            <div class="metbar-item" id="metbar-wellbeing">
+                                <div class="metbar-header"><span class="metbar-name">WELLBEING</span><span class="metbar-val" id="metbar-val-wellbeing">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-wellbeing" style="width:0%"></div></div>
                             </div>
-                            <div class="score-circle" id="circle-depression">
-                                <div class="circle-svg-wrap">
-                                    <svg viewBox="0 0 72 72">
-                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
-                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="depression" stroke="var(--depression-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
-                                    </svg>
-                                    <span class="circle-value" id="circle-depression-value">--</span>
-                                </div>
-                                <span class="circle-label">Depression</span>
+                            <div class="metbar-item" id="metbar-calmness">
+                                <div class="metbar-header"><span class="metbar-name">CALMNESS</span><span class="metbar-val" id="metbar-val-calmness">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-calmness" style="width:0%"></div></div>
                             </div>
-                            <div class="score-circle" id="circle-anxiety">
-                                <div class="circle-svg-wrap">
-                                    <svg viewBox="0 0 72 72">
-                                        <circle class="circle-bg" cx="36" cy="36" r="30"/>
-                                        <circle class="circle-progress" cx="36" cy="36" r="30" data-metric="anxiety" stroke="var(--anxiety-color)" stroke-dasharray="188.5" stroke-dashoffset="188.5" transform="rotate(-90 36 36)"/>
-                                    </svg>
-                                    <span class="circle-value" id="circle-anxiety-value">--</span>
-                                </div>
-                                <span class="circle-label">Anxiety</span>
+                            <div class="metbar-item" id="metbar-activation">
+                                <div class="metbar-header"><span class="metbar-name">ACTIVATION</span><span class="metbar-val" id="metbar-val-activation">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-activation" style="width:0%"></div></div>
                             </div>
+                            <div class="metbar-item" id="metbar-anxiety">
+                                <div class="metbar-header"><span class="metbar-name">ANXIETY</span><span class="metbar-val" id="metbar-val-anxiety">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-anxiety" style="width:0%"></div></div>
+                            </div>
+                            <div class="metbar-item" id="metbar-stress">
+                                <div class="metbar-header"><span class="metbar-name">STRESS</span><span class="metbar-val" id="metbar-val-stress">--</span></div>
+                                <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-stress" style="width:0%"></div></div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden legacy circle elements (app.js may still reference these) -->
+                        <div style="display:none;">
+                            <span id="circle-wellbeing-value">--</span>
+                            <span id="circle-calm-value">--</span>
+                            <span id="circle-activation-value">--</span>
+                            <span id="circle-stress-value">--</span>
+                            <span id="circle-depression-value">--</span>
+                            <span id="circle-anxiety-value">--</span>
+                            <span id="circle-emotional-stability-value">--</span>
                         </div>
                     </div>
 
@@ -479,7 +504,7 @@
                                         stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 100 100)"/>
                                 </svg>
                                 <div class="rings-legend">
-                                    <div class="ring-legend-item"><span class="ring-dot" style="background: var(--forest)"></span><span id="ring-speak-label">Speak: --</span></div>
+                                    <div class="ring-legend-item"><span class="ring-dot" style="background: var(--steel)"></span><span id="ring-speak-label">Speak: --</span></div>
                                     <div class="ring-legend-item"><span class="ring-dot" style="background: var(--calm-color)"></span><span id="ring-calm-label">Calm: --</span></div>
                                     <div class="ring-legend-item"><span class="ring-dot" style="background: var(--gold)"></span><span id="ring-checkin-label">Check-in: --</span></div>
                                 </div>
@@ -657,6 +682,7 @@
                             </div>
                             <div class="faq-answer">
                                 <p>Speaker verification checks every ~1.2 seconds to ensure only YOUR voice is being captured. This privacy-first approach means some speech at the boundaries of each segment isn't counted. The timer shows verified speech only — not all detected audio.</p>
+                                <p>Press ⌘+Shift+D to open the Speaker Verification panel and watch verification happening in real time. You can also go to Settings → Voice Profile and enhance your voice profile to improve matching accuracy.</p>
                             </div>
                         </div>
 
@@ -672,11 +698,11 @@
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-                                <span>What is the Canopy Score?</span>
+                                <span>What is the Health Score?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>Your daily wellness score from 0-100, calculated each morning from yesterday's voice data. It combines stress levels, calm time, mood, energy, and recovery patterns into a single number. Think of it as your vocal wellness GPA.</p>
+                                <p>Your daily wellness score from 0-100, calculated each morning from yesterday's voice data. It combines seven voice-based scores — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and emotional stability — weighted by validation strength, plus your calm-time recovery ratio. Think of it as your vocal wellness GPA.</p>
                             </div>
                         </div>
 
@@ -712,7 +738,7 @@
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-                                <span>How does voice analysis detect stress and mood?</span>
+                                <span>How does voice analysis detect well-being?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
@@ -755,48 +781,6 @@
         </main>
     </div>
 
-    <!-- First Light Quest Panel -->
-    <aside id="first-light-panel" class="first-light-panel" style="display: none;">
-        <div class="first-light-header" id="first-light-header">
-            <span class="first-light-star">&#9733;</span>
-            <span class="first-light-title">First Light</span>
-            <button class="first-light-collapse" id="first-light-collapse">&#9650;</button>
-        </div>
-        <div class="first-light-body" id="first-light-body">
-            <p class="first-light-subtitle">Discover your dashboard</p>
-            <div class="first-light-progress-wrap">
-                <div class="first-light-progress-bar" id="first-light-progress-bar"></div>
-            </div>
-            <span class="first-light-progress-label" id="first-light-progress-label">0 / 5</span>
-            <ul class="first-light-tasks">
-                <li class="first-light-task" data-quest-task="canopy">
-                    <span class="first-light-check">&#9675;</span>
-                    <span class="first-light-task-label">Find your Canopy Score</span>
-                </li>
-                <li class="first-light-task" data-quest-task="rings">
-                    <span class="first-light-check">&#9675;</span>
-                    <span class="first-light-task-label">Check Rhythm Rings</span>
-                </li>
-                <li class="first-light-task" data-quest-task="grove">
-                    <span class="first-light-check">&#9675;</span>
-                    <span class="first-light-task-label">Discover your Grove</span>
-                </li>
-                <li class="first-light-task" data-quest-task="faq">
-                    <span class="first-light-check">&#9675;</span>
-                    <span class="first-light-task-label">Open the FAQ</span>
-                </li>
-                <li class="first-light-task" data-quest-task="trends">
-                    <span class="first-light-check">&#9675;</span>
-                    <span class="first-light-task-label">Visit Trends</span>
-                </li>
-            </ul>
-            <div class="first-light-reward" id="first-light-reward">
-                <span class="first-light-reward-icon">&#127794;</span>
-                <span class="first-light-reward-text">Complete all to plant a bonus tree</span>
-            </div>
-        </div>
-    </aside>
-
     <!-- Tooltip -->
     <div id="tooltip" class="tooltip" style="display: none;"></div>
 
@@ -814,6 +798,7 @@
                     <div id="speaker-status-badge" class="speaker-badge speaker-badge-inactive">Not Set Up</div>
                 </div>
                 <button id="speaker-setup-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;">Set Up Voice Profile</button>
+                <button id="speaker-enhance-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px; display: none;">Enhance Voice Profile</button>
                 <button id="speaker-delete-btn" class="btn btn-secondary" style="width: 100%; display: none; color: #C44E52;">Delete Voice Profile</button>
             </div>
             <div class="settings-section">
@@ -841,7 +826,7 @@
         <div class="enrollment-modal">
             <div class="enrollment-header">
                 <h2>Voice Profile Setup</h2>
-                <button id="enrollment-close-btn" class="icon-btn">&times;</button>
+                <button id="enrollment-close-btn" class="icon-btn" aria-label="Close enrollment">&times;</button>
             </div>
             <div id="enrollment-steps" class="enrollment-steps">
                 <!-- Step indicators -->
@@ -861,44 +846,47 @@
                 <div id="enrollment-step-1" class="enrollment-step active">
                     <h3>Normal Voice</h3>
                     <p>Speak naturally for 10 seconds. Describe your morning, or read this aloud:</p>
-                    <blockquote class="enrollment-prompt">"I'm setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day."</blockquote>
+                    <blockquote class="enrollment-prompt">"I'm setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day. This only takes a minute and helps keep my data private."</blockquote>
                 </div>
 
                 <!-- Step 2: Animated -->
                 <div id="enrollment-step-2" class="enrollment-step">
                     <h3>Animated Voice</h3>
                     <p>Now speak with more energy. Tell a short story, or read this with enthusiasm:</p>
-                    <blockquote class="enrollment-prompt">"Something really exciting happened today — I discovered a new tool that actually understands how I feel just by listening to my voice!"</blockquote>
+                    <blockquote class="enrollment-prompt">"Something really exciting happened today — I discovered a new tool that actually understands how I feel just by listening to my voice! I can't wait to see what it picks up."</blockquote>
                 </div>
 
                 <!-- Step 3: Calm -->
                 <div id="enrollment-step-3" class="enrollment-step">
                     <h3>Calm Voice</h3>
                     <p>Speak softly and slowly, as if winding down for the evening:</p>
-                    <blockquote class="enrollment-prompt">"After a long day, it's nice to slow down and reflect. I'm grateful for the quiet moments and the chance to recharge."</blockquote>
+                    <blockquote class="enrollment-prompt">"After a long day, it's nice to slow down and take a breath. I'm grateful for the quiet moments, the chance to recharge, and the small things that bring me peace."</blockquote>
                 </div>
 
                 <!-- Step 4: Reading Aloud -->
                 <div id="enrollment-step-4" class="enrollment-step">
                     <h3>Reading Aloud</h3>
                     <p>Read this passage aloud in your normal reading voice:</p>
-                    <blockquote class="enrollment-prompt">"The voice carries more information than we realize. Subtle changes in pitch, rhythm, and tone reveal how we truly feel beneath the surface."</blockquote>
+                    <blockquote class="enrollment-prompt">"The voice carries more information than we realize. Subtle changes in pitch, rhythm, and tone reveal how we truly feel beneath the surface — patterns that are invisible to us but always present."</blockquote>
                 </div>
 
                 <!-- Step 5: On a Call -->
                 <div id="enrollment-step-5" class="enrollment-step">
                     <h3>On a Call</h3>
                     <p>Speak as if you're on a video call with a colleague:</p>
-                    <blockquote class="enrollment-prompt">"Hey, thanks for jumping on. I just wanted to sync up on the project timeline and see if there's anything blocking you on your end."</blockquote>
+                    <blockquote class="enrollment-prompt">"Hey, thanks for jumping on. I just wanted to sync up on the project timeline and see if there's anything blocking you on your end. Let me know if you need anything from me."</blockquote>
                 </div>
 
                 <!-- Recording UI -->
                 <div id="enrollment-recorder" class="enrollment-recorder">
-                    <div id="enrollment-waveform" class="enrollment-waveform">
-                        <canvas id="enrollment-canvas" width="300" height="60"></canvas>
+                    <div id="enrollment-level-bars" class="enrollment-level-bars">
+                        <div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div>
+                        <div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div>
+                        <div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div>
+                        <div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div><div class="level-bar"></div>
                     </div>
                     <div id="enrollment-countdown" class="enrollment-countdown">10</div>
-                    <button id="enrollment-record-btn" class="btn btn-primary enrollment-record-btn">Start Recording</button>
+                    <div id="enrollment-status-label" class="enrollment-status-label">Preparing microphone...</div>
                 </div>
 
                 <!-- Processing -->
@@ -913,6 +901,37 @@
                     <h3>Voice Profile Active</h3>
                     <p>Attune will now analyze only your voice.</p>
                     <button id="enrollment-finish-btn" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Speaker Enhance Overlay -->
+    <div id="enhance-overlay" class="enrollment-overlay" style="display: none;">
+        <div class="enrollment-modal" style="max-width: 420px;">
+            <div class="enrollment-header">
+                <h2>Enhance Voice Profile</h2>
+                <button id="enhance-close-btn" class="icon-btn">&times;</button>
+            </div>
+            <div id="enhance-body">
+                <p id="enhance-prompt" class="settings-desc" style="margin-bottom: 16px;"></p>
+                <div id="enhance-recorder">
+                    <div class="enrollment-waveform">
+                        <canvas id="enhance-canvas" width="300" height="60"></canvas>
+                    </div>
+                    <div id="enhance-countdown" class="enrollment-countdown">10</div>
+                    <button id="enhance-record-btn" class="btn btn-primary enrollment-record-btn">Start Recording</button>
+                </div>
+                <div id="enhance-processing" style="display: none; text-align: center; padding: 20px;">
+                    <div class="enrollment-spinner"></div>
+                    <p>Processing sample...</p>
+                </div>
+                <div id="enhance-done" style="display: none; text-align: center; padding: 20px;">
+                    <div class="enrollment-checkmark">&#10003;</div>
+                    <h3>Sample Added</h3>
+                    <p>Your voice profile has been updated.</p>
+                    <button id="enhance-another-btn" class="btn btn-secondary" style="width: 100%; margin-top: 12px;">Add Another Sample</button>
+                    <button id="enhance-finish-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Done</button>
                 </div>
             </div>
         </div>
@@ -1017,7 +1036,7 @@
     <script src="js/correlation.js?v=14"></script>
     <script src="js/grove.js?v=14"></script>
     <script src="js/layout.js?v=14"></script>
-    <script src="js/app.js?v=26"></script>
+    <script src="js/app.js?v=29"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
     <div id="speaker-debug" class="speaker-debug" style="display:none;">
