@@ -32,3 +32,6 @@ Screenshot *.png
 .env
 *.pem
 *.key
+
+# Bundled ML models (too large for GitHub)
+python/bundled_models/
