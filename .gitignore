@@ -6,7 +6,9 @@ python/**/*.pyc
 
 # Electron build output
 dist/
+build/
 node_modules/
+*-darwin-arm64/
 
 # macOS
 .DS_Store
@@ -16,3 +18,17 @@ node_modules/
 *.db
 *.sqlite
 python/dam
+
+# Screenshots and temp files
+Screenshot *.png
+*.zip
+
+# Documents (not source code)
+*.docx
+*.pdf
+~$*
+
+# Credentials / secrets
+.env
+*.pem
+*.key
