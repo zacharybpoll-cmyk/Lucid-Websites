@@ -1,4 +1,4 @@
-/* Stress Area Chart — transparent, floats on forest canopy */
+/* Stress Area Chart — transparent, floats on steel dark background */
 
 .stress-dot-timeline-section .section-label {
     color: var(--text-primary);
@@ -11,7 +11,7 @@
 
 .stress-dot-timeline .stress-empty {
     text-align: center;
-    font-size: 13px;
+    font-size: var(--text-sm);
     color: var(--text-secondary);
     padding: 60px 0;
     font-style: italic;
@@ -29,8 +29,8 @@
     -webkit-backdrop-filter: blur(8px);
     color: #fff;
     padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
     pointer-events: none;
     z-index: 1000;
     max-width: 200px;
@@ -45,9 +45,9 @@
     -webkit-backdrop-filter: blur(8px);
     color: #fff;
     padding: 6px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: 'Inter', sans-serif;
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    font-family: var(--font-body);
     z-index: 1000;
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
@@ -57,12 +57,20 @@
 
 /* Y-axis and gridline labels */
 .stress-dot-timeline .axis-label {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     font-size: 10px;
-    fill: rgba(0, 0, 0, 0.5);
+    fill: rgba(60, 68, 80, 0.8);
+}
+
+[data-theme="night"] .stress-dot-timeline .axis-label {
+    fill: rgba(168, 192, 208, 0.55);
 }
 
 .stress-dot-timeline .gridline {
-    stroke: rgba(0, 0, 0, 0.12);
+    stroke: rgba(0, 0, 0, 0.18);
     stroke-width: 1;
+}
+
+[data-theme="night"] .stress-dot-timeline .gridline {
+    stroke: rgba(168, 192, 208, 0.15);
 }

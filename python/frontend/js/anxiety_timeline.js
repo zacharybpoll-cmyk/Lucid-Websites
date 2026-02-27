@@ -69,9 +69,9 @@ class StressDotTimeline {
         const isDay = document.documentElement.dataset.theme === 'day';
         const lineColor = isDay ? 'rgba(64,72,84,0.6)' : 'rgba(168,192,208,0.6)';
         const fillColor = isDay ? '#6a7a8c' : '#8ab4cc';
-        const gridColor = isDay ? 'rgba(0,0,0,0.08)' : 'rgba(168,192,208,0.08)';
-        const labelColor = isDay ? 'rgba(60,68,80,0.45)' : 'rgba(168,192,208,0.38)';
-        const nowColor   = isDay ? 'rgba(60,68,80,0.3)' : 'rgba(168,192,208,0.3)';
+        const gridColor = isDay ? 'rgba(0,0,0,0.18)' : 'rgba(168,192,208,0.15)';
+        const labelColor = isDay ? 'rgba(60,68,80,0.8)' : 'rgba(168,192,208,0.55)';
+        const nowColor   = isDay ? 'rgba(60,68,80,0.6)' : 'rgba(168,192,208,0.45)';
 
         const width = this.container.clientWidth || 600;
         const plotWidth = width - this.margin.left - this.margin.right;
@@ -332,7 +332,7 @@ class StressDotTimeline {
             nowLabel.setAttribute('font-size', '9');
             nowLabel.setAttribute('font-weight', '700');
             nowLabel.setAttribute('font-family', 'Inter, sans-serif');
-            nowLabel.setAttribute('fill', isDay ? 'rgba(60,68,80,0.5)' : 'rgba(168,192,208,0.6)');
+            nowLabel.setAttribute('fill', isDay ? 'rgba(60,68,80,0.85)' : 'rgba(168,192,208,0.7)');
             nowLabel.setAttribute('letter-spacing', '1');
             nowLabel.textContent = 'NOW';
             svg.appendChild(nowLabel);

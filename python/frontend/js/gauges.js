@@ -134,12 +134,12 @@ function renderRingGauge(canopyScore, scores) {
 
     const cx = 150, cy = 150;
     const rings = [
-        { key: 'emotional-stability', r: 110, invert: false },
-        { key: 'wellbeing',           r: 95,  invert: false },
-        { key: 'calm',                r: 80,  invert: false },
-        { key: 'activation',          r: 65,  invert: false },
-        { key: 'anxiety',             r: 50,  invert: true  },
-        { key: 'stress',              r: 35,  invert: true  },
+        { key: 'emotional-stability', r: 120, invert: false },
+        { key: 'wellbeing',           r: 105, invert: false },
+        { key: 'calm',                r: 90,  invert: false },
+        { key: 'activation',          r: 75,  invert: false },
+        { key: 'anxiety',             r: 60,  invert: true  },
+        { key: 'stress',              r: 45,  invert: true  },
     ];
     const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
     const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
