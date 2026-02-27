@@ -578,10 +578,10 @@ body {
 
 .mic-seconds {
     font-size: 0.6875rem;
-    color: rgba(168, 192, 208, 0.65);
+    color: var(--text-secondary);
     white-space: nowrap;
     min-width: 80px;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    text-shadow: none;
 }
 
 .mic-progress-track {
@@ -983,8 +983,9 @@ body {
     margin-bottom: 8px;
     padding: 10px;
     border-radius: var(--radius-md);
-    background: var(--cream);
-    border: 1px solid var(--cream-dark);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: var(--shadow-sm);
 }
 
 .activity-stat {
@@ -1033,12 +1034,13 @@ body {
 .briefing-coach-text {
     margin: 0;
     padding: 10px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-left: 3px solid var(--gold);
     font-style: italic;
     font-size: var(--text-sm);
     color: var(--text-secondary);
     line-height: 1.7;
-    background: var(--cream);
+    background: rgba(91, 141, 184, 0.06);
     border-radius: 0 8px 8px 0;
 }
 
