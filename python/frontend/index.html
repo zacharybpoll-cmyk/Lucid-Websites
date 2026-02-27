@@ -32,16 +32,16 @@
             <!-- Skeleton gauge -->
             <div class="skeleton-gauge">
                 <svg viewBox="0 0 200 200" width="200" height="200">
-                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8"/>
-                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(168,192,208,0.25)" stroke-width="8"
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(0,0,0,0.06)" stroke-width="8"/>
+                    <circle cx="100" cy="100" r="88" fill="none" stroke="rgba(91,141,184,0.25)" stroke-width="8"
                         stroke-dasharray="180 373" stroke-linecap="round" transform="rotate(-90 100 100)">
                         <animate attributeName="stroke-dashoffset" values="0;-553" dur="3s" repeatCount="indefinite"/>
                     </circle>
-                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(168,192,208,0.12)" stroke-width="2"
+                    <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(91,141,184,0.12)" stroke-width="2"
                         filter="url(#glow)"/>
                     <!-- Needle silhouette -->
-                    <line x1="100" y1="100" x2="100" y2="30" stroke="rgba(250,246,238,0.15)" stroke-width="2" stroke-linecap="round"/>
-                    <text x="100" y="115" text-anchor="middle" fill="rgba(250,246,238,0.3)" font-family="'Playfair Display', serif" font-size="14">Score</text>
+                    <line x1="100" y1="100" x2="100" y2="30" stroke="rgba(0,0,0,0.1)" stroke-width="2" stroke-linecap="round"/>
+                    <text x="100" y="115" text-anchor="middle" fill="rgba(26,29,33,0.35)" font-family="'Playfair Display', serif" font-size="14">Score</text>
                     <defs>
                         <filter id="glow">
                             <feGaussianBlur stdDeviation="6" result="blur"/>
@@ -77,7 +77,7 @@
                 </div>
                 <div class="skeleton-metric-card">
                     <svg class="skeleton-line" viewBox="0 0 200 80" preserveAspectRatio="none">
-                        <path d="M10,60 Q40,20 70,45 T130,25 T190,50" fill="none" stroke="rgba(250,246,238,0.25)" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10,60 Q40,20 70,45 T130,25 T190,50" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
             </div>
@@ -110,11 +110,11 @@
                         <circle cx="170" cy="170" r="105" class="morning-ring-track"/>
                         <circle cx="170" cy="170" r="75" class="morning-ring-track"/>
                         <!-- Progress circles -->
-                        <circle id="morning-ring-calm" cx="170" cy="170" r="155" class="morning-ring-progress" stroke="#5a9a6e"
+                        <circle id="morning-ring-calm" cx="170" cy="170" r="155" class="morning-ring-progress" stroke="#5B8DB8"
                             stroke-dasharray="973.9" stroke-dashoffset="973.9" transform="rotate(-90 170 170)"/>
-                        <circle id="morning-ring-wellbeing" cx="170" cy="170" r="130" class="morning-ring-progress" stroke="#a8c0d0"
+                        <circle id="morning-ring-wellbeing" cx="170" cy="170" r="130" class="morning-ring-progress" stroke="#7BA7C9"
                             stroke-dasharray="816.8" stroke-dashoffset="816.8" transform="rotate(-90 170 170)"/>
-                        <circle id="morning-ring-activation" cx="170" cy="170" r="105" class="morning-ring-progress" stroke="#b5a84a"
+                        <circle id="morning-ring-activation" cx="170" cy="170" r="105" class="morning-ring-progress" stroke="#8C96A0"
                             stroke-dasharray="659.7" stroke-dashoffset="659.7" transform="rotate(-90 170 170)"/>
                         <circle id="morning-ring-stress" cx="170" cy="170" r="75" class="morning-ring-progress" stroke="#c4584c"
                             stroke-dasharray="471.2" stroke-dashoffset="471.2" transform="rotate(-90 170 170)"/>
@@ -124,9 +124,9 @@
                         <text x="170" y="214" text-anchor="middle" class="morning-ring-verdict-text" id="morning-ring-verdict"></text>
                     </svg>
                     <div class="morning-ring-legend">
-                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#5a9a6e"></span>Calm <span class="morning-ring-val" id="morning-legend-calm">--</span></span>
-                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#a8c0d0"></span>Wellbeing <span class="morning-ring-val" id="morning-legend-wellbeing">--</span></span>
-                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#b5a84a"></span>Activation <span class="morning-ring-val" id="morning-legend-activation">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#5B8DB8"></span>Calm <span class="morning-ring-val" id="morning-legend-calm">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#7BA7C9"></span>Wellbeing <span class="morning-ring-val" id="morning-legend-wellbeing">--</span></span>
+                        <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#8C96A0"></span>Activation <span class="morning-ring-val" id="morning-legend-activation">--</span></span>
                         <span class="morning-ring-legend-item"><span class="morning-ring-dot" style="background:#c4584c"></span>Stress <span class="morning-ring-val" id="morning-legend-stress">--</span></span>
                     </div>
                     <div class="morning-date" id="morning-date"></div>

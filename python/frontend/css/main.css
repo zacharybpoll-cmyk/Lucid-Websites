@@ -1222,7 +1222,7 @@ body {
 .loading-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(45, 74, 62, 0.96);
+    background: #f8f9fa;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1258,7 +1258,7 @@ body {
     position: absolute;
     inset: 0;
     border-radius: 50%;
-    background: linear-gradient(90deg, transparent 0%, rgba(184,151,92,0.15) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(91,141,184,0.15) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 2.5s ease-in-out infinite;
 }
@@ -1268,11 +1268,11 @@ body {
     position: relative;
     width: 100%;
     height: 60px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     overflow: hidden;
 }
 
@@ -1280,7 +1280,7 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(184,151,92,0.12) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(91,141,184,0.12) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 2.5s ease-in-out infinite;
     border-radius: 12px;
@@ -1297,7 +1297,7 @@ body {
     display: block;
     width: 1px;
     height: 20px;
-    background: rgba(250,246,238,0.2);
+    background: rgba(0, 0, 0, 0.12);
     margin: 0 auto 4px;
 }
 
@@ -1305,7 +1305,7 @@ body {
     display: block;
     font-family: var(--font-body);
     font-size: 0.5625rem;
-    color: rgba(250,246,238,0.35);
+    color: rgba(26, 29, 33, 0.4);
     text-align: center;
     letter-spacing: 0.5px;
 }
@@ -1316,7 +1316,7 @@ body {
     top: 0;
     height: 100%;
     width: 0%;
-    background: linear-gradient(90deg, rgba(184,151,92,0.08), rgba(184,151,92,0.2));
+    background: linear-gradient(90deg, rgba(91,141,184,0.08), rgba(91,141,184,0.2));
     border-radius: 12px 0 0 12px;
     transition: width 0.5s ease;
 }
@@ -1331,11 +1331,11 @@ body {
 .skeleton-metric-card {
     flex: 1;
     height: 120px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.04);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border-radius: var(--radius-lg);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -1348,7 +1348,7 @@ body {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0%, rgba(184,151,92,0.12) 50%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, rgba(91,141,184,0.12) 50%, transparent 100%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 2.5s ease-in-out infinite;
     border-radius: 12px;
@@ -1366,7 +1366,7 @@ body {
 
 .skeleton-bar {
     width: 20%;
-    background: rgba(250,246,238,0.15);
+    background: rgba(0, 0, 0, 0.08);
     border-radius: 4px 4px 0 0;
     animation: skeleton-pulse 2s ease-in-out infinite;
 }
@@ -1387,7 +1387,7 @@ body {
 .skeleton-progress-track {
     width: 100%;
     height: 4px;
-    background: rgba(255,255,255,0.1);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -1404,7 +1404,7 @@ body {
 .skeleton-status {
     font-family: var(--font-body);
     font-size: var(--text-sm);
-    color: rgba(250,246,238,0.7);
+    color: #5a6270;
     text-align: center;
     margin: 0;
 }
@@ -1656,7 +1656,7 @@ body {
 .morning-summary-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(45, 74, 62, 0.97);
+    background: #f8f9fa;
     z-index: 9500;
     display: flex;
     align-items: flex-start;
@@ -1683,14 +1683,14 @@ body {
     max-width: 820px;
     width: 100%;
     padding: 48px 32px 40px;
-    color: var(--cream);
+    color: #1a1d21;
 }
 
 .morning-greeting {
     font-family: var(--font-heading);
     font-size: 1.75rem;
     font-weight: 500;
-    color: var(--cream);
+    color: #1a1d21;
     margin-bottom: 28px;
 }
 
@@ -1722,7 +1722,7 @@ body {
 
 .morning-ring-track {
     fill: none;
-    stroke: rgba(255, 255, 255, 0.08);
+    stroke: #e4e8ec;
     stroke-width: 18;
 }
 
@@ -1738,21 +1738,21 @@ body {
     font-size: 0.5625rem;
     font-weight: 700;
     letter-spacing: 2px;
-    fill: rgba(250, 246, 238, 0.45);
+    fill: rgba(26, 29, 33, 0.45);
 }
 
 .morning-ring-score-text {
     font-family: var(--font-heading);
     font-size: 2.625rem;
     font-weight: 700;
-    fill: var(--cream);
+    fill: #1a1d21;
 }
 
 .morning-ring-verdict-text {
     font-family: var(--font-body);
     font-size: var(--text-xs);
     font-weight: 500;
-    fill: rgba(250, 246, 238, 0.75);
+    fill: rgba(26, 29, 33, 0.6);
     letter-spacing: 0.3px;
 }
 
@@ -1763,7 +1763,7 @@ body {
     gap: 10px 20px;
     margin-top: 16px;
     font-size: var(--text-xs);
-    color: rgba(250, 246, 238, 0.6);
+    color: rgba(26, 29, 33, 0.6);
 }
 
 .morning-ring-legend-item {
@@ -1782,24 +1782,25 @@ body {
 .morning-ring-val {
     margin-left: auto;
     font-variant-numeric: tabular-nums;
-    color: rgba(250, 246, 238, 0.8);
+    color: rgba(26, 29, 33, 0.75);
     font-weight: 500;
 }
 
 /* Date (below rings) */
 .morning-date {
     font-size: var(--text-xs);
-    color: rgba(250, 246, 238, 0.45);
+    color: rgba(26, 29, 33, 0.45);
     margin-top: 12px;
     letter-spacing: 0.3px;
 }
 
 /* Metric Bars */
 .morning-bar-item {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: var(--radius-lg);
     padding: 12px 16px;
+    box-shadow: var(--shadow-sm);
     margin-bottom: 8px;
 }
 
@@ -1813,19 +1814,19 @@ body {
 .morning-bar-label {
     font-size: var(--text-sm);
     font-weight: 500;
-    color: rgba(250, 246, 238, 0.75);
+    color: #5a6270;
 }
 
 .morning-bar-value {
     font-family: var(--font-heading);
     font-size: var(--text-xl);
     font-weight: 600;
-    color: var(--cream);
+    color: #1a1d21;
 }
 
 .morning-bar-track {
     height: 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.06);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -1848,7 +1849,7 @@ body {
     height: 18px;
     border-radius: 5px;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(0, 0, 0, 0.06);
 }
 
 .morning-timeline-labels {
@@ -1856,7 +1857,7 @@ body {
     justify-content: space-between;
     margin-top: 4px;
     font-size: 0.625rem;
-    color: rgba(250, 246, 238, 0.4);
+    color: rgba(26, 29, 33, 0.4);
 }
 
 /* Highlights */
@@ -1868,7 +1869,7 @@ body {
     list-style: none;
     padding: 0;
     font-size: var(--text-sm);
-    color: rgba(250, 246, 238, 0.8);
+    color: rgba(26, 29, 33, 0.8);
     line-height: 1.8;
 }
 
@@ -1889,9 +1890,9 @@ body {
     border-left: 3px solid var(--gold);
     font-style: italic;
     font-size: var(--text-sm);
-    color: rgba(250, 246, 238, 0.75);
+    color: rgba(26, 29, 33, 0.7);
     line-height: 1.7;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(91, 141, 184, 0.06);
     border-radius: 0 8px 8px 0;
 }
 
@@ -1908,21 +1909,22 @@ body {
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 2px;
-    color: rgba(250, 246, 238, 0.5);
+    color: rgba(26, 29, 33, 0.5);
     text-transform: uppercase;
     margin-bottom: 8px;
 }
 
 .morning-weather-content {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(0, 0, 0, 0.06);
     border-radius: var(--radius-lg);
     padding: 14px 16px;
     display: flex;
     align-items: center;
     gap: 12px;
     font-size: var(--text-base);
-    color: rgba(250, 246, 238, 0.85);
+    color: rgba(26, 29, 33, 0.85);
+    box-shadow: var(--shadow-sm);
 }
 
 .morning-weather-zone {

@@ -1990,9 +1990,9 @@ function renderMorningSummary(data) {
     if (barsEl && briefing.metrics) {
         const barConfig = [
             { key: 'avg_stress', label: 'Stress', color: '#c4584c' },
-            { key: 'avg_mood', label: 'Wellbeing', color: '#b8975c' },
-            { key: 'avg_energy', label: 'Activation', color: '#b5a84a' },
-            { key: 'avg_calm', label: 'Calm', color: '#5a9a6e' },
+            { key: 'avg_mood', label: 'Wellbeing', color: '#7BA7C9' },
+            { key: 'avg_energy', label: 'Activation', color: '#8C96A0' },
+            { key: 'avg_calm', label: 'Calm', color: '#5B8DB8' },
         ];
         let barsHtml = '';
         for (const bar of barConfig) {
