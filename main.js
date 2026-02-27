@@ -141,6 +141,10 @@ function spawnPython() {
       ATTUNE_DATA_DIR: DATA_DIR,
       ATTUNE_API_PORT: String(API_PORT),
       PYTHONUNBUFFERED: '1',
+      // In packaged mode, point Python to bundled models inside the .app
+      ...(IS_PACKAGED ? {
+        ATTUNE_BUNDLED_MODELS_DIR: path.join(process.resourcesPath, 'python', 'bundled_models'),
+      } : {}),
     };
 
     console.log(`[Main] Python dir: ${PYTHON_DIR}`);

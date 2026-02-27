@@ -4,6 +4,10 @@ Attune - Main Entry Point
 Browser-based: starts uvicorn, loads models in background, opens browser automatically.
 Includes The Beacon (dynamic menubar icon) and The Pulse (notification engine).
 """
+# Model cache setup — MUST happen before any torch/HuggingFace imports
+from model_setup import setup_model_cache
+setup_model_cache()
+
 import os
 import sys
 import signal
