@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diagnostics — Attune Steel Dev</title>
+  <link rel="stylesheet" href="diagnostics.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Attune Steel Diagnostics</h1>
+    <span class="dev-pill">DEV</span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="overview">Overview</div>
+    <div class="tab" data-tab="api-log">API Log</div>
+    <div class="tab" data-tab="performance">Performance</div>
+    <div class="tab" data-tab="state">State Inspector</div>
+    <div class="tab" data-tab="python-logs">Python Logs</div>
+    <div class="tab" data-tab="actions">Quick Actions</div>
+    <div class="tab" data-tab="database">Database</div>
+  </div>
+
+  <!-- Overview -->
+  <div class="panel active" id="panel-overview">
+    <div class="stat-grid" id="overview-stats"></div>
+    <div class="card">
+      <h3>Startup Timings</h3>
+      <div id="startup-timings">Loading...</div>
+    </div>
+    <div class="card">
+      <h3>Memory (RSS) — Last 60 Samples</h3>
+      <div class="chart-container" id="memory-chart"></div>
+    </div>
+  </div>
+
+  <!-- API Log -->
+  <div class="panel" id="panel-api-log">
+    <input class="filter-input" id="api-filter" placeholder="Filter by path..." />
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Method</th><th>Path</th><th>Status</th><th>Latency</th></tr>
+      </thead>
+      <tbody id="api-log-body"></tbody>
+    </table>
+  </div>
+
+  <!-- Performance -->
+  <div class="panel" id="panel-performance">
+    <div class="card">
+      <h3>Request Latency Distribution</h3>
+      <div id="latency-histogram"></div>
+    </div>
+    <div class="card">
+      <h3>Slowest Requests (Last 200)</h3>
+      <table>
+        <thead><tr><th>Path</th><th>Method</th><th>Latency</th><th>Status</th></tr></thead>
+        <tbody id="slowest-requests"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- State Inspector -->
+  <div class="panel" id="panel-state">
+    <div class="card">
+      <h3>Backend Health</h3>
+      <pre id="health-json" style="font-family:var(--mono);font-size:12px;color:var(--green);">Loading...</pre>
+    </div>
+    <div class="card">
+      <h3>Dashboard State</h3>
+      <pre id="dashboard-json" style="font-family:var(--mono);font-size:12px;color:var(--text);">Loading...</pre>
+    </div>
+  </div>
+
+  <!-- Python Logs -->
+  <div class="panel" id="panel-python-logs">
+    <div class="log-viewer" id="python-log-viewer">Fetching logs...</div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="panel" id="panel-actions">
+    <div class="actions-grid">
+      <button class="action-btn" onclick="doAction('restart')">
+        <span class="icon">&#x21bb;</span>Restart Backend
+        <div class="desc">Kill & respawn Python</div>
+      </button>
+      <button class="action-btn" onclick="doAction('gc')">
+        <span class="icon">&#x2699;</span>Force GC
+        <div class="desc">Python garbage collect</div>
+      </button>
+      <button class="action-btn" onclick="doAction('snapshot')">
+        <span class="icon">&#x1f4cb;</span>Debug Snapshot
+        <div class="desc">Export full debug state</div>
+      </button>
+      <button class="action-btn" onclick="doAction('reload')">
+        <span class="icon">&#x21ba;</span>Reload Frontend
+        <div class="desc">Refresh main window</div>
+      </button>
+      <button class="action-btn" onclick="doAction('clear-cache')">
+        <span class="icon">&#x1f5d1;</span>Clear Cache
+        <div class="desc">Purge Chromium cache</div>
+      </button>
+      <button class="action-btn destructive" onclick="doAction('reset-db')">
+        <span class="icon">&#x26a0;</span>Reset Database
+        <div class="desc">Delete all data!</div>
+      </button>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h3>Action Result</h3>
+      <pre id="action-result" style="font-family:var(--mono);font-size:12px;color:var(--text);">No action taken yet.</pre>
+    </div>
+  </div>
+
+  <!-- Database -->
+  <div class="panel" id="panel-database">
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;">
+      <select class="table-select" id="db-table-select">
+        <option value="">-- Select table --</option>
+      </select>
+      <span id="db-table-count" style="color:var(--text-dim);font-size:12px;"></span>
+    </div>
+    <div id="db-table-view"></div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>SQL Query (Read-Only)</h3>
+      <textarea class="sql-input" id="sql-input" placeholder="SELECT * FROM readings LIMIT 10"></textarea>
+      <button class="run-btn" onclick="runSQL()">Run Query</button>
+      <div id="sql-result" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <script src="diagnostics.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "attune-steel-dev",
+  "version": "1.0.0-dev",
+  "description": "Attune Steel — Development Build with diagnostics",
+  "main": "main-dev.js",
+  "scripts": {
+    "start": "electron . --main main-dev.js",
+    "setup": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && ./venv/bin/pip install -r dam/requirements.txt"
+  },
+  "author": "Attune",
+  "license": "UNLICENSED",
+  "private": true,
+  "build": {
+    "publish": []
+  },
+  "devDependencies": {
+    "@electron/packager": "^19.0.5",
+    "electron": "^35.0.0"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
+  }
+}
