@@ -377,6 +377,8 @@ class NotificationManager:
         if len(readings_today) == 1:
             # First reading — send Voice Weather
             self.generate_voice_weather(reading)
+            # Health Score ready notification (teaser — preserves reveal moment)
+            self._notify_health_score_ready()
 
         # Zone transition check
         self.check_zone_transition(reading)
@@ -386,6 +388,19 @@ class NotificationManager:
 
         # Idle curtain call check
         self.check_idle_curtain_call()
+
+    # ================================================================
+    #  Health Score Ready Notification
+    # ================================================================
+
+    def _notify_health_score_ready(self):
+        """Notify user their Health Score is ready after first reading of the day."""
+        self.send_notification(
+            "Attune",
+            "Your first reading is in. Open Attune to reveal your Health Score.",
+            subtitle="Health Score Ready",
+            notif_type="voice_weather"
+        )
 
     # ================================================================
     #  Weekly Wrapped Notification

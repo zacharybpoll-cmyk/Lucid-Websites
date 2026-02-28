@@ -2914,3 +2914,13 @@ body {
 .analyzing-text {
     animation: analyzing-pulse 2s ease-in-out infinite;
 }
+
+/* ============ Metric Bar Analyzing Pulse ============ */
+@keyframes metbar-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+.metbar-analyzing .metbar-val,
+.metbar-analyzing .metbar-fill {
+    animation: metbar-pulse 2s ease-in-out infinite;
+}

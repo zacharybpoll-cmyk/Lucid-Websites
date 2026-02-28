@@ -49,7 +49,7 @@ function animateCircle(metric, value, duration) {
 
 // ============ Score Circles (Oura-style) — legacy hidden elements ============
 
-function updateScoreCircles(scores, canopyScore) {
+function updateScoreCircles(scores, canopyScore, delta) {
     const targets = {
         'wellbeing':           scores.wellbeing ?? scores.mood ?? 50,
         'calm':                scores.calm ?? 50,
@@ -71,7 +71,7 @@ function updateScoreCircles(scores, canopyScore) {
     if (!_ringAnalyzing) {
         const effectiveCanopy = canopyScore !== undefined && canopyScore !== null
             ? canopyScore : _gaugeState.canopy;
-        renderRingGauge(effectiveCanopy, scores);
+        renderRingGauge(effectiveCanopy, scores, delta);
     }
     updateMetricBars(scores);
 }
@@ -130,6 +130,46 @@ let _ringProgressRAF = null;
 let _ringProgressStart = 0;
 let _ringSafetyTimer = null;
 
+// ============ Score Reveal Flags ============
+let _ringScoreReveal = false;  // set on analysis finish, consumed by renderRingGauge()
+let _metBarReveal = false;     // set on analysis finish, consumed by updateMetricBars()
+
+function startMetricBarPulse() {
+    document.querySelectorAll('.metbar-item').forEach(el => el.classList.add('metbar-analyzing'));
+}
+
+function stopMetricBarPulse() {
+    document.querySelectorAll('.metbar-item').forEach(el => el.classList.remove('metbar-analyzing'));
+}
+
+function animateMetricBar(valEl, fillEl, rawTarget, pctTarget, duration, delay) {
+    setTimeout(() => {
+        const startTime = performance.now();
+        // Disable CSS transition during JS animation
+        if (fillEl) fillEl.style.transition = 'none';
+        function tick(now) {
+            const progress = Math.min((now - startTime) / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+            if (valEl) valEl.textContent = Math.round(rawTarget * eased) + '%';
+            if (fillEl) fillEl.style.width = (pctTarget * eased).toFixed(1) + '%';
+            if (progress < 1) {
+                requestAnimationFrame(tick);
+            } else {
+                // Snap to final values and restore transition
+                if (valEl) valEl.textContent = Math.round(rawTarget) + '%';
+                if (fillEl) {
+                    fillEl.style.width = pctTarget.toFixed(1) + '%';
+                    fillEl.style.transition = '';
+                }
+            }
+        }
+        // Reset to 0 first
+        if (valEl) valEl.textContent = '0%';
+        if (fillEl) fillEl.style.width = '0%';
+        requestAnimationFrame(tick);
+    }, delay);
+}
+
 const RING_DEFS = [
     { key: 'emotional-stability', r: 120 },
     { key: 'wellbeing',           r: 105 },
@@ -142,6 +182,8 @@ const RING_DEFS = [
 function startRingGaugeProgress() {
     if (_ringAnalyzing) return;
     _ringAnalyzing = true;
+
+    startMetricBarPulse();
 
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
@@ -285,6 +327,11 @@ function finishRingGaugeProgress() {
     // Snap all rings to 100%
     updateRingGaugeProgress(1.0);
 
+    // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
+    _ringScoreReveal = true;
+    _metBarReveal = true;
+    stopMetricBarPulse();
+
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
 }
 
@@ -292,12 +339,17 @@ function finishRingGaugeProgress() {
 
 let _gaugeState = { canopy: null, scores: {} };
 
-function renderRingGauge(canopyScore, scores) {
-    _gaugeState = { canopy: canopyScore, scores: scores || {} };
+function renderRingGauge(canopyScore, scores, delta) {
+    _gaugeState = { canopy: canopyScore, scores: scores || {}, delta: delta };
 
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
     svg.innerHTML = '';
+
+    // Capture and consume reveal flag
+    const isReveal = _ringScoreReveal;
+    if (!canopyScore && canopyScore !== 0) _ringScoreReveal = false;
+    if (isReveal) _ringScoreReveal = false;
 
     const cx = 150, cy = 150;
     const rings = [
@@ -343,6 +395,7 @@ function renderRingGauge(canopyScore, scores) {
     });
 
     // Progress arcs
+    const arcElements = [];
     rings.forEach(({ key, r, invert }, i) => {
         const raw = scores[key] ?? (key === 'emotional-stability' ? (scores.emotional_stability ?? 50) : 50);
         const val = Math.max(0, Math.min(100, raw));
@@ -357,16 +410,21 @@ function renderRingGauge(canopyScore, scores) {
         arc.setAttribute('stroke-width', '5.5');
         arc.setAttribute('stroke-linecap', 'round');
         arc.setAttribute('stroke-dasharray', circumference.toFixed(2));
-        arc.setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(2));
+        // Start at 0% if reveal, otherwise snap to final
+        arc.setAttribute('stroke-dashoffset', isReveal
+            ? circumference.toFixed(2)
+            : (circumference * (1 - pct)).toFixed(2));
         arc.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
         arc.setAttribute('opacity', opacities[i]);
         arc.setAttribute('filter', 'url(#rg-glow)');
         svg.appendChild(arc);
+        arcElements.push({ arc, circumference, pct });
     });
 
     // Center: canopy score
     const showScore = canopyScore !== null && canopyScore !== undefined;
-    const scoreStr = showScore ? Math.round(canopyScore).toString() : '--';
+    const finalScore = showScore ? Math.round(canopyScore) : null;
+    const scoreStr = showScore ? (isReveal ? '0' : finalScore.toString()) : '--';
 
     const scoreEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     scoreEl.setAttribute('x', cx); scoreEl.setAttribute('y', cy + 18);
@@ -394,6 +452,70 @@ function renderRingGauge(canopyScore, scores) {
         tierEl.textContent = tier;
     }
     svg.appendChild(tierEl);
+
+    // Trend delta (only when baseline differs from current)
+    if (showScore && delta !== null && delta !== undefined && delta !== 0) {
+        const arrow = delta > 0 ? '\u2191' : '\u2193';
+        const sign = delta > 0 ? '+' : '';
+        const baselineTime = window.AppState && window.AppState.morningBaselineTime
+            ? _formatBaselineTime(window.AppState.morningBaselineTime) : '';
+        const deltaText = `${arrow} ${sign}${Math.round(delta)}${baselineTime ? ' from ' + baselineTime : ''}`;
+
+        const deltaEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        deltaEl.setAttribute('x', cx);
+        deltaEl.setAttribute('y', cy + 50);
+        deltaEl.setAttribute('text-anchor', 'middle');
+        deltaEl.setAttribute('font-family', 'Inter, sans-serif');
+        deltaEl.setAttribute('font-size', '9');
+        deltaEl.setAttribute('font-weight', '400');
+        deltaEl.setAttribute('fill', delta > 0 ? '#5a9a6e' : '#c4584c');
+        deltaEl.setAttribute('opacity', '0.7');
+        deltaEl.textContent = deltaText;
+        svg.appendChild(deltaEl);
+    }
+
+    // ---- Reveal animations (RAF) ----
+    if (isReveal && showScore) {
+        const arcDuration = 2000;   // 2s for ring arcs
+        const scoreDuration = 2500; // 2.5s for score count-up
+        const startTime = performance.now();
+
+        function revealTick(now) {
+            const elapsed = now - startTime;
+
+            // Animate ring arcs (0% → final pct, 2s, ease-out cubic)
+            const arcProgress = Math.min(elapsed / arcDuration, 1);
+            const arcEased = 1 - Math.pow(1 - arcProgress, 3);
+            arcElements.forEach(({ arc, circumference, pct }) => {
+                const currentPct = pct * arcEased;
+                arc.setAttribute('stroke-dashoffset', (circumference * (1 - currentPct)).toFixed(2));
+            });
+
+            // Animate score count-up (0 → finalScore, 2.5s, ease-out cubic)
+            const scoreProgress = Math.min(elapsed / scoreDuration, 1);
+            const scoreEased = 1 - Math.pow(1 - scoreProgress, 3);
+            scoreEl.textContent = Math.round(finalScore * scoreEased).toString();
+
+            if (arcProgress < 1 || scoreProgress < 1) {
+                requestAnimationFrame(revealTick);
+            } else {
+                // Snap to final values
+                arcElements.forEach(({ arc, circumference, pct }) => {
+                    arc.setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(2));
+                });
+                scoreEl.textContent = finalScore.toString();
+            }
+        }
+        requestAnimationFrame(revealTick);
+    }
+}
+
+function _formatBaselineTime(date) {
+    if (!date) return '';
+    let h = date.getHours();
+    const ampm = h >= 12 ? 'pm' : 'am';
+    h = h % 12 || 12;
+    return h + ampm;
 }
 
 // ============ Metric Bars ============
@@ -407,13 +529,25 @@ function updateMetricBars(scores) {
         { id: 'anxiety',    key: 'anxiety',              altKey: null,                  invert: true  },
         { id: 'stress',     key: 'stress',               altKey: null,                  invert: true  },
     ];
-    bars.forEach(({ id, key, altKey, invert }) => {
+
+    // Check and consume reveal flag
+    const isReveal = _metBarReveal;
+    if (isReveal) _metBarReveal = false;
+
+    bars.forEach(({ id, key, altKey, invert }, i) => {
         const raw = Math.max(0, Math.min(100, scores[key] ?? (altKey ? scores[altKey] : null) ?? 50));
         const pct = invert ? (100 - raw) : raw;
         const valEl  = document.getElementById(`metbar-val-${id}`);
         const fillEl = document.getElementById(`metbar-fill-${id}`);
-        if (valEl)  valEl.textContent = Math.round(raw) + '%';
-        if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+
+        if (isReveal) {
+            // Staggered count-up animation: 1.5s each, 100ms stagger
+            animateMetricBar(valEl, fillEl, raw, pct, 1500, i * 100);
+        } else {
+            // Normal snap
+            if (valEl)  valEl.textContent = Math.round(raw) + '%';
+            if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
+        }
     });
 }
 
@@ -432,7 +566,7 @@ function initThemeToggle() {
         localStorage.setItem('attune-theme', next);
         updateThemeIcon(next);
         // Re-render ring gauge for new theme colors
-        renderRingGauge(_gaugeState.canopy, _gaugeState.scores);
+        renderRingGauge(_gaugeState.canopy, _gaugeState.scores, _gaugeState.delta);
     });
 }
 

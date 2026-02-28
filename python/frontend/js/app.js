@@ -99,6 +99,10 @@ window.AppState = {
     canopyRevealed: false,
     prevCanopyScore: 0,
 
+    // Intraday trend baseline
+    morningBaselineScore: null,
+    morningBaselineTime: null,
+
     // First Spark state
     firstSparkLoaded: false,
 
@@ -802,8 +806,31 @@ async function loadTodayData() {
         const canopyData = await API.getCanopy().catch(() => null);
         const canopyScore = (canopyData && canopyData.has_data) ? canopyData.score : null;
 
+        // Intraday trend: reset baseline if day changed
+        if (AppState.morningBaselineTime) {
+            const baseDate = AppState.morningBaselineTime.toDateString();
+            const today = new Date().toDateString();
+            if (baseDate !== today) {
+                AppState.morningBaselineScore = null;
+                AppState.morningBaselineTime = null;
+            }
+        }
+
+        // Track morning baseline (first canopy score of the day)
+        if (canopyScore !== null && AppState.morningBaselineScore === null) {
+            AppState.morningBaselineScore = canopyScore;
+            AppState.morningBaselineTime = new Date();
+        }
+
+        // Compute intraday delta (only after 2+ readings so delta is meaningful)
+        let canopyDelta = null;
+        if (canopyScore !== null && AppState.morningBaselineScore !== null
+            && canopyScore !== AppState.morningBaselineScore) {
+            canopyDelta = Math.round(canopyScore - AppState.morningBaselineScore);
+        }
+
         updateCurrentScores(data.current_scores, data.readings);
-        updateScoreCircles(data.current_scores, canopyScore);
+        updateScoreCircles(data.current_scores, canopyScore, canopyDelta);
         updateZoneBar(data.readings);
         updateAnxietyTimeline(data.readings);
         updateZoneSummary(data.summary);
