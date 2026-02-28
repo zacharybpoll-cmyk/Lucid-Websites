@@ -930,13 +930,9 @@ async function loadCanopyScore() {
             if (progressState) progressState.style.display = 'none';
             if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
-            if (!AppState.canopyRevealed) {
-                AppState.canopyRevealed = true;
-                animateCountUp(scoreEl, data.score, 3000);
-            } else if (data.score !== AppState.prevCanopyScore) {
-                scoreEl.textContent = '0';
-                animateCountUp(scoreEl, data.score, 1500);
-            }
+            // Legacy score element is hidden — just update its text
+            // The ring gauge reveal card controls canopyRevealed
+            if (scoreEl) scoreEl.textContent = Math.round(data.score);
             AppState.prevCanopyScore = data.score;
             if (profileEl) profileEl.textContent = data.profile || '';
         }
@@ -966,13 +962,9 @@ function _updateCanopyUI(data) {
         if (progressState) progressState.style.display = 'none';
         if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
-        if (!AppState.canopyRevealed) {
-            AppState.canopyRevealed = true;
-            animateCountUp(scoreEl, data.score, 3000);
-        } else if (data.score !== AppState.prevCanopyScore) {
-            scoreEl.textContent = '0';
-            animateCountUp(scoreEl, data.score, 1500);
-        }
+        // Legacy score element is hidden — just update its text
+        // The ring gauge reveal card controls canopyRevealed
+        if (scoreEl) scoreEl.textContent = Math.round(data.score);
         AppState.prevCanopyScore = data.score;
         if (profileEl) profileEl.textContent = data.profile || '';
     }

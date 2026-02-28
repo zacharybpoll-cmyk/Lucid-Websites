@@ -2736,6 +2736,7 @@ body {
 
 /* ============ Ring Gauge Hero ============ */
 .ring-gauge-card {
+    position: relative;
     text-align: center;
     padding-top: 16px;
 }
@@ -2923,4 +2924,65 @@ body {
 .metbar-analyzing .metbar-val,
 .metbar-analyzing .metbar-fill {
     animation: metbar-pulse 2s ease-in-out infinite;
+}
+
+/* ============ Tap-to-Reveal Overlay ============ */
+.ring-reveal-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    background: rgba(245, 248, 250, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.ring-reveal-text {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.ring-reveal-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ring-accent-1, #3a5a6e);
+    background: rgba(58, 90, 110, 0.08);
+    border: 1px solid rgba(58, 90, 110, 0.2);
+    border-radius: 24px;
+    padding: 10px 32px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ring-reveal-btn:hover {
+    background: rgba(58, 90, 110, 0.14);
+    border-color: rgba(58, 90, 110, 0.35);
+    transform: scale(1.03);
+}
+
+[data-theme="night"] .ring-reveal-overlay {
+    background: rgba(13, 21, 32, 0.65);
+}
+[data-theme="night"] .ring-reveal-btn {
+    color: var(--ring-accent-1, #c4d8e8);
+    background: rgba(168, 192, 208, 0.1);
+    border-color: rgba(168, 192, 208, 0.25);
+}
+[data-theme="night"] .ring-reveal-btn:hover {
+    background: rgba(168, 192, 208, 0.18);
+    border-color: rgba(168, 192, 208, 0.4);
 }

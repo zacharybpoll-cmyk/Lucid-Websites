@@ -185,6 +185,10 @@ function startRingGaugeProgress() {
 
     startMetricBarPulse();
 
+    // Remove reveal overlay if present (analysis started before user tapped Reveal)
+    const card = document.getElementById('ring-gauge-svg')?.parentElement;
+    card?.querySelector('.ring-reveal-overlay')?.remove();
+
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
 
@@ -330,6 +334,7 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
+    window.AppState.canopyRevealed = true;  // Skip tap-to-reveal card after analysis
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
@@ -339,17 +344,71 @@ function finishRingGaugeProgress() {
 
 let _gaugeState = { canopy: null, scores: {} };
 
+function _renderRevealCard(canopyScore, scores, delta) {
+    const svg = document.getElementById('ring-gauge-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    // Render empty track rings (no arcs, no score) as a teaser background
+    const cx = 150, cy = 150;
+    const style = getComputedStyle(document.documentElement);
+    const trackColor = style.getPropertyValue('--ring-track').trim() || '#1a2028';
+
+    RING_DEFS.forEach(({ r }) => {
+        const track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        track.setAttribute('cx', cx); track.setAttribute('cy', cy);
+        track.setAttribute('r', r); track.setAttribute('fill', 'none');
+        track.setAttribute('stroke', trackColor); track.setAttribute('stroke-width', '5.5');
+        svg.appendChild(track);
+    });
+
+    // Remove any existing overlay
+    const card = svg.parentElement;
+    card.querySelector('.ring-reveal-overlay')?.remove();
+
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.className = 'ring-reveal-overlay';
+    overlay.innerHTML = `
+        <div class="ring-reveal-text">Your Health Score<br>is ready</div>
+        <button class="ring-reveal-btn">Reveal</button>
+    `;
+
+    // Click handler: trigger animation
+    overlay.addEventListener('click', () => {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+            overlay.remove();
+            _ringScoreReveal = true;
+            _metBarReveal = true;
+            window.AppState.canopyRevealed = true;
+            renderRingGauge(canopyScore, scores, delta);
+            updateMetricBars(_gaugeState.scores);
+        }, 300);
+    });
+
+    card.appendChild(overlay);
+}
+
 function renderRingGauge(canopyScore, scores, delta) {
     _gaugeState = { canopy: canopyScore, scores: scores || {}, delta: delta };
 
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
-    svg.innerHTML = '';
 
     // Capture and consume reveal flag
     const isReveal = _ringScoreReveal;
     if (!canopyScore && canopyScore !== 0) _ringScoreReveal = false;
     if (isReveal) _ringScoreReveal = false;
+
+    // Tap-to-reveal: show overlay on first view of the session
+    const showScoreEarly = canopyScore !== null && canopyScore !== undefined;
+    if (showScoreEarly && !window.AppState.canopyRevealed && !isReveal) {
+        _renderRevealCard(canopyScore, scores, delta);
+        return;
+    }
+
+    svg.innerHTML = '';
 
     const cx = 150, cy = 150;
     const rings = [
