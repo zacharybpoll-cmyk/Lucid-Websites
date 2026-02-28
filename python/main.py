@@ -292,7 +292,7 @@ class Attune:
         logger.info("Goodbye.")
 
 def main():
-    setup_logging()
+    setup_logging(log_dir=str(config.DATA_DIR))
     _setup_crash_reporting()
 
     parser = argparse.ArgumentParser(description='Attune — Voice Wellness Monitor')

@@ -65,6 +65,116 @@ class Reading(BaseModel):
             raise ValueError(f'f0_mean must be between 0 and 1000 Hz, got {v}')
         return v
 
+class ReadingInsert(BaseModel):
+    """Validation model for inserting readings into the database.
+    All fields optional (default None). Applies same clamping/validation as Reading."""
+    timestamp: Optional[str] = None
+    depression_raw: Optional[float] = None
+    anxiety_raw: Optional[float] = None
+    depression_quantized: Optional[int] = None
+    anxiety_quantized: Optional[int] = None
+    depression_mapped: Optional[float] = None
+    anxiety_mapped: Optional[float] = None
+    f0_mean: Optional[float] = None
+    f0_std: Optional[float] = None
+    speech_rate: Optional[float] = None
+    rms_energy: Optional[float] = None
+    spectral_centroid: Optional[float] = None
+    spectral_entropy: Optional[float] = None
+    zcr: Optional[float] = None
+    jitter: Optional[float] = None
+    shimmer: Optional[float] = None
+    voice_breaks: Optional[int] = None
+    stress_score: Optional[float] = None
+    mood_score: Optional[float] = None
+    energy_score: Optional[float] = None
+    calm_score: Optional[float] = None
+    stress_score_raw: Optional[float] = None
+    mood_score_raw: Optional[float] = None
+    energy_score_raw: Optional[float] = None
+    calm_score_raw: Optional[float] = None
+    zone: Optional[str] = None
+    speech_duration_sec: Optional[float] = None
+    meeting_detected: Optional[int] = None
+    vad_confidence: Optional[float] = None
+    low_confidence: Optional[int] = None
+    depression_ci_lower: Optional[float] = None
+    depression_ci_upper: Optional[float] = None
+    anxiety_ci_lower: Optional[float] = None
+    anxiety_ci_upper: Optional[float] = None
+    uncertainty_flag: Optional[str] = None
+    score_inconsistency: Optional[int] = None
+    speaker_verified: Optional[int] = None
+    speaker_similarity: Optional[float] = None
+    # Extended scores
+    wellbeing_score: Optional[float] = None
+    wellbeing_score_raw: Optional[float] = None
+    depression_risk_score: Optional[float] = None
+    depression_risk_score_raw: Optional[float] = None
+    activation_score: Optional[float] = None
+    activation_score_raw: Optional[float] = None
+    anxiety_risk_score: Optional[float] = None
+    anxiety_risk_score_raw: Optional[float] = None
+    emotional_stability_score: Optional[float] = None
+    emotional_stability_score_raw: Optional[float] = None
+    # Extended acoustic features
+    alpha_ratio: Optional[float] = None
+    mfcc3: Optional[float] = None
+    pitch_range: Optional[float] = None
+    rms_sd: Optional[float] = None
+    phonation_ratio: Optional[float] = None
+    h1_h2: Optional[float] = None
+    hnr: Optional[float] = None
+    voice_tremor_index: Optional[float] = None
+    pause_mean: Optional[float] = None
+    pause_sd: Optional[float] = None
+    pause_rate: Optional[float] = None
+
+    @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
+                     'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',
+                     'wellbeing_score', 'wellbeing_score_raw',
+                     'depression_risk_score', 'depression_risk_score_raw',
+                     'activation_score', 'activation_score_raw',
+                     'anxiety_risk_score', 'anxiety_risk_score_raw',
+                     'emotional_stability_score', 'emotional_stability_score_raw',
+                     mode='before')
+    @classmethod
+    def clamp_scores(cls, v):
+        if v is None:
+            return v
+        return max(0.0, min(100.0, float(v)))
+
+    @field_validator('f0_mean', mode='before')
+    @classmethod
+    def validate_f0(cls, v):
+        if v is None:
+            return v
+        v = float(v)
+        if v < 0 or v > 1000:
+            raise ValueError(f'f0_mean must be between 0 and 1000 Hz, got {v}')
+        return v
+
+    @field_validator('zone', mode='before')
+    @classmethod
+    def validate_zone(cls, v):
+        if v is None:
+            return v
+        valid_zones = ('stressed', 'tense', 'steady', 'calm')
+        if v not in valid_zones:
+            raise ValueError(f'zone must be one of {valid_zones}, got {v!r}')
+        return v
+
+    @field_validator('speech_duration_sec', mode='before')
+    @classmethod
+    def validate_speech_duration(cls, v):
+        if v is None:
+            return v
+        v = float(v)
+        if v < 0:
+            raise ValueError(f'speech_duration_sec must be >= 0, got {v}')
+        return v
+
+
 class DailySummary(BaseModel):
     date: str
     avg_depression: Optional[float] = None
@@ -100,6 +210,9 @@ class StatusResponse(BaseModel):
     speaker_enrolled: Optional[bool] = None
     enrollment_required: Optional[bool] = None
     speaker_gate_stats: Optional[Dict[str, Any]] = None
+    last_analysis_error: Optional[str] = None
+    analysis_success_count: Optional[int] = None
+    mic_disconnected: Optional[bool] = None
 
 class TagRequest(BaseModel):
     timestamp: str
