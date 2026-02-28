@@ -49,7 +49,7 @@ function animateCircle(metric, value, duration) {
 
 // ============ Score Circles (Oura-style) — legacy hidden elements ============
 
-function updateScoreCircles(scores) {
+function updateScoreCircles(scores, canopyScore) {
     const targets = {
         'wellbeing':           scores.wellbeing ?? scores.mood ?? 50,
         'calm':                scores.calm ?? 50,
@@ -67,10 +67,12 @@ function updateScoreCircles(scores) {
     });
     prevCircleScores = {...targets};
 
-    // Drive ring gauge + metric bars
-    const canopyEl = document.getElementById('canopy-score');
-    const canopyVal = canopyEl ? parseInt(canopyEl.textContent) : NaN;
-    renderRingGauge(isNaN(canopyVal) ? null : canopyVal, scores);
+    // Drive ring gauge + metric bars (skip if ring gauge is in analyzing state)
+    if (!_ringAnalyzing) {
+        const effectiveCanopy = canopyScore !== undefined && canopyScore !== null
+            ? canopyScore : _gaugeState.canopy;
+        renderRingGauge(effectiveCanopy, scores);
+    }
     updateMetricBars(scores);
 }
 
@@ -119,6 +121,171 @@ function getScoreColor(metric, value) {
     }
 
     return `rgb(${r}, ${g}, ${b})`;
+}
+
+// ============ Ring Gauge Progress (Analyzing State) ============
+
+let _ringAnalyzing = false;
+let _ringProgressRAF = null;
+let _ringProgressStart = 0;
+let _ringSafetyTimer = null;
+
+const RING_DEFS = [
+    { key: 'emotional-stability', r: 120 },
+    { key: 'wellbeing',           r: 105 },
+    { key: 'calm',                r: 90  },
+    { key: 'activation',          r: 75  },
+    { key: 'anxiety',             r: 60  },
+    { key: 'stress',              r: 45  },
+];
+
+function startRingGaugeProgress() {
+    if (_ringAnalyzing) return;
+    _ringAnalyzing = true;
+
+    const svg = document.getElementById('ring-gauge-svg');
+    if (!svg) return;
+
+    renderRingGaugeAnalyzing();
+
+    _ringProgressStart = performance.now();
+
+    // Safety timeout: 30s max
+    _ringSafetyTimer = setTimeout(() => {
+        if (_ringAnalyzing) finishRingGaugeProgress();
+    }, 30000);
+
+    function tick(now) {
+        if (!_ringAnalyzing) return;
+        const elapsed = now - _ringProgressStart;
+        let progress;
+        if (elapsed < 8000) {
+            progress = (elapsed / 8000) * 0.80;
+        } else {
+            progress = 0.80 + Math.min((elapsed - 8000) / 22000, 1) * 0.15;
+        }
+        updateRingGaugeProgress(progress);
+        _ringProgressRAF = requestAnimationFrame(tick);
+    }
+
+    _ringProgressRAF = requestAnimationFrame(tick);
+}
+
+function renderRingGaugeAnalyzing() {
+    const svg = document.getElementById('ring-gauge-svg');
+    if (!svg) return;
+    svg.innerHTML = '';
+
+    const cx = 150, cy = 150;
+    const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
+    const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
+                        '--ring-accent-4','--ring-accent-5','--ring-accent-6'];
+    const style = getComputedStyle(document.documentElement);
+    const trackColor = style.getPropertyValue('--ring-track').trim() || '#1a2028';
+
+    // SVG defs: glow filter
+    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+    const filt = document.createElementNS('http://www.w3.org/2000/svg', 'filter');
+    filt.setAttribute('id', 'rg-glow');
+    filt.setAttribute('x', '-30%'); filt.setAttribute('y', '-30%');
+    filt.setAttribute('width', '160%'); filt.setAttribute('height', '160%');
+    const fblur = document.createElementNS('http://www.w3.org/2000/svg', 'feGaussianBlur');
+    fblur.setAttribute('stdDeviation', '2'); fblur.setAttribute('result', 'blur');
+    filt.appendChild(fblur);
+    const fmerge = document.createElementNS('http://www.w3.org/2000/svg', 'feMerge');
+    ['blur','SourceGraphic'].forEach(src => {
+        const mn = document.createElementNS('http://www.w3.org/2000/svg', 'feMergeNode');
+        mn.setAttribute('in', src); fmerge.appendChild(mn);
+    });
+    filt.appendChild(fmerge);
+    defs.appendChild(filt);
+    svg.appendChild(defs);
+
+    // Track rings
+    RING_DEFS.forEach(({ r }) => {
+        const track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        track.setAttribute('cx', cx); track.setAttribute('cy', cy);
+        track.setAttribute('r', r); track.setAttribute('fill', 'none');
+        track.setAttribute('stroke', trackColor); track.setAttribute('stroke-width', '5.5');
+        svg.appendChild(track);
+    });
+
+    // Progress arcs (start at 0%)
+    RING_DEFS.forEach(({ r }, i) => {
+        const circumference = 2 * Math.PI * r;
+        const accentColor = style.getPropertyValue(accentVars[i]).trim() || '#a8c0d0';
+
+        const arc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        arc.setAttribute('cx', cx); arc.setAttribute('cy', cy);
+        arc.setAttribute('r', r); arc.setAttribute('fill', 'none');
+        arc.setAttribute('stroke', accentColor);
+        arc.setAttribute('stroke-width', '5.5');
+        arc.setAttribute('stroke-linecap', 'round');
+        arc.setAttribute('stroke-dasharray', circumference.toFixed(2));
+        arc.setAttribute('stroke-dashoffset', circumference.toFixed(2)); // 0% filled
+        arc.setAttribute('transform', `rotate(-90 ${cx} ${cy})`);
+        arc.setAttribute('opacity', opacities[i]);
+        arc.setAttribute('filter', 'url(#rg-glow)');
+        arc.classList.add('ring-progress-arc');
+        svg.appendChild(arc);
+    });
+
+    // Center: "Analyzing" text with pulse
+    const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    line1.setAttribute('x', cx); line1.setAttribute('y', cy + 4);
+    line1.setAttribute('text-anchor', 'middle');
+    line1.setAttribute('font-family', 'Playfair Display, Georgia, serif');
+    line1.setAttribute('font-size', '22');
+    line1.setAttribute('font-weight', '600');
+    line1.setAttribute('fill', style.getPropertyValue('--ring-accent-1').trim() || '#c4d8e8');
+    line1.classList.add('analyzing-text');
+    line1.textContent = 'Analyzing';
+    svg.appendChild(line1);
+
+    const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    line2.setAttribute('x', cx); line2.setAttribute('y', cy + 28);
+    line2.setAttribute('text-anchor', 'middle');
+    line2.setAttribute('font-family', 'Inter, sans-serif');
+    line2.setAttribute('font-size', '12');
+    line2.setAttribute('font-weight', '500');
+    line2.setAttribute('letter-spacing', '3');
+    line2.setAttribute('fill', style.getPropertyValue('--ring-accent-3').trim() || '#a8c0d0');
+    line2.setAttribute('opacity', '0.7');
+    line2.classList.add('analyzing-text');
+    line2.textContent = 'VOICE';
+    svg.appendChild(line2);
+}
+
+function updateRingGaugeProgress(progress) {
+    const svg = document.getElementById('ring-gauge-svg');
+    if (!svg) return;
+
+    const arcs = svg.querySelectorAll('.ring-progress-arc');
+    arcs.forEach((arc, i) => {
+        const r = RING_DEFS[i].r;
+        const circumference = 2 * Math.PI * r;
+        const offset = circumference * (1 - progress);
+        arc.setAttribute('stroke-dashoffset', offset.toFixed(2));
+    });
+}
+
+function finishRingGaugeProgress() {
+    if (!_ringAnalyzing) return;
+    _ringAnalyzing = false;
+
+    if (_ringProgressRAF) {
+        cancelAnimationFrame(_ringProgressRAF);
+        _ringProgressRAF = null;
+    }
+    if (_ringSafetyTimer) {
+        clearTimeout(_ringSafetyTimer);
+        _ringSafetyTimer = null;
+    }
+
+    // Snap all rings to 100%
+    updateRingGaugeProgress(1.0);
+
+    // After brief pause, loadTodayData() will call renderRingGauge() with real data
 }
 
 // ============ Ring Gauge ============

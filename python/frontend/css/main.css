@@ -2905,3 +2905,12 @@ body {
 
 [data-theme="night"] .theme-toggle-icon-sun { display: block; }
 [data-theme="night"] .theme-toggle-icon-moon { display: none; }
+
+/* ============ Ring Gauge Analyzing Animation ============ */
+@keyframes analyzing-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+.analyzing-text {
+    animation: analyzing-pulse 2s ease-in-out infinite;
+}

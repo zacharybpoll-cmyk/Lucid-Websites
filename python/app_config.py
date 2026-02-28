@@ -34,7 +34,7 @@ class AppConfig:
     speech_threshold_sec: int = 30      # Soft trigger: start grace period at 30s of speech
     preferred_speech_sec: int = 60      # Hard trigger: optimal DAM reliability at 60s
     buffer_size_sec: int = 90           # Max buffer size before force-analysis
-    grace_period_sec: int = 15          # After soft trigger, wait this long for more speech before analyzing
+    grace_period_sec: int = 4           # After soft trigger, wait this long for more speech before analyzing
 
     # Temporal Smoothing
     ema_alpha: float = 0.4              # Exponential moving average alpha (0.4 = half-life ~1.3 readings)

@@ -380,12 +380,18 @@ async function pollStatus() {
         if (!status.is_analyzing && AppState.canopyIsAnalyzing) {
             finishCanopyProgress();
         }
-        // Gauge ring animations
-        if (status.is_analyzing && !gaugesAreAnalyzing) startGaugeProgress();
-        if (!status.is_analyzing && gaugesAreAnalyzing) {
-            finishGaugeProgress();
+        // Ring gauge progress indicator
+        if (status.is_analyzing && !_ringAnalyzing) {
+            startRingGaugeProgress();
+        }
+        if (!status.is_analyzing && _ringAnalyzing) {
+            finishRingGaugeProgress();
+            console.log('[Attune] Analysis complete, refreshing data...');
             // Small delay to let backend persist reading before fetching
-            setTimeout(() => loadTodayData(), 500);
+            setTimeout(async () => {
+                await loadTodayData();
+                console.log('[Attune] Data refreshed after analysis');
+            }, 500);
         }
         // Show analysis error if present (only once per unique error)
         if (status.last_analysis_error && !status.is_analyzing) {
@@ -792,14 +798,20 @@ async function loadTodayData() {
             hideSpeakHero(true);
         }
 
+        // Fetch canopy data first so ring gauge has the score
+        const canopyData = await API.getCanopy().catch(() => null);
+        const canopyScore = (canopyData && canopyData.has_data) ? canopyData.score : null;
+
         updateCurrentScores(data.current_scores, data.readings);
-        updateScoreCircles(data.current_scores);
+        updateScoreCircles(data.current_scores, canopyScore);
         updateZoneBar(data.readings);
         updateAnxietyTimeline(data.readings);
         updateZoneSummary(data.summary);
         updateMeetings(data.readings);
         updateCalibrationBanner(data.calibration_status);
-        loadCanopyScore();
+
+        // Update canopy UI elements (progress state, score display, profile)
+        _updateCanopyUI(canopyData);
 
         // Detect zone transitions for Sanctuary Moments
         if (data.readings && data.readings.length > 0) {
@@ -903,6 +915,39 @@ async function loadCanopyScore() {
         }
     } catch (e) {
         console.error('Failed to load canopy score:', e);
+    }
+}
+
+// Update canopy UI elements from pre-fetched data (avoids duplicate API call)
+function _updateCanopyUI(data) {
+    if (!data) return;
+    const scoreEl = document.getElementById('canopy-score');
+    const profileEl = document.getElementById('canopy-profile');
+    const progressState = document.getElementById('canopy-progress-state');
+    const progressBar = document.getElementById('canopy-progress-bar');
+    const readingCountEl = document.getElementById('canopy-reading-count');
+
+    if (!data.has_data) {
+        const count = data.reading_count || 0;
+        if (progressState) progressState.style.display = 'flex';
+        if (scoreEl) scoreEl.style.display = 'none';
+        if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
+        if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
+        if (profileEl) profileEl.textContent = '';
+        AppState.canopyRevealed = false;
+    } else {
+        if (progressState) progressState.style.display = 'none';
+        if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
+
+        if (!AppState.canopyRevealed) {
+            AppState.canopyRevealed = true;
+            animateCountUp(scoreEl, data.score, 3000);
+        } else if (data.score !== AppState.prevCanopyScore) {
+            scoreEl.textContent = '0';
+            animateCountUp(scoreEl, data.score, 1500);
+        }
+        AppState.prevCanopyScore = data.score;
+        if (profileEl) profileEl.textContent = data.profile || '';
     }
 }
 
