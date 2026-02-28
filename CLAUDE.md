@@ -33,7 +33,7 @@ cp <changed-files> ~/Desktop/"Attune Steel.app"/Contents/Resources/python/
 rm -rf ~/Library/Application\ Support/attune-steel/Cache ~/Library/Application\ Support/attune-steel/Code\ Cache
 
 # 3. Kill and relaunch
-pkill -f "Attune Steel" || true && sleep 1 && open ~/Desktop/"Attune Steel.app"
+pkill -f "Attune Steel" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 1 && open ~/Desktop/"Attune Steel.app"
 
 # 4. ALWAYS screenshot after relaunch to confirm changes are live
 ```
@@ -41,7 +41,7 @@ pkill -f "Attune Steel" || true && sleep 1 && open ~/Desktop/"Attune Steel.app"
 ### Full Rebuild (many files or structural changes)
 ```bash
 cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel" && \
-pkill -f "Attune Steel" || true && sleep 2 && \
+pkill -f "Attune Steel" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 2 && \
 npx electron-packager . "Attune Steel" --platform=darwin --arch=arm64 \
   --icon=assets/icon.icns --app-bundle-id=com.electron.attune-steel \
   --app-version=1.0.0 \

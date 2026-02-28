@@ -132,9 +132,28 @@ function showSplash() {
 
 // ============ Python Subprocess ============
 
+function killStaleBackend() {
+  try {
+    const result = require('child_process').execSync(
+      `lsof -ti TCP:${API_PORT} 2>/dev/null`, { encoding: 'utf8', timeout: 5000 }
+    ).trim();
+    if (result) {
+      const pids = result.split('\n');
+      for (const pid of pids) {
+        const p = parseInt(pid);
+        if (p && p !== process.pid) {
+          console.log(`[Main] Killing stale process on port ${API_PORT}: PID ${p}`);
+          try { process.kill(p, 'SIGKILL'); } catch {}
+        }
+      }
+    }
+  } catch {} // No stale process — expected case
+}
+
 function spawnPython() {
   return new Promise((resolve, reject) => {
     ensureDataDir();
+    killStaleBackend();
 
     const env = {
       ...process.env,
