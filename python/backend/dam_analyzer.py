@@ -227,6 +227,12 @@ class DAMAnalyzer:
 
             return output
 
+        except FileNotFoundError as e:
+            logger.error(f"Critical file missing during analysis: {e}")
+            raise
+        except RuntimeError as e:
+            logger.error(f"Runtime error during analysis: {e}")
+            raise
         except Exception as e:
             logger.error(f"Error during analysis: {e}")
             traceback.print_exc()

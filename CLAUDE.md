@@ -41,11 +41,15 @@ pkill -f "Attune Steel" || true && sleep 1 && open ~/Desktop/"Attune Steel.app"
 ### Full Rebuild (many files or structural changes)
 ```bash
 cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel" && \
-pkill -f "Attune Steel" || true && \
+pkill -f "Attune Steel" || true && sleep 2 && \
 npx electron-packager . "Attune Steel" --platform=darwin --arch=arm64 \
   --icon=assets/icon.icns --app-bundle-id=com.electron.attune-steel \
-  --app-version=1.0.0 --extra-resource=python \
-  --ignore='^/.*-darwin-arm64$' --ignore='^/\.git' --ignore='^/python' --overwrite && \
+  --app-version=1.0.0 \
+  --ignore='^/.*-darwin-arm64$' --ignore='^/\.git' --ignore='^/python' \
+  --ignore='^\/(Business|claude-dashboard|attune-steel-website|scripts|build)' \
+  --ignore='\.(docx|pdf|zip|png|pptx)$' \
+  --overwrite && \
+cp -R python "./Attune Steel-darwin-arm64/Attune Steel.app/Contents/Resources/" && \
 rm -rf ~/Desktop/"Attune Steel.app" && \
 mv "./Attune Steel-darwin-arm64/Attune Steel.app" ~/Desktop/"Attune Steel.app" && \
 codesign --sign - --force --deep ~/Desktop/"Attune Steel.app"

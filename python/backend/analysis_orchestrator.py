@@ -361,12 +361,18 @@ class AnalysisOrchestrator:
                         logger.warning(f"Bootstrap enrollment failed (non-fatal): {be}")
 
             # Run DAM analysis
-            dam_output = self.dam_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
+            try:
+                dam_output = self.dam_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
+            except (FileNotFoundError, RuntimeError) as e:
+                with self._state_lock:
+                    self._last_analysis_error = f"Analysis error: {e}"
+                logger.error(f"DAM analysis failed: {e}")
+                return
 
             if dam_output is None:
                 with self._state_lock:
-                    self._last_analysis_error = "DAM analysis returned no results"
-                logger.warning("DAM analysis returned None (error), skipping this segment")
+                    self._last_analysis_error = "DAM analysis returned no results (check logs)"
+                logger.warning("DAM analysis returned None, skipping segment")
                 return
 
             # Extract acoustic features (includes shimmer + voice_breaks)

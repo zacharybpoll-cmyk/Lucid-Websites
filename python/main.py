@@ -190,6 +190,13 @@ class Attune:
         deps.insight_engine = self.insight_engine
         deps.notification_manager = self.notification_manager
 
+        # Wire up legacy route globals (routes.py endpoints use module-level vars)
+        routes.db = self.db
+        routes.orchestrator = self.orchestrator
+        routes.meeting_detector = self.meeting_detector
+        routes.insight_engine = self.insight_engine
+        routes.notification_manager = self.notification_manager
+
         # --- Start uvicorn in a daemon thread ---
         logger.info(f"Starting server on http://{config.API_HOST}:{config.API_PORT}")
         uv_config = uvicorn.Config(
