@@ -334,7 +334,7 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
-    // canopyRevealed is NOT set here — let renderRingGauge() decide whether to show the reveal card
+    window.AppState.canopyRevealed = false;  // Reset so renderRingGauge() can show the reveal card
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
