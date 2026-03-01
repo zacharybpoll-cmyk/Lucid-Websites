@@ -805,6 +805,8 @@ async function loadTodayData() {
         // Fetch canopy data first so ring gauge has the score
         const canopyData = await API.getCanopy().catch(() => null);
         const canopyScore = (canopyData && canopyData.has_data) ? canopyData.score : null;
+        // Track reading count for reveal overlay logic
+        if (canopyData) AppState.currentReadingCount = canopyData.reading_count || 0;
 
         // Intraday trend: reset baseline if day changed
         if (AppState.morningBaselineTime) {
@@ -916,6 +918,7 @@ async function loadCanopyScore() {
         const progressBar = document.getElementById('canopy-progress-bar');
         const readingCountEl = document.getElementById('canopy-reading-count');
 
+        AppState.currentReadingCount = data.reading_count || 0;
         if (!data.has_data) {
             // Show progress state
             const count = data.reading_count || 0;
@@ -950,6 +953,7 @@ function _updateCanopyUI(data) {
     const progressBar = document.getElementById('canopy-progress-bar');
     const readingCountEl = document.getElementById('canopy-reading-count');
 
+    AppState.currentReadingCount = data.reading_count || 0;
     if (!data.has_data) {
         const count = data.reading_count || 0;
         if (progressState) progressState.style.display = 'flex';

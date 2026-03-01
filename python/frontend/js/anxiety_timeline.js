@@ -234,28 +234,6 @@ class StressDotTimeline {
                 lineD += ` L ${points[i].x} ${points[i].y}`;
             }
 
-            // Ghost echo line 2 (farthest, most transparent)
-            const ghostLine2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            ghostLine2.setAttribute('d', lineD);
-            ghostLine2.setAttribute('fill', 'none');
-            ghostLine2.setAttribute('stroke', gridColor);
-            ghostLine2.setAttribute('stroke-width', '1.5');
-            ghostLine2.setAttribute('stroke-linecap', 'round');
-            ghostLine2.setAttribute('stroke-linejoin', 'round');
-            ghostLine2.setAttribute('transform', 'translate(0,-8)');
-            svg.appendChild(ghostLine2);
-
-            // Ghost echo line 1
-            const ghostLine1 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            ghostLine1.setAttribute('d', lineD);
-            ghostLine1.setAttribute('fill', 'none');
-            ghostLine1.setAttribute('stroke', isDay ? 'rgba(64,72,84,0.2)' : 'rgba(168,192,208,0.2)');
-            ghostLine1.setAttribute('stroke-width', '1.5');
-            ghostLine1.setAttribute('stroke-linecap', 'round');
-            ghostLine1.setAttribute('stroke-linejoin', 'round');
-            ghostLine1.setAttribute('transform', 'translate(0,-4)');
-            svg.appendChild(ghostLine1);
-
             // Main line stroke with bioluminescent glow
             const linePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
             linePath.setAttribute('d', lineD);

@@ -382,6 +382,7 @@ function _renderRevealCard(canopyScore, scores, delta) {
             _ringScoreReveal = true;
             _metBarReveal = true;
             window.AppState.canopyRevealed = true;
+            localStorage.setItem('attune-last-revealed-count', String(window.AppState.currentReadingCount || 0));
             renderRingGauge(canopyScore, scores, delta);
             updateMetricBars(_gaugeState.scores);
         }, 300);
@@ -401,11 +402,18 @@ function renderRingGauge(canopyScore, scores, delta) {
     if (!canopyScore && canopyScore !== 0) _ringScoreReveal = false;
     if (isReveal) _ringScoreReveal = false;
 
-    // Tap-to-reveal: show overlay on first view of the session
+    // Tap-to-reveal: show overlay only when new readings arrive
     const showScoreEarly = canopyScore !== null && canopyScore !== undefined;
     if (showScoreEarly && !window.AppState.canopyRevealed && !isReveal) {
-        _renderRevealCard(canopyScore, scores, delta);
-        return;
+        const currentCount = window.AppState.currentReadingCount || 0;
+        const lastRevealed = parseInt(localStorage.getItem('attune-last-revealed-count') || '0', 10);
+        if (currentCount > lastRevealed) {
+            _renderRevealCard(canopyScore, scores, delta);
+            return;
+        } else {
+            // No new readings — skip overlay, go straight to display
+            window.AppState.canopyRevealed = true;
+        }
     }
 
     svg.innerHTML = '';
