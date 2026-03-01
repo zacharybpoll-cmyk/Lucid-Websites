@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attune — Dark Luxury</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #141414;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+.window-chrome {
+  width: 900px;
+  height: 680px;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 60px 120px rgba(0,0,0,0.9),
+    0 0 0 1px rgba(80,80,80,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+.titlebar {
+  height: 38px;
+  background: linear-gradient(180deg, #3c3c3c 0%, #2c2c2c 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #111;
+}
+
+.traffic-lights {
+  display: flex;
+  gap: 8px;
+}
+
+.tl {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.tl-close { background: #ff5f56; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3); }
+.tl-min   { background: #ffbd2e; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3); }
+.tl-max   { background: #27c93f; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.3); }
+
+.titlebar-title {
+  flex: 1;
+  text-align: center;
+  color: #c9a96e;
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  font-weight: 400;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: #000;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 55px;
+  background: #0f0f0f;
+  border-right: 1px solid #1c1c1c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 0;
+  gap: 26px;
+  flex-shrink: 0;
+}
+
+.sidebar-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.35;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.sidebar-icon.active {
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(201,169,110,0.7));
+}
+
+/* ─── Main ─── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 36px 12px;
+  overflow: hidden;
+}
+
+.topbar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.date-label {
+  font-size: 10px;
+  color: rgba(201,169,110,0.4);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mic-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: rgba(201,169,110,0.5);
+  letter-spacing: 0.06em;
+}
+
+.mic-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c9a96e;
+  animation: blink 1.8s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px rgba(201,169,110,0.8); }
+  50% { opacity: 0.2; box-shadow: none; }
+}
+
+.canopy-label {
+  font-size: 9px;
+  color: rgba(201,169,110,0.35);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.tagline {
+  font-family: 'Playfair Display', serif;
+  font-size: 11px;
+  font-style: italic;
+  color: rgba(201,169,110,0.3);
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+/* ─── Gauge ─── */
+#gauge-svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* ─── Metrics Grid ─── */
+.metrics-grid {
+  width: 100%;
+  max-width: 520px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px 28px;
+  margin: 8px 0 6px;
+}
+
+.metric-item {}
+
+.metric-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+}
+
+.metric-name {
+  font-size: 9.5px;
+  color: rgba(201,169,110,0.55);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.metric-pct {
+  font-size: 10.5px;
+  color: #c9a96e;
+  font-weight: 500;
+}
+
+.metric-track {
+  height: 3px;
+  background: #1e1e1e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(201,169,110,0.4) 0%, #c9a96e 100%);
+  border-radius: 2px;
+}
+
+/* ─── Science Banner ─── */
+.science-banner {
+  font-size: 8px;
+  color: rgba(201,169,110,0.22);
+  text-align: center;
+  letter-spacing: 0.04em;
+  margin: 4px 0 6px;
+  padding: 0 10px;
+  line-height: 1.5;
+}
+
+/* ─── Wave Chart ─── */
+#wave-svg {
+  display: block;
+  width: 100%;
+}
+</style>
+</head>
+<body>
+
+<div class="window-chrome">
+  <div class="titlebar">
+    <div class="traffic-lights">
+      <div class="tl tl-close"></div>
+      <div class="tl tl-min"></div>
+      <div class="tl tl-max"></div>
+    </div>
+    <div class="titlebar-title">Attune</div>
+    <div style="width:52px"></div>
+  </div>
+
+  <div class="app-body">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Home (active) -->
+      <div class="sidebar-icon active">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9.5L12 3l9 6.5V21H3V9.5z"/>
+        </svg>
+      </div>
+      <!-- Chart -->
+      <div class="sidebar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+        </svg>
+      </div>
+      <!-- Calendar -->
+      <div class="sidebar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linecap="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <!-- Settings -->
+      <div class="sidebar-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9a96e" stroke-width="1.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main">
+      <div class="topbar">
+        <div class="date-label">Tuesday, Feb 24</div>
+        <div class="mic-label"><div class="mic-dot"></div>Listening...</div>
+      </div>
+
+      <div class="canopy-label">Canopy Score</div>
+      <div class="tagline">Attuned to you.</div>
+
+      <!-- Multi-ring gauge -->
+      <svg id="gauge-svg" width="260" height="260" viewBox="0 0 300 300"></svg>
+
+      <!-- Metrics grid -->
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Stability</span><span class="metric-pct">84%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:84%"></div></div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Wellbeing</span><span class="metric-pct">71%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:71%"></div></div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Calmness</span><span class="metric-pct">68%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:68%"></div></div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Activation</span><span class="metric-pct">42%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:42%"></div></div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Anxiety</span><span class="metric-pct">22%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:22%"></div></div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header"><span class="metric-name">Stress</span><span class="metric-pct">28%</span></div>
+          <div class="metric-track"><div class="metric-fill" style="width:28%"></div></div>
+        </div>
+      </div>
+
+      <div class="science-banner">Powered by Kintsugi DAM — validated on 14,898 participants (Annals of Family Medicine, 2025) | 35,000 training voices | 100% on-device</div>
+
+      <!-- Wave chart -->
+      <svg id="wave-svg" height="64" viewBox="0 0 820 64" preserveAspectRatio="none"></svg>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Multi-ring gauge ───────────────────────────────────────────
+(function () {
+  const svg = document.getElementById('gauge-svg');
+  const cx = 150, cy = 150;
+
+  const rings = [
+    { r: 110, pct: 84, label: 'Stability' },
+    { r: 95,  pct: 71, label: 'Wellbeing' },
+    { r: 80,  pct: 68, label: 'Calmness' },
+    { r: 65,  pct: 42, label: 'Activation' },
+    { r: 50,  pct: 22, label: 'Anxiety' },
+    { r: 35,  pct: 28, label: 'Stress' },
+  ];
+  const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
+
+  // Glow filter
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <radialGradient id="bgVignette" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="100%" stop-color="#000"/>
+    </radialGradient>
+  `;
+  svg.appendChild(defs);
+
+  // Background circle
+  const bg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  bg.setAttribute('cx', cx); bg.setAttribute('cy', cy); bg.setAttribute('r', 125);
+  bg.setAttribute('fill', 'url(#bgVignette)');
+  svg.appendChild(bg);
+
+  function polarXY(angleDeg, r) {
+    const rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function arcPath(r, pct) {
+    const endDeg = pct / 100 * 360;
+    const start = polarXY(0, r);
+    const end = polarXY(endDeg, r);
+    if (pct >= 99.9) {
+      return `M ${(cx + r).toFixed(2)} ${cy} A ${r} ${r} 0 1 1 ${(cx + r - 0.01).toFixed(2)} ${cy}`;
+    }
+    const large = endDeg > 180 ? 1 : 0;
+    return `M ${start.x.toFixed(2)} ${start.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${end.x.toFixed(2)} ${end.y.toFixed(2)}`;
+  }
+
+  // Track rings (background)
+  rings.forEach(({ r }) => {
+    const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+    c.setAttribute('fill', 'none');
+    c.setAttribute('stroke', '#1a1a1a');
+    c.setAttribute('stroke-width', '5.5');
+    svg.appendChild(c);
+  });
+
+  // Filled arcs
+  rings.forEach(({ r, pct }, i) => {
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', arcPath(r, pct));
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', `rgba(201,169,110,${opacities[i]})`);
+    path.setAttribute('stroke-width', '5.5');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('filter', 'url(#glow)');
+    svg.appendChild(path);
+  });
+
+  // Center score
+  const score = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  score.setAttribute('x', cx); score.setAttribute('y', cy + 6);
+  score.setAttribute('text-anchor', 'middle');
+  score.setAttribute('dominant-baseline', 'middle');
+  score.setAttribute('fill', '#c9a96e');
+  score.setAttribute('font-family', 'Playfair Display, serif');
+  score.setAttribute('font-size', '68');
+  score.setAttribute('font-weight', '400');
+  score.textContent = '74';
+  svg.appendChild(score);
+
+  // "Good" label
+  const good = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  good.setAttribute('x', cx); good.setAttribute('y', cy + 48);
+  good.setAttribute('text-anchor', 'middle');
+  good.setAttribute('fill', 'rgba(201,169,110,0.42)');
+  good.setAttribute('font-family', 'Inter, sans-serif');
+  good.setAttribute('font-size', '11');
+  good.setAttribute('letter-spacing', '4');
+  good.textContent = 'GOOD';
+  svg.appendChild(good);
+})();
+
+// ─── Wave chart ─────────────────────────────────────────────────
+(function () {
+  const svg = document.getElementById('wave-svg');
+  const data = [22, 18, 35, 48, 52, 44, 61, 58, 71, 65, 48, 38, 32, 28, 22, 18];
+  const W = 820, H = 64, maxV = 80;
+
+  const pts = data.map((v, i) => ({
+    x: i / (data.length - 1) * W,
+    y: H - (v / maxV) * (H - 10) - 4
+  }));
+
+  function smooth(ps) {
+    let d = `M ${ps[0].x.toFixed(1)} ${ps[0].y.toFixed(1)}`;
+    for (let i = 1; i < ps.length; i++) {
+      const cpx = ((ps[i - 1].x + ps[i].x) / 2).toFixed(1);
+      d += ` C ${cpx} ${ps[i - 1].y.toFixed(1)} ${cpx} ${ps[i].y.toFixed(1)} ${ps[i].x.toFixed(1)} ${ps[i].y.toFixed(1)}`;
+    }
+    return d;
+  }
+
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  for (let k = 0; k < 3; k++) {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+    g.setAttribute('id', `wg${k}`); g.setAttribute('x1', '0'); g.setAttribute('y1', '0'); g.setAttribute('x2', '0'); g.setAttribute('y2', '1');
+    const s1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s1.setAttribute('offset', '0%'); s1.setAttribute('stop-color', '#c9a96e'); s1.setAttribute('stop-opacity', String(0.38 - k * 0.1));
+    const s2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+    s2.setAttribute('offset', '100%'); s2.setAttribute('stop-color', '#c9a96e'); s2.setAttribute('stop-opacity', '0');
+    g.appendChild(s1); g.appendChild(s2);
+    defs.appendChild(g);
+  }
+  svg.appendChild(defs);
+
+  const offsets = [0, -4, -8];
+  offsets.forEach((off, k) => {
+    const shifted = pts.map(p => ({ x: p.x, y: p.y + off }));
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    p.setAttribute('d', smooth(shifted) + ` L ${W} ${H} L 0 ${H} Z`);
+    p.setAttribute('fill', `url(#wg${k})`);
+    svg.appendChild(p);
+  });
+
+  // Top line
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  line.setAttribute('d', smooth(pts));
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke', 'rgba(201,169,110,0.55)');
+  line.setAttribute('stroke-width', '1.5');
+  svg.appendChild(line);
+})();
+</script>
+</body>
+</html>

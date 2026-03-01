@@ -1,0 +1,37 @@
+/* Wellness ring gauge styles — steel dark theme */
+
+.gauge { display: block; margin: 0 auto; }
+.gauge-bg { fill: none; stroke: var(--gauge-bg); stroke-width: 8; }
+.gauge-progress { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+.gauge-progress.calm { stroke: var(--calm-color); }
+.gauge-progress.steady { stroke: var(--steady-color); }
+.gauge-progress.tense { stroke: var(--tense-color); }
+.gauge-progress.stressed { stroke: var(--stressed-color); }
+.gauge-progress.default { stroke: var(--steel); }
+
+/* Gauge analyzing spin arc */
+.circle-spin-arc {
+    fill: none;
+    stroke: rgba(168,192,208,0.30);
+    stroke-width: 3;
+    stroke-linecap: round;
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    transform-origin: 36px 36px;
+}
+@keyframes gauge-arc-spin {
+    from { transform: rotate(-90deg); }
+    to   { transform: rotate(270deg); }
+}
+.gauge-analyzing .circle-spin-arc {
+    opacity: 1;
+    animation: gauge-arc-spin 1.2s linear infinite;
+}
+.gauge-analyzing .circle-progress {
+    opacity: 0.25;
+    transition: opacity var(--transition-normal);
+}
+.gauge-analyzing .circle-value {
+    opacity: 0.3;
+    transition: opacity var(--transition-normal);
+}

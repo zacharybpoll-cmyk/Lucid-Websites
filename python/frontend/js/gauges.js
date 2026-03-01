@@ -334,7 +334,7 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
-    window.AppState.canopyRevealed = true;  // Skip tap-to-reveal card after analysis
+    // canopyRevealed is NOT set here — let renderRingGauge() decide whether to show the reveal card
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
@@ -404,15 +404,19 @@ function renderRingGauge(canopyScore, scores, delta) {
 
     // Tap-to-reveal: show overlay only when new readings arrive
     const showScoreEarly = canopyScore !== null && canopyScore !== undefined;
-    if (showScoreEarly && !window.AppState.canopyRevealed && !isReveal) {
+    if (showScoreEarly && !window.AppState.canopyRevealed) {
         const currentCount = window.AppState.currentReadingCount || 0;
         const lastRevealed = parseInt(localStorage.getItem('attune-last-revealed-count') || '0', 10);
-        if (currentCount > lastRevealed) {
+        if (currentCount > lastRevealed && currentCount > 1) {
+            // 2nd+ reading of the day: show reveal card
             _renderRevealCard(canopyScore, scores, delta);
             return;
         } else {
-            // No new readings — skip overlay, go straight to display
+            // First reading or no new readings — skip overlay, go straight to display
             window.AppState.canopyRevealed = true;
+            if (currentCount > lastRevealed) {
+                localStorage.setItem('attune-last-revealed-count', String(currentCount));
+            }
         }
     }
 

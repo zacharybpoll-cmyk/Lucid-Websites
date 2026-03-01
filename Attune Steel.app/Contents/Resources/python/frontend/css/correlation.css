@@ -1,0 +1,40 @@
+/* Correlation Explorer Styles — light default, dark night override */
+
+.correlation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.correlation-header h2 { font-family: var(--font-heading); font-size: var(--text-xl); font-weight: 600; color: var(--text-primary); }
+
+.chart-type-buttons { display: flex; gap: 8px; }
+.chart-btn {
+    background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.08); padding: 6px 14px; cursor: pointer;
+    font-family: var(--font-body); font-size: var(--text-xs); color: var(--text-secondary); border-radius: var(--radius-md); transition: all 0.2s ease;
+}
+.chart-btn:hover { background: rgba(0,0,0,0.06); color: var(--text-primary); }
+.chart-btn.active { background: rgba(91,141,184,0.1); color: var(--steel); border-color: rgba(91,141,184,0.3); }
+
+.correlation-controls { margin-bottom: 20px; display: flex; gap: 20px; }
+.correlation-controls label { font-size: var(--text-sm); color: var(--text-primary); }
+.chart-select { margin-left: 10px; padding: 5px 10px; font-family: var(--font-body); border: 1px solid rgba(0,0,0,0.12); background: #fff; color: var(--text-primary); font-size: var(--text-sm); border-radius: 6px; }
+
+.correlation-chart-container {
+    border: 1px solid rgba(0,0,0,0.08); padding: 20px; border-radius: var(--radius-lg);
+    background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); min-height: 500px;
+}
+#plotly-chart { width: 100%; min-height: 500px; }
+
+.correlation-empty { text-align: center; padding: 60px 20px; }
+.correlation-empty h2 { font-family: var(--font-heading); font-size: var(--text-xl); font-weight: 600; margin-bottom: 10px; color: var(--text-primary); }
+.correlation-empty p { color: var(--text-muted); font-style: italic; font-size: var(--text-sm); }
+
+/* Night theme overrides */
+[data-theme="night"] .correlation-header { border-bottom: 1px solid rgba(168,192,208,0.08); }
+[data-theme="night"] .chart-btn { background: rgba(12,20,28,0.8); border: 1px solid rgba(168,192,208,0.12); }
+[data-theme="night"] .chart-btn:hover { background: rgba(168,192,208,0.08); }
+[data-theme="night"] .chart-btn.active { background: rgba(168,192,208,0.15); border-color: rgba(168,192,208,0.3); }
+[data-theme="night"] .chart-select { border: 1px solid rgba(168,192,208,0.15); background: #0c1419; }
+[data-theme="night"] .correlation-chart-container { border: 1px solid rgba(168,192,208,0.12); background: rgba(12, 20, 28, 0.88); }
+
+@media (max-width: 768px) {
+    .correlation-header { flex-direction: column; align-items: flex-start; }
+    .chart-type-buttons { flex-wrap: wrap; margin-top: 10px; }
+    .correlation-controls { flex-direction: column; }
+}
