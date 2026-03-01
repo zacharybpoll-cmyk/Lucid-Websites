@@ -78,16 +78,26 @@ class ScoreEngine:
             'mood_score': smoothed['mood_score'],
             'energy_score': smoothed['energy_score'],
             'calm_score': smoothed['calm_score'],
+            'wellbeing_score': smoothed['wellbeing_score'],
+            'activation_score': smoothed['activation_score'],
+            'depression_risk_score': smoothed['depression_risk_score'],
+            'anxiety_risk_score': smoothed['anxiety_risk_score'],
             'stress_score_raw': raw_scores['stress_score'],
             'mood_score_raw': raw_scores['mood_score'],
             'energy_score_raw': raw_scores['energy_score'],
             'calm_score_raw': raw_scores['calm_score'],
+            'wellbeing_score_raw': raw_scores['wellbeing_score'],
+            'activation_score_raw': raw_scores['activation_score'],
+            'depression_risk_score_raw': raw_scores['depression_risk_score'],
+            'anxiety_risk_score_raw': raw_scores['anxiety_risk_score'],
             'zone': zone,
         }
 
     def _apply_ema(self, raw: Dict[str, float]) -> Dict[str, float]:
         """Apply exponential moving average to score dimensions."""
-        score_keys = ['stress_score', 'mood_score', 'energy_score', 'calm_score']
+        score_keys = ['stress_score', 'mood_score', 'energy_score', 'calm_score',
+                      'wellbeing_score', 'activation_score', 'depression_risk_score',
+                      'anxiety_risk_score']
 
         if self._prev_smoothed is None:
             # First reading: no smoothing
@@ -185,11 +195,41 @@ class ScoreEngine:
             0.15 * (100.0 - norm_spectral_entropy)
         )
 
+        # === WELLBEING === (positive affect: low depression + low anxiety + voice quality)
+        # Distinct from mood by emphasizing positive markers and voice quality
+        wellbeing = (
+            0.35 * (100.0 - norm_dep) +
+            0.25 * (100.0 - norm_anx) +
+            0.15 * (100.0 - norm_shimmer) +
+            0.15 * norm_speech_rate +
+            0.10 * (100.0 - norm_jitter)
+        )
+
+        # === ACTIVATION === (arousal/engagement: acoustic dynamics)
+        # Distinct from energy by emphasizing variation and dynamism
+        activation = (
+            0.30 * norm_rms +
+            0.25 * norm_pitch_range +
+            0.20 * norm_speech_rate +
+            0.15 * norm_spectral_centroid +
+            0.10 * (100.0 - norm_spectral_entropy)
+        )
+
+        # === DEPRESSION RISK === (0-100 from mapped PHQ-9 score)
+        depression_risk = min(100.0, (dep_mapped / 27.0) * 100.0)
+
+        # === ANXIETY RISK === (0-100 from mapped GAD-7 score)
+        anxiety_risk = min(100.0, (anx_mapped / 21.0) * 100.0)
+
         return {
             'stress_score': float(np.clip(stress, 0, 100)),
             'mood_score': float(np.clip(mood, 0, 100)),
             'energy_score': float(np.clip(energy, 0, 100)),
             'calm_score': float(np.clip(calm, 0, 100)),
+            'wellbeing_score': float(np.clip(wellbeing, 0, 100)),
+            'activation_score': float(np.clip(activation, 0, 100)),
+            'depression_risk_score': float(np.clip(depression_risk, 0, 100)),
+            'anxiety_risk_score': float(np.clip(anxiety_risk, 0, 100)),
         }
 
     # ------------------------------------------------------------------ #
@@ -253,11 +293,41 @@ class ScoreEngine:
             0.15 * (100.0 - p_spectral_entropy)
         )
 
+        # === WELLBEING (personalized) ===
+        wellbeing = (
+            0.35 * (100.0 - p_dep) +
+            0.25 * (100.0 - p_anx) +
+            0.15 * (100.0 - p_shimmer) +
+            0.15 * p_speech_rate +
+            0.10 * (100.0 - p_jitter)
+        )
+
+        # === ACTIVATION (personalized) ===
+        activation = (
+            0.30 * p_rms +
+            0.25 * p_f0_std +
+            0.20 * p_speech_rate +
+            0.15 * p_spectral_centroid +
+            0.10 * (100.0 - p_spectral_entropy)
+        )
+
+        # === DEPRESSION RISK (personalized) ===
+        dep_mapped = dam.get('depression_mapped', 0.0)
+        depression_risk = min(100.0, max(0.0, dep_mapped / 27.0 * 100.0))
+
+        # === ANXIETY RISK (personalized) ===
+        anx_mapped = dam.get('anxiety_mapped', 0.0)
+        anxiety_risk = min(100.0, max(0.0, anx_mapped / 21.0 * 100.0))
+
         return {
             'stress_score': float(np.clip(stress, 0, 100)),
             'mood_score': float(np.clip(mood, 0, 100)),
             'energy_score': float(np.clip(energy, 0, 100)),
             'calm_score': float(np.clip(calm, 0, 100)),
+            'wellbeing_score': float(np.clip(wellbeing, 0, 100)),
+            'activation_score': float(np.clip(activation, 0, 100)),
+            'depression_risk_score': float(np.clip(depression_risk, 0, 100)),
+            'anxiety_risk_score': float(np.clip(anxiety_risk, 0, 100)),
         }
 
     # ------------------------------------------------------------------ #

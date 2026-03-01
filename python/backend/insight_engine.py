@@ -343,10 +343,11 @@ class InsightEngine:
         ]
 
         # Extract raw values (None = missing)
+        # Use `or` for fallbacks so 0/None values fall through to legacy keys
         raw = {}
         raw['stress'] = s.get('avg_stress')
-        raw['wellbeing'] = s.get('avg_wellbeing', s.get('avg_mood'))
-        raw['activation'] = s.get('avg_activation', s.get('avg_energy'))
+        raw['wellbeing'] = s.get('avg_wellbeing') or s.get('avg_mood')
+        raw['activation'] = s.get('avg_activation') or s.get('avg_energy')
         raw['calm'] = s.get('avg_calm')
         raw['depression_risk'] = s.get('avg_depression_risk')
         raw['anxiety_risk'] = s.get('avg_anxiety_risk')

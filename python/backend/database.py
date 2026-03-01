@@ -700,9 +700,9 @@ class Database:
                 'total_meetings': sum(r.get('meeting_detected') or 0 for r in readings),
                 'burnout_risk': None,
                 'resilience_score': None,
-                # Next-gen averages
-                'avg_wellbeing': safe_avg('wellbeing_score'),
-                'avg_activation': safe_avg('activation_score'),
+                # Next-gen averages (fall back to legacy score names for old readings)
+                'avg_wellbeing': safe_avg('wellbeing_score') or safe_avg('mood_score'),
+                'avg_activation': safe_avg('activation_score') or safe_avg('energy_score'),
                 'avg_depression_risk': safe_avg('depression_risk_score'),
                 'avg_anxiety_risk': safe_avg('anxiety_risk_score'),
                 'avg_emotional_stability': safe_avg('emotional_stability_score'),

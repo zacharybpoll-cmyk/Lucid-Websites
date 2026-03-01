@@ -192,6 +192,11 @@ class DailySummary(BaseModel):
     total_meetings: Optional[int] = None
     burnout_risk: Optional[float] = None
     resilience_score: Optional[float] = None
+    avg_wellbeing: Optional[float] = None
+    avg_activation: Optional[float] = None
+    avg_depression_risk: Optional[float] = None
+    avg_anxiety_risk: Optional[float] = None
+    avg_emotional_stability: Optional[float] = None
 
 class TodayResponse(BaseModel):
     current_scores: Dict[str, Any]

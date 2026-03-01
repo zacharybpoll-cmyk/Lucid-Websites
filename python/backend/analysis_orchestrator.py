@@ -464,21 +464,28 @@ class AnalysisOrchestrator:
 
     def _compute_emotional_stability(self, scores: dict, af: dict) -> float:
         """Compute emotional stability from rolling score variance + acoustic CV.
-        100 = perfectly stable, 0 = highly volatile. Default 75 with <3 readings."""
+        100 = perfectly stable, 0 = highly volatile.
+        With <2 readings: uses acoustic features alone as fallback."""
         try:
-            # Get recent readings from last 2 hours
+            # Get recent readings from last 24 hours (was 2 hours — too narrow for 1/day usage)
             from datetime import datetime, timedelta
-            two_hours_ago = (datetime.now() - timedelta(hours=2)).isoformat()
-            recent = self.db.get_readings(start_time=two_hours_ago, limit=50)
+            day_ago = (datetime.now() - timedelta(hours=24)).isoformat()
+            recent = self.db.get_readings(start_time=day_ago, limit=50)
 
-            if len(recent) < 3:
-                return 75.0
+            # Acoustic CV from current features (always available)
+            f0_cv = af.get('f0_std', 0) / max(af.get('f0_mean', 1), 1) * 100
+            rms_cv = af.get('rms_sd', 0) / max(af.get('rms_energy', 0.001), 0.001) * 100
+            acoustic_cv = min(100.0, float(np.mean([f0_cv, rms_cv])))
 
-            # Rolling std of 4 core scores
+            if len(recent) < 2:
+                # Acoustic-only fallback: compute stability from voice steadiness alone
+                stability = 100.0 - acoustic_cv
+                return float(np.clip(stability, 0, 100))
+
+            # Rolling std of 4 core scores (2+ readings available)
             score_keys = ['stress_score', 'wellbeing_score', 'calm_score', 'activation_score']
             stds = []
             for key in score_keys:
-                # Fall back to old names for backward compat
                 vals = []
                 for r in recent:
                     v = r.get(key)
@@ -492,17 +499,12 @@ class AnalysisOrchestrator:
                     stds.append(float(np.std(vals)))
 
             if not stds:
-                return 75.0
+                # No valid score pairs — acoustic-only
+                stability = 100.0 - acoustic_cv
+                return float(np.clip(stability, 0, 100))
 
             rolling_std = np.mean(stds)
             norm_rolling_std = min(100.0, rolling_std / 15.0 * 100.0)
-
-            # Acoustic CV from current features
-            acoustic_vals = [
-                af.get('f0_std', 0) / max(af.get('f0_mean', 1), 1) * 100,
-                af.get('rms_sd', 0) / max(af.get('rms_energy', 0.001), 0.001) * 100,
-            ]
-            acoustic_cv = min(100.0, np.mean(acoustic_vals))
 
             stability = 100.0 - (0.60 * norm_rolling_std + 0.40 * acoustic_cv)
             return float(np.clip(stability, 0, 100))
