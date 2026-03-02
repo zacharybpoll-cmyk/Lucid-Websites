@@ -150,13 +150,13 @@ function animateMetricBar(valEl, fillEl, rawTarget, pctTarget, duration, delay) 
         function tick(now) {
             const progress = Math.min((now - startTime) / duration, 1);
             const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-            if (valEl) valEl.textContent = Math.round(rawTarget * eased) + '%';
+            if (valEl) valEl.textContent = Math.round(rawTarget * eased);
             if (fillEl) fillEl.style.width = (pctTarget * eased).toFixed(1) + '%';
             if (progress < 1) {
                 requestAnimationFrame(tick);
             } else {
                 // Snap to final values and restore transition
-                if (valEl) valEl.textContent = Math.round(rawTarget) + '%';
+                if (valEl) valEl.textContent = Math.round(rawTarget);
                 if (fillEl) {
                     fillEl.style.width = pctTarget.toFixed(1) + '%';
                     fillEl.style.transition = '';
@@ -164,7 +164,7 @@ function animateMetricBar(valEl, fillEl, rawTarget, pctTarget, duration, delay) 
             }
         }
         // Reset to 0 first
-        if (valEl) valEl.textContent = '0%';
+        if (valEl) valEl.textContent = '0';
         if (fillEl) fillEl.style.width = '0%';
         requestAnimationFrame(tick);
     }, delay);
@@ -616,7 +616,7 @@ function updateMetricBars(scores) {
             animateMetricBar(valEl, fillEl, raw, pct, 1500, i * 100);
         } else {
             // Normal snap
-            if (valEl)  valEl.textContent = Math.round(raw) + '%';
+            if (valEl)  valEl.textContent = Math.round(raw);
             if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
         }
     });
@@ -862,6 +862,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 openMetricDetail(metric);
             });
         }
+    });
+
+    // Info buttons on metric bars → open modal
+    document.querySelectorAll('.metbar-info-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openMetricDetail(btn.dataset.metric);
+        });
     });
 
     // Close modal handlers

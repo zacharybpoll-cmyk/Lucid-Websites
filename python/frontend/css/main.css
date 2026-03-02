@@ -440,13 +440,13 @@ body {
 
 .metric-detail-content {
     position: relative;
-    background: #0d1520;
-    border: 1px solid rgba(168, 192, 208, 0.15);
+    background: #f5f6f8;
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: var(--radius-xl);
     padding: 28px 28px 24px;
     max-width: 420px;
     width: 90vw;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18);
     max-height: 85vh;
     overflow-y: auto;
 }
@@ -466,7 +466,7 @@ body {
 }
 
 .metric-detail-close:hover {
-    background: rgba(168, 192, 208, 0.08);
+    background: rgba(0, 0, 0, 0.06);
     color: var(--text-primary);
 }
 
@@ -491,7 +491,7 @@ body {
     gap: 12px;
     padding: 12px 16px;
     border-radius: var(--radius-lg);
-    background: rgba(168, 192, 208, 0.06);
+    background: rgba(0, 0, 0, 0.04);
     margin-bottom: 18px;
 }
 
@@ -529,8 +529,8 @@ body {
 }
 
 .metric-tier-row.active {
-    background: rgba(168, 192, 208, 0.12);
-    border: 1px solid rgba(168, 192, 208, 0.3);
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.12);
     font-weight: 600;
     color: var(--text-primary);
 }
@@ -555,11 +555,31 @@ body {
 #metric-detail-note {
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 1px solid rgba(168, 192, 208, 0.08);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
     font-size: var(--text-xs);
     color: var(--text-muted);
     line-height: 1.5;
     font-style: italic;
+}
+
+/* Night mode overrides for metric detail modal */
+[data-theme="night"] .metric-detail-content {
+    background: #0d1520;
+    border: 1px solid rgba(168, 192, 208, 0.15);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+}
+[data-theme="night"] .metric-detail-close:hover {
+    background: rgba(168, 192, 208, 0.08);
+}
+[data-theme="night"] #metric-detail-current {
+    background: rgba(168, 192, 208, 0.06);
+}
+[data-theme="night"] .metric-tier-row.active {
+    background: rgba(168, 192, 208, 0.12);
+    border: 1px solid rgba(168, 192, 208, 0.3);
+}
+[data-theme="night"] #metric-detail-note {
+    border-color: rgba(168, 192, 208, 0.08);
 }
 
 /* ============ Coach Insight Section (full-width) ============ */
@@ -862,12 +882,12 @@ body {
     font-size: 1.375rem;
     font-weight: 600;
     line-height: 1;
-    color: var(--text-primary);
+    color: #d0d5de;
 }
 
 .briefing-score-label {
     font-size: 0.5625rem;
-    color: var(--text-muted);
+    color: #a0aab6;
     margin-top: 2px;
     text-transform: uppercase;
 }
@@ -2792,6 +2812,32 @@ body {
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--text-muted);
+}
+
+.metbar-info-btn {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 9px;
+    line-height: 12px;
+    text-align: center;
+    padding: 0;
+    margin-left: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+    opacity: 0.6;
+}
+.metbar-info-btn:hover {
+    opacity: 1;
+}
+[data-theme="night"] .metbar-info-btn {
+    border-color: rgba(168, 192, 208, 0.25);
 }
 
 .metbar-val {
