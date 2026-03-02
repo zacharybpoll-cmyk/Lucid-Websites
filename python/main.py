@@ -28,6 +28,7 @@ from backend.analysis_orchestrator import AnalysisOrchestrator
 from backend.meeting_detector import MeetingDetector
 from backend.insight_engine import InsightEngine
 from backend.notifications import NotificationManager
+from backend.active_assessment import ActiveAssessmentRunner
 import app_config as config
 
 # Import API dependencies and routes
@@ -146,6 +147,7 @@ class Attune:
         self.meeting_detector = None
         self.insight_engine = None
         self.notification_manager = None
+        self.active_runner = None
         self.server = None
         self._shutdown = threading.Event()
 
@@ -183,12 +185,16 @@ class Attune:
         # Wire notification manager into orchestrator
         self.orchestrator.notification_manager = self.notification_manager
 
+        # Create active assessment runner (Voice Scan)
+        self.active_runner = ActiveAssessmentRunner(self.db, self.orchestrator)
+
         # Wire up API dependencies
         deps.db = self.db
         deps.orchestrator = self.orchestrator
         deps.meeting_detector = self.meeting_detector
         deps.insight_engine = self.insight_engine
         deps.notification_manager = self.notification_manager
+        deps.active_runner = self.active_runner
 
         # Wire up legacy route globals (routes.py endpoints use module-level vars)
         routes.db = self.db
@@ -196,6 +202,7 @@ class Attune:
         routes.meeting_detector = self.meeting_detector
         routes.insight_engine = self.insight_engine
         routes.notification_manager = self.notification_manager
+        routes.active_runner = self.active_runner
 
         # --- Start uvicorn in a daemon thread ---
         logger.info(f"Starting server on http://{config.API_HOST}:{config.API_PORT}")

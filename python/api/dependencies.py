@@ -10,6 +10,7 @@ orchestrator = None
 meeting_detector = None
 insight_engine = None
 notification_manager = None
+active_runner = None
 
 
 def get_db():

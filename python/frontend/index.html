@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="css/trends.css?v=15">
     <link rel="stylesheet" href="css/engagement.css?v=20">
     <link rel="stylesheet" href="css/correlation.css?v=15">
+    <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -270,6 +271,14 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
                     <line x1="4" y1="22" x2="4" y2="15"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="voicescan" title="Voice Scan" aria-label="Voice Scan">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
                 </svg>
             </button>
             <div class="sidebar-spacer"></div>
@@ -670,6 +679,102 @@
                 <!-- WAYPOINTS VIEW -->
                 <div id="waypoints-view" class="view"></div>
 
+                <!-- VOICE SCAN VIEW -->
+                <div id="voicescan-view" class="view">
+                    <div class="vs-title">Voice Scan</div>
+                    <div class="vs-subtitle">Focused voice assessment for mental health insights</div>
+
+                    <!-- Idle State -->
+                    <div class="vs-state active" data-state="idle">
+                        <div class="vs-prompt-card">
+                            <div class="vs-prompt-label">Guided Prompt</div>
+                            <div class="vs-prompt-text" id="vs-prompt-text">Talk about how your day has been going so far...</div>
+                            <button class="vs-prompt-shuffle" id="vs-shuffle-btn" title="New prompt">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="16 3 21 3 21 8"/>
+                                    <line x1="4" y1="20" x2="21" y2="3"/>
+                                    <polyline points="21 16 21 21 16 21"/>
+                                    <line x1="15" y1="15" x2="21" y2="21"/>
+                                    <line x1="4" y1="4" x2="9" y2="9"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <button class="vs-start-btn" id="vs-start-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            </svg>
+                            Begin Recording
+                        </button>
+                        <div class="vs-privacy-note">Analyzed locally on your device. Nothing leaves your machine.</div>
+                        <div class="vs-history" style="width:100%;margin-top:24px">
+                            <div class="vs-history-title">Previous Scans</div>
+                            <div id="vs-idle-history-list"></div>
+                        </div>
+                    </div>
+
+                    <!-- Recording State -->
+                    <div class="vs-state" data-state="recording">
+                        <div class="vs-recording-header">
+                            <div class="vs-recording-dot"></div>
+                            <div class="vs-recording-label">Recording...</div>
+                        </div>
+                        <div class="vs-level-meter" id="vs-level-meter"></div>
+                        <div class="vs-timers">
+                            <div class="vs-timer">
+                                <div class="vs-timer-value" id="vs-total-time">0:00</div>
+                                <div class="vs-timer-label">Total Time</div>
+                            </div>
+                            <div class="vs-timer">
+                                <div class="vs-timer-value" id="vs-speech-time">0:00</div>
+                                <div class="vs-timer-label">Speech Detected</div>
+                            </div>
+                        </div>
+                        <div class="vs-speech-progress">
+                            <div class="vs-speech-progress-track">
+                                <div class="vs-speech-progress-fill" id="vs-progress-fill" style="width:0%"></div>
+                            </div>
+                            <div class="vs-speech-progress-label">
+                                <span id="vs-progress-label">0s / 30s speech</span>
+                                <span>minimum for analysis</span>
+                            </div>
+                        </div>
+                        <div class="vs-recording-actions">
+                            <button class="vs-stop-btn" id="vs-stop-btn" disabled>Stop &amp; Analyze</button>
+                            <button class="vs-cancel-btn" id="vs-cancel-btn">Cancel</button>
+                        </div>
+                    </div>
+
+                    <!-- Analyzing State -->
+                    <div class="vs-state" data-state="analyzing">
+                        <div class="vs-analyzing">
+                            <div class="vs-analyzing-ring"></div>
+                            <div class="vs-analyzing-text">Analyzing your voice sample...</div>
+                        </div>
+                    </div>
+
+                    <!-- Results State -->
+                    <div class="vs-state" data-state="results">
+                        <div class="vs-results">
+                            <div class="vs-results-header">Your Results</div>
+                            <div class="vs-results-meta" id="vs-results-meta"></div>
+                            <div id="vs-results-content"></div>
+                            <button class="vs-new-scan-btn" id="vs-new-scan-btn">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                                </svg>
+                                Start New Voice Scan
+                            </button>
+                        </div>
+                        <div class="vs-history" id="vs-history-section">
+                            <div class="vs-history-title">Previous Scans</div>
+                            <div id="vs-history-list"></div>
+                        </div>
+                    </div>
+
+                </div>
+
                 <!-- FAQ VIEW -->
                 <div id="faq-view" class="view">
                     <div class="faq-section">
@@ -1036,7 +1141,8 @@
     <script src="js/correlation.js?v=14"></script>
     <script src="js/grove.js?v=14"></script>
     <script src="js/layout.js?v=14"></script>
-    <script src="js/app.js?v=29"></script>
+    <script src="js/active_assessment.js?v=1"></script>
+    <script src="js/app.js?v=30"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
     <div id="speaker-debug" class="speaker-debug" style="display:none;">

@@ -40,6 +40,9 @@ class AnalysisOrchestrator:
         # Notification manager — set by main.py after init
         self.notification_manager = None
 
+        # Active assessment callback — when set, all audio routes here instead of passive pipeline
+        self._active_callback = None
+
         # Components (fast init)
         self.vad_processor = None
         self.dam_analyzer = None
@@ -224,6 +227,11 @@ class AnalysisOrchestrator:
         5. Speaker gate: verify 2s segments via ECAPA before buffering
         6. Speech buffer: accumulate verified speech for DAM analysis
         """
+        # Active assessment mode: redirect all audio to the active callback
+        if self._active_callback is not None:
+            self._active_callback(audio_chunk)
+            return
+
         if self.is_paused or not self.is_running:
             return
         if not self.models_ready.is_set():
@@ -651,6 +659,20 @@ class AnalysisOrchestrator:
         """Resume analysis"""
         self.is_paused = False
         logger.info("Analysis resumed")
+
+    def set_active_mode(self, callback=None):
+        """Set or clear active assessment mode.
+        When callback is set, all audio chunks route to it instead of the passive pipeline.
+        When cleared (None), passive pipeline resumes."""
+        if callback is not None:
+            self._active_callback = callback
+            self.is_paused = True  # Pause passive pipeline
+            self.speech_buffer.clear()
+            logger.info("Active assessment mode enabled — passive pipeline paused")
+        else:
+            self._active_callback = None
+            self.is_paused = False  # Resume passive pipeline
+            logger.info("Active assessment mode disabled — passive pipeline resumed")
 
     def set_meeting_active(self, active: bool):
         """Set whether a meeting is currently active"""

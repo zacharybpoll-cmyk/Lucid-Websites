@@ -86,6 +86,11 @@ class AppConfig:
     # PLDA Scoring (optional, disabled by default)
     plda_enabled: bool = False                      # Enable only when trained PLDA model exists
 
+    # Active Assessment (Voice Scan)
+    active_min_speech_sec: int = 30                 # Minimum speech for reliable DAM output
+    active_max_recording_sec: int = 180             # 3-minute cap
+    active_status_poll_ms: int = 200                # Frontend polls status every 200ms
+
     # VAD Settings
     vad_speech_threshold: float = 0.40              # Silero VAD speech probability threshold
 
@@ -172,6 +177,11 @@ OVERLAP_DETECTION_ENABLED = config.overlap_detection_enabled
 # PLDA Scoring
 PLDA_MODEL_PATH = config.plda_model_path
 PLDA_ENABLED = config.plda_enabled
+
+# Active Assessment (Voice Scan)
+ACTIVE_MIN_SPEECH_SEC = config.active_min_speech_sec
+ACTIVE_MAX_RECORDING_SEC = config.active_max_recording_sec
+ACTIVE_STATUS_POLL_MS = config.active_status_poll_ms
 
 # VAD Settings
 VAD_SPEECH_THRESHOLD = config.vad_speech_threshold

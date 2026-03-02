@@ -1,0 +1,649 @@
+/* Voice Scan — Active Assessment Styles */
+
+/* ===== Layout ===== */
+#voicescan-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 24px 60px;
+    max-width: 660px;
+    margin: 0 auto;
+    min-height: 100%;
+}
+
+#voicescan-view .vs-title {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+#voicescan-view .vs-subtitle {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+}
+
+/* ===== State Containers ===== */
+.vs-state { display: none; width: 100%; }
+.vs-state.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ===== Idle State ===== */
+.vs-prompt-card {
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 16px;
+    padding: 24px 28px;
+    width: 100%;
+    margin-bottom: 28px;
+    position: relative;
+}
+
+.vs-prompt-label {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+}
+
+.vs-prompt-text {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.vs-prompt-shuffle {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 6px;
+    border-radius: 8px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.vs-prompt-shuffle:hover {
+    color: var(--steel);
+    background: rgba(91, 141, 184, 0.08);
+}
+
+.vs-start-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--steel);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 36px;
+    font-family: var(--font-body);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    margin-bottom: 20px;
+}
+
+.vs-start-btn:hover {
+    background: var(--steel-dark);
+    transform: translateY(-1px);
+}
+
+.vs-start-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.vs-privacy-note {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 340px;
+}
+
+/* ===== Recording State ===== */
+.vs-recording-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.vs-recording-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #e74c3c;
+    animation: vs-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes vs-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.vs-recording-label {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Level meter */
+.vs-level-meter {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 80px;
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 24px;
+    padding: 0 4px;
+}
+
+.vs-level-bar {
+    flex: 1;
+    min-height: 4px;
+    background: var(--steel);
+    border-radius: 2px;
+    transition: height 0.12s ease-out;
+    opacity: 0.7;
+}
+
+/* Timers */
+.vs-timers {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 20px;
+}
+
+.vs-timer {
+    text-align: center;
+}
+
+.vs-timer-value {
+    font-family: var(--font-body);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.vs-timer-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Speech progress bar */
+.vs-speech-progress {
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 28px;
+}
+
+.vs-speech-progress-track {
+    width: 100%;
+    height: 6px;
+    background: var(--void-light);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.vs-speech-progress-fill {
+    height: 100%;
+    background: var(--steel);
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+    min-width: 0;
+}
+
+.vs-speech-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 6px;
+}
+
+/* Recording buttons */
+.vs-recording-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.vs-stop-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--steel);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, opacity 0.2s;
+}
+
+.vs-stop-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.vs-stop-btn:not(:disabled):hover {
+    background: var(--steel-dark);
+}
+
+.vs-cancel-btn {
+    background: none;
+    border: 1px solid var(--void-light);
+    border-radius: 12px;
+    padding: 14px 20px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.vs-cancel-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+/* ===== Analyzing State ===== */
+.vs-analyzing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 0;
+}
+
+.vs-analyzing-ring {
+    width: 64px;
+    height: 64px;
+    border: 3px solid var(--void-light);
+    border-top-color: var(--steel);
+    border-radius: 50%;
+    animation: vs-spin 1s linear infinite;
+}
+
+@keyframes vs-spin {
+    to { transform: rotate(360deg); }
+}
+
+.vs-analyzing-text {
+    font-family: var(--font-body);
+    font-size: 15px;
+    color: var(--text-secondary);
+}
+
+/* ===== Results State ===== */
+.vs-results {
+    width: 100%;
+}
+
+.vs-results-header {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.vs-results-meta {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+/* Severity bars */
+.vs-scale-card {
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 14px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+}
+
+.vs-scale-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    margin-bottom: 14px;
+}
+
+.vs-severity-bar {
+    position: relative;
+    display: flex;
+    height: 10px;
+    border-radius: 5px;
+    overflow: visible;
+    margin-bottom: 8px;
+}
+
+.vs-severity-segment {
+    height: 100%;
+    position: relative;
+}
+
+.vs-severity-segment:first-child { border-radius: 5px 0 0 5px; }
+.vs-severity-segment:last-child { border-radius: 0 5px 5px 0; }
+
+/* PHQ-9 segments (warm gradient) */
+.vs-severity-bar.phq9 .seg-none     { background: #b8d4e8; }
+.vs-severity-bar.phq9 .seg-mild     { background: #7BA7C9; }
+.vs-severity-bar.phq9 .seg-moderate { background: #6B7280; }
+.vs-severity-bar.phq9 .seg-modsev   { background: #555d68; }
+.vs-severity-bar.phq9 .seg-severe   { background: #4B5563; }
+
+/* GAD-7 segments (purple gradient) */
+.vs-severity-bar.gad7 .seg-minimal  { background: #c4b8e8; }
+.vs-severity-bar.gad7 .seg-mild     { background: #a08ed0; }
+.vs-severity-bar.gad7 .seg-moderate { background: #8B6DB5; }
+.vs-severity-bar.gad7 .seg-severe   { background: #6a4d94; }
+
+/* Score indicator dot */
+.vs-score-indicator {
+    position: absolute;
+    top: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 3px solid #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    transform: translateX(-50%);
+    z-index: 2;
+    transition: left 0.5s ease-out;
+}
+
+.vs-scale-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 10px;
+}
+
+.vs-score-value {
+    font-family: var(--font-body);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.vs-score-ci {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.vs-severity-label {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.vs-scale-interpretation {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* Comparison section */
+.vs-comparison {
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 14px;
+    padding: 18px 24px;
+    margin-bottom: 16px;
+}
+
+.vs-comparison-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.vs-comparison-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+}
+
+.vs-comparison-metric {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.vs-comparison-values {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+}
+
+.vs-comparison-scan {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.vs-comparison-passive {
+    color: var(--text-secondary);
+}
+
+.vs-comparison-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.5;
+}
+
+/* Additional scores */
+.vs-extra-scores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.vs-extra-score {
+    flex: 1 1 calc(33% - 10px);
+    min-width: 100px;
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+}
+
+.vs-extra-score-value {
+    font-family: var(--font-body);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.vs-extra-score-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Notes field */
+.vs-notes-card {
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 14px;
+    padding: 18px 24px;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+.vs-notes-textarea {
+    width: 100%;
+    min-height: 60px;
+    border: 1px solid var(--void-light);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--void);
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.vs-notes-textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.vs-notes-textarea:focus {
+    border-color: var(--steel);
+}
+
+.vs-notes-save {
+    margin-top: 8px;
+    background: none;
+    border: 1px solid var(--void-light);
+    border-radius: 8px;
+    padding: 6px 16px;
+    font-family: var(--font-body);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.vs-notes-save:hover {
+    border-color: var(--steel);
+    color: var(--steel);
+}
+
+/* New scan button */
+.vs-new-scan-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--steel);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 32px;
+}
+
+.vs-new-scan-btn:hover {
+    background: var(--steel-dark);
+}
+
+/* History list */
+.vs-history {
+    width: 100%;
+    margin-top: 16px;
+}
+
+.vs-history-title {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.vs-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--card-bg-strong);
+    border: 1px solid var(--void-light);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.vs-history-item:hover {
+    border-color: var(--steel-light);
+}
+
+.vs-history-date {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.vs-history-scores {
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.vs-history-scores span {
+    font-weight: 600;
+}
+
+.vs-history-empty {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+/* ===== Night Mode ===== */
+[data-theme="night"] .vs-prompt-card,
+[data-theme="night"] .vs-scale-card,
+[data-theme="night"] .vs-comparison,
+[data-theme="night"] .vs-extra-score,
+[data-theme="night"] .vs-notes-card,
+[data-theme="night"] .vs-history-item {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+}
+
+[data-theme="night"] .vs-notes-textarea {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.08);
+    color: var(--text-primary);
+}
+
+[data-theme="night"] .vs-score-indicator {
+    border-color: #1a1d21;
+}

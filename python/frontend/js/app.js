@@ -75,6 +75,7 @@ const HERO_RING_CIRCUMFERENCE = 2 * Math.PI * 54; // ~339.3
 window.AppState = {
     // Current view
     currentView: 'today',
+    previousView: null,
     todayData: null,
 
     // Polling intervals
@@ -153,6 +154,7 @@ async function init() {
     initCorrelationExplorer();
     initGrove();
     initLayout();
+    if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.init();
 
     // 3. Setup UI event handlers and static content
     setupNavigation();
@@ -279,6 +281,13 @@ function switchView(view) {
         loadTodayData();
     }
 
+    // Auto-cancel voice scan if navigating away during recording
+    if (AppState.previousView === 'voicescan' && view !== 'voicescan') {
+        if (typeof ActiveAssessment !== 'undefined') {
+            ActiveAssessment.onNavigateAway();
+        }
+    }
+
     if (view === 'trends' && typeof trendsView !== 'undefined' && trendsView) {
         trendsView.load(14);
     } else if (view === 'history' && typeof correlationExplorer !== 'undefined' && correlationExplorer) {
@@ -286,7 +295,11 @@ function switchView(view) {
         loadHeatmapData();
     } else if (view === 'waypoints') {
         loadWaypoints();
+    } else if (view === 'voicescan' && typeof ActiveAssessment !== 'undefined') {
+        ActiveAssessment.loadHistory();
     }
+
+    AppState.previousView = view;
 }
 
 function updateCurrentDate() {

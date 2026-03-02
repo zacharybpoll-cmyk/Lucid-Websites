@@ -355,6 +355,40 @@ class Database:
                 if "duplicate column name" not in str(e).lower():
                     logger.warning("Unexpected ALTER TABLE error for %s.%s: %s", table, col, e)
 
+        # Active assessments (Voice Scan)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS active_assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                speech_duration_sec REAL,
+                recording_duration_sec REAL,
+                depression_raw REAL,
+                anxiety_raw REAL,
+                depression_mapped REAL,
+                anxiety_mapped REAL,
+                depression_quantized INTEGER,
+                anxiety_quantized INTEGER,
+                depression_ci_lower REAL,
+                depression_ci_upper REAL,
+                anxiety_ci_lower REAL,
+                anxiety_ci_upper REAL,
+                uncertainty_flag TEXT,
+                score_inconsistency INTEGER DEFAULT 0,
+                stress_score REAL,
+                mood_score REAL,
+                energy_score REAL,
+                calm_score REAL,
+                wellbeing_score REAL,
+                activation_score REAL,
+                depression_risk_score REAL,
+                anxiety_risk_score REAL,
+                emotional_stability_score REAL,
+                zone TEXT,
+                prompt_text TEXT,
+                notes TEXT
+            )
+        """)
+
         # Schema version tracking
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS schema_version (
@@ -1282,6 +1316,91 @@ class Database:
         except Exception as e:
             logger.error(f"Database restore failed: {e}")
             return False
+
+    # ------------------------------------------------------------------ #
+    #  Active Assessments (Voice Scan)
+    # ------------------------------------------------------------------ #
+
+    def insert_active_assessment(self, data: Dict[str, Any]) -> int:
+        """Insert a voice scan result and return its ID."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO active_assessments (
+                    timestamp, speech_duration_sec, recording_duration_sec,
+                    depression_raw, anxiety_raw, depression_mapped, anxiety_mapped,
+                    depression_quantized, anxiety_quantized,
+                    depression_ci_lower, depression_ci_upper,
+                    anxiety_ci_lower, anxiety_ci_upper,
+                    uncertainty_flag, score_inconsistency,
+                    stress_score, mood_score, energy_score, calm_score,
+                    wellbeing_score, activation_score,
+                    depression_risk_score, anxiety_risk_score,
+                    emotional_stability_score, zone, prompt_text, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                data.get('timestamp', datetime.now().isoformat()),
+                data.get('speech_duration_sec'),
+                data.get('recording_duration_sec'),
+                data.get('depression_raw'),
+                data.get('anxiety_raw'),
+                data.get('depression_mapped'),
+                data.get('anxiety_mapped'),
+                data.get('depression_quantized'),
+                data.get('anxiety_quantized'),
+                data.get('depression_ci_lower'),
+                data.get('depression_ci_upper'),
+                data.get('anxiety_ci_lower'),
+                data.get('anxiety_ci_upper'),
+                data.get('uncertainty_flag'),
+                data.get('score_inconsistency', 0),
+                data.get('stress_score'),
+                data.get('mood_score'),
+                data.get('energy_score'),
+                data.get('calm_score'),
+                data.get('wellbeing_score'),
+                data.get('activation_score'),
+                data.get('depression_risk_score'),
+                data.get('anxiety_risk_score'),
+                data.get('emotional_stability_score'),
+                data.get('zone'),
+                data.get('prompt_text'),
+                data.get('notes'),
+            ))
+            self.conn.commit()
+            return cursor.lastrowid
+
+    def get_active_assessments(self, limit: int = 20) -> List[Dict[str, Any]]:
+        """Get recent voice scan results."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM active_assessments
+                ORDER BY timestamp DESC LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_latest_active_assessment(self) -> Optional[Dict[str, Any]]:
+        """Get the most recent voice scan result."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM active_assessments
+                ORDER BY timestamp DESC LIMIT 1
+            """)
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def update_active_assessment_notes(self, assessment_id: int, notes: str) -> bool:
+        """Update notes on an existing voice scan."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "UPDATE active_assessments SET notes = ? WHERE id = ?",
+                (notes, assessment_id)
+            )
+            self.conn.commit()
+            return cursor.rowcount > 0
 
     def close(self):
         """Close database connection with WAL checkpoint."""
