@@ -206,6 +206,160 @@ const ActiveAssessment = (() => {
         return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
+    // ========== Population Percentile ==========
+
+    const PERCENTILE_TABLES = {
+        phq9: [[0,32],[1,45],[2,55],[3,63],[4,75],[5,80],[7,87],[10,93],[15,99],[20,99.5],[27,100]],
+        gad7: [[0,35],[1,48],[2,58],[3,68],[4,84],[5,85],[7,90],[10,95],[15,99],[21,100]],
+    };
+
+    function _getPercentile(score, type) {
+        const table = PERCENTILE_TABLES[type];
+        if (!table) return null;
+        if (score <= table[0][0]) return table[0][1];
+        if (score >= table[table.length - 1][0]) return table[table.length - 1][1];
+        for (let i = 1; i < table.length; i++) {
+            if (score <= table[i][0]) {
+                const [x0, y0] = table[i - 1];
+                const [x1, y1] = table[i];
+                return y0 + (y1 - y0) * (score - x0) / (x1 - x0);
+            }
+        }
+        return table[table.length - 1][1];
+    }
+
+    function _buildPopulationCurveHtml(canvasId, title, score, maxScore, percentile) {
+        const axisPoints = maxScore === 27 ? [0, 5, 10, 15, 20, 27] : [0, 5, 10, 15, 21];
+        const axisHtml = axisPoints.map(v => `<span>${v}</span>`).join('');
+        const pctRound = Math.round(percentile);
+        return `<div class="vs-population-card">
+            <div class="vs-population-title">${title}</div>
+            <div class="vs-population-chart" id="${canvasId}-container">
+                <canvas id="${canvasId}"></canvas>
+                <div class="vs-population-score-label" id="${canvasId}-label">
+                    <div class="vs-population-score-value">${score.toFixed(1)}</div>
+                    <div class="vs-population-percentile">${pctRound}th percentile</div>
+                </div>
+            </div>
+            <div class="vs-population-axis">${axisHtml}</div>
+            <div class="vs-population-footnote">Higher than ${pctRound}% of the general U.S. adult population</div>
+        </div>`;
+    }
+
+    function _drawPopulationCurve(canvasId, score, maxScore) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const container = document.getElementById(canvasId + '-container');
+        const W = container.clientWidth;
+        const H = 140;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.scale(dpr, dpr);
+
+        const padT = 8, padB = 4;
+        const chartH = H - padT - padB;
+
+        // Right-skewed gamma-like PDF
+        function pdf(x) {
+            if (x <= 0) return 0;
+            const k = 1.8, theta = 1.8;
+            return Math.pow(x, k - 1) * Math.exp(-x / theta);
+        }
+
+        const points = [];
+        let maxY = 0;
+        for (let i = 0; i <= 200; i++) {
+            const x = (i / 200) * maxScore;
+            const y = pdf(x);
+            if (y > maxY) maxY = y;
+            points.push({ x, y });
+        }
+
+        function xToC(x) { return (x / maxScore) * W; }
+        function yToC(y) { return padT + chartH - (y / maxY) * chartH * 0.9; }
+
+        const scoreX = xToC(score);
+        const scoreYVal = pdf(score);
+
+        // Filled area left of score
+        ctx.beginPath();
+        ctx.moveTo(0, yToC(0));
+        for (const p of points) {
+            if (xToC(p.x) > scoreX) break;
+            ctx.lineTo(xToC(p.x), yToC(p.y));
+        }
+        ctx.lineTo(scoreX, yToC(scoreYVal));
+        ctx.lineTo(scoreX, yToC(0));
+        ctx.closePath();
+        const gradFill = ctx.createLinearGradient(0, 0, W, 0);
+        gradFill.addColorStop(0, 'rgba(91,141,184,0.35)');
+        gradFill.addColorStop(0.5, 'rgba(91,141,184,0.2)');
+        gradFill.addColorStop(1, 'rgba(75,85,99,0.15)');
+        ctx.fillStyle = gradFill;
+        ctx.fill();
+
+        // Right side light fill
+        ctx.beginPath();
+        let started = false;
+        for (const p of points) {
+            if (xToC(p.x) < scoreX) continue;
+            if (!started) { ctx.moveTo(scoreX, yToC(scoreYVal)); started = true; }
+            ctx.lineTo(xToC(p.x), yToC(p.y));
+        }
+        ctx.lineTo(W, yToC(0));
+        ctx.lineTo(scoreX, yToC(0));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(75,85,99,0.06)';
+        ctx.fill();
+
+        // Curve outline with gradient
+        ctx.beginPath();
+        ctx.moveTo(0, yToC(0));
+        for (const p of points) ctx.lineTo(xToC(p.x), yToC(p.y));
+        ctx.lineTo(W, yToC(0));
+        const gradLine = ctx.createLinearGradient(0, 0, W, 0);
+        gradLine.addColorStop(0, '#5B8DB8');
+        gradLine.addColorStop(0.6, '#6B7A8D');
+        gradLine.addColorStop(1, '#4B5563');
+        ctx.strokeStyle = gradLine;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Dashed vertical marker line
+        ctx.beginPath();
+        ctx.moveTo(scoreX, yToC(scoreYVal) - 4);
+        ctx.lineTo(scoreX, yToC(0));
+        ctx.strokeStyle = 'var(--text-primary, #1a1d21)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Glowing dot
+        ctx.beginPath();
+        ctx.arc(scoreX, yToC(scoreYVal), 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(91,141,184,0.15)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(scoreX, yToC(scoreYVal), 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#5B8DB8';
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Position floating label
+        const label = document.getElementById(canvasId + '-label');
+        if (label) {
+            label.style.left = scoreX + 'px';
+            label.style.bottom = (H - yToC(scoreYVal) + 14) + 'px';
+        }
+    }
+
     // ========== Results ==========
 
     function _renderResults(data) {
@@ -260,10 +414,24 @@ const ActiveAssessment = (() => {
             <button class="vs-notes-save" id="vs-notes-save-btn">Save Note</button>
         </div>`;
 
-        container.innerHTML = phq9Html + gad7Html +
+        // Population percentile curves
+        const phq9Pct = _getPercentile(depMapped, 'phq9');
+        const gad7Pct = _getPercentile(anxMapped, 'gad7');
+        const phq9CurveHtml = _buildPopulationCurveHtml(
+            'vs-pop-phq9', 'Population Comparison — PHQ-9', depMapped, 27, phq9Pct);
+        const gad7CurveHtml = _buildPopulationCurveHtml(
+            'vs-pop-gad7', 'Population Comparison — GAD-7', anxMapped, 21, gad7Pct);
+
+        container.innerHTML = phq9Html + phq9CurveHtml + gad7Html + gad7CurveHtml +
             `<div id="vs-comparison-container"></div>` +
             `<div class="vs-extra-scores">${extrasHtml}</div>` +
             notesHtml;
+
+        // Draw canvases after DOM insertion
+        requestAnimationFrame(() => {
+            _drawPopulationCurve('vs-pop-phq9', depMapped, 27);
+            _drawPopulationCurve('vs-pop-gad7', anxMapped, 21);
+        });
 
         // Bind notes save
         const saveBtn = document.getElementById('vs-notes-save-btn');
