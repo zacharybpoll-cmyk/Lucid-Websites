@@ -91,8 +91,10 @@ const ActiveAssessment = (() => {
             const data = await resp.json();
 
             if (!resp.ok || data.error) {
-                alert(data.detail || data.error || 'Analysis failed');
+                // Don't alert — just return to idle gracefully
+                console.warn('Voice scan stop:', data.detail || data.error);
                 _setState('idle');
+                _shufflePrompt();
                 return;
             }
 
@@ -103,6 +105,7 @@ const ActiveAssessment = (() => {
         } catch (e) {
             console.error('Stop recording error:', e);
             _setState('idle');
+            _shufflePrompt();
         }
     }
 
@@ -139,10 +142,10 @@ const ActiveAssessment = (() => {
             const resp = await fetch('/api/active/status');
             const data = await resp.json();
             if (!data.active && state === 'recording') {
-                // Session ended externally (max time)
+                // Session ended externally (max time hit) — just return to idle quietly
                 _stopPolling();
-                _setState('analyzing');
-                stopRecording();
+                _setState('idle');
+                _shufflePrompt();
                 return;
             }
             _updateRecordingUI(data);

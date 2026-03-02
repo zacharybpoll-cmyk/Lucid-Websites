@@ -81,10 +81,13 @@ class ActiveAssessmentRunner:
         if not self._active:
             return
 
-        # Check max recording time
+        # Check max recording time — auto-stop cleanly
         elapsed = time.time() - self._recording_start
         if elapsed > config.ACTIVE_MAX_RECORDING_SEC:
-            logger.info("Voice scan hit max recording time, auto-stopping")
+            if self._active:
+                logger.info("Voice scan hit max recording time, auto-stopping")
+                self._active = False
+                self.orchestrator.set_active_mode(callback=None)
             return
 
         # Compute RMS for visualization
@@ -98,7 +101,8 @@ class ActiveAssessmentRunner:
 
         is_speech, confidence = vad.is_speech(audio_chunk)
 
-        if is_speech and rms >= config.SPEAKER_RMS_MINIMUM:
+        if is_speech:
+            # No RMS filter for active mode — user is intentionally speaking
             self._speech_detected = True
             self._speech_chunks.append(audio_chunk.copy())
             chunk_duration = len(audio_chunk) / config.SAMPLE_RATE
