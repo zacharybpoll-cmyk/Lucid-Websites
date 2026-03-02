@@ -1,7 +1,7 @@
 /* Voice Scan — Active Assessment Styles */
 
 /* ===== Layout ===== */
-#voicescan-view {
+#voicescan-view.active {
     display: flex;
     flex-direction: column;
     align-items: center;

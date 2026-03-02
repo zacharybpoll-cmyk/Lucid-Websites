@@ -154,6 +154,7 @@ body {
     -webkit-backdrop-filter: blur(20px);
     border-right: 1px solid rgba(0,0,0,0.08);
     z-index: 100;
+    -webkit-app-region: drag;
 }
 
 .sidebar-icon {
@@ -168,6 +169,7 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
+    -webkit-app-region: no-drag;
 }
 
 .sidebar-icon:hover {
