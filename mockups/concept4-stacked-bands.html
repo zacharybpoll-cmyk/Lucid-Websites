@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept 4: Stacked Population Bands</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f8f9fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    width: 480px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a6270;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 24px;
+  }
+  .bands-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .band-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 12px;
+    position: relative;
+  }
+  .band {
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+    position: relative;
+  }
+  .band-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .band-label.dark { color: #1a1d21; text-shadow: none; }
+  .band-pct {
+    font-size: 11px;
+    color: #5a6270;
+    width: 50px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .band-range {
+    font-size: 11px;
+    color: #9ca3af;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .active-band {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #5B8DB8;
+  }
+  .you-arrow {
+    position: absolute;
+    right: -60px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .you-arrow-line {
+    width: 20px;
+    height: 2px;
+    background: #5B8DB8;
+  }
+  .you-arrow-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #5B8DB8;
+    white-space: nowrap;
+  }
+  .percentile-badge {
+    text-align: center;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #f0f2f4;
+  }
+  .percentile-main {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a1d21;
+  }
+  .percentile-sub {
+    font-size: 12px;
+    color: #5a6270;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Population Comparison — PHQ-9 (Depression)</div>
+  <div class="bands-container">
+    <!-- Severe -->
+    <div class="band-row">
+      <div class="band-pct">3%</div>
+      <div class="band" style="width: 12%; background: #4B5563; min-width: 50px;">
+        <span class="band-label" style="font-size:10px">Severe</span>
+      </div>
+      <div class="band-range">15+</div>
+    </div>
+    <!-- Moderate -->
+    <div class="band-row">
+      <div class="band-pct">6%</div>
+      <div class="band" style="width: 24%; background: #6B7280; min-width: 70px;">
+        <span class="band-label">Moderate</span>
+      </div>
+      <div class="band-range">10–14</div>
+    </div>
+    <!-- Mild (ACTIVE) -->
+    <div class="band-row" style="position: relative;">
+      <div class="band-pct">16%</div>
+      <div class="band active-band" style="width: 52%; background: #5B8DB8;">
+        <span class="band-label">Mild</span>
+      </div>
+      <div class="band-range">5–9</div>
+      <div class="you-arrow">
+        <div class="you-arrow-line"></div>
+        <div class="you-arrow-text">← You (9.4)</div>
+      </div>
+    </div>
+    <!-- None/Minimal -->
+    <div class="band-row">
+      <div class="band-pct">75%</div>
+      <div class="band" style="width: 100%; background: #cddbe8;">
+        <span class="band-label dark">None / Minimal</span>
+      </div>
+      <div class="band-range">0–4</div>
+    </div>
+  </div>
+
+  <div class="percentile-badge">
+    <div class="percentile-main">88th Percentile</div>
+    <div class="percentile-sub">Higher than 88% of the general U.S. adult population</div>
+  </div>
+</div>
+</body>
+</html>

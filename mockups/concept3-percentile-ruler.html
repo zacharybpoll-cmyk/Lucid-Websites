@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept 3: Horizontal Percentile Ruler</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f8f9fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    width: 540px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a6270;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 24px;
+  }
+  .ruler-wrapper { position: relative; padding-top: 50px; padding-bottom: 40px; }
+
+  /* Main bar */
+  .ruler-bar {
+    position: relative;
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(to right, #e8edf2, #a8c0d4, #5B8DB8, #6B7A8D, #4B5563);
+    overflow: visible;
+  }
+
+  /* Severity zones */
+  .zone-labels {
+    display: flex;
+    margin-top: 10px;
+  }
+  .zone-label {
+    font-size: 10px;
+    color: #9ca3af;
+    text-align: center;
+    border-left: 1px solid #e4e8ec;
+    padding-left: 4px;
+  }
+  .zone-label:first-child { border-left: none; padding-left: 0; }
+
+  /* Percentile ticks */
+  .tick {
+    position: absolute;
+    top: 100%;
+    transform: translateX(-50%);
+    text-align: center;
+    margin-top: 4px;
+  }
+  .tick-line {
+    width: 1px;
+    height: 8px;
+    background: #d1d5db;
+    margin: 0 auto;
+  }
+  .tick-label {
+    font-size: 10px;
+    color: #9ca3af;
+    margin-top: 2px;
+  }
+
+  /* Marker */
+  .marker-container {
+    position: absolute;
+    top: -44px;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .marker-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1d21;
+    white-space: nowrap;
+    margin-bottom: 4px;
+  }
+  .marker-triangle {
+    width: 0; height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid #1a1d21;
+    margin: 0 auto;
+  }
+  .marker-dot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #5B8DB8;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(91,141,184,0.4);
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .summary {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid #f0f2f4;
+  }
+  .summary-left { font-size: 12px; color: #5a6270; }
+  .summary-right {
+    font-size: 14px;
+    font-weight: 600;
+    color: #5B8DB8;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Population Comparison — PHQ-9 (Depression)</div>
+  <div class="ruler-wrapper">
+    <div class="ruler-bar">
+      <!-- Score marker -->
+      <div class="marker-container" style="left: 88%">
+        <div class="marker-text">You — 88th percentile</div>
+        <div class="marker-triangle"></div>
+      </div>
+      <div class="marker-dot" style="left: 88%"></div>
+
+      <!-- Percentile ticks -->
+      <div class="tick" style="left: 25%"><div class="tick-line"></div><div class="tick-label">25th</div></div>
+      <div class="tick" style="left: 50%"><div class="tick-line"></div><div class="tick-label">50th</div></div>
+      <div class="tick" style="left: 75%"><div class="tick-line"></div><div class="tick-label">75th</div></div>
+      <div class="tick" style="left: 90%"><div class="tick-line"></div><div class="tick-label">90th</div></div>
+      <div class="tick" style="left: 95%"><div class="tick-line"></div><div class="tick-label">95th</div></div>
+      <div class="tick" style="left: 99%"><div class="tick-line"></div><div class="tick-label">99th</div></div>
+    </div>
+
+    <!-- Severity zones -->
+    <div class="zone-labels">
+      <div class="zone-label" style="width:75%">None/Minimal</div>
+      <div class="zone-label" style="width:11%">Mild</div>
+      <div class="zone-label" style="width:8%">Mod.</div>
+      <div class="zone-label" style="width:6%">Sev.</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-left">Higher than 88% of the general U.S. adult population</div>
+    <div class="summary-right">Score: 9.4</div>
+  </div>
+</div>
+</body>
+</html>

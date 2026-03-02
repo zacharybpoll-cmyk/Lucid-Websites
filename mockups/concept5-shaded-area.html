@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept 5: Shaded Percentile Area Chart</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f8f9fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    width: 540px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a6270;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 20px;
+  }
+  .chart-area { position: relative; width: 100%; height: 220px; }
+  canvas { width: 100%; height: 100%; }
+  .percentile-callout {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .callout-line {
+    width: 1px;
+    margin: 0 auto;
+  }
+  .callout-badge {
+    display: inline-block;
+    background: #1a1d21;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .callout-sub {
+    font-size: 11px;
+    color: #5a6270;
+    margin-top: 4px;
+  }
+  .threshold-labels {
+    position: relative;
+    height: 20px;
+    margin-top: -2px;
+  }
+  .threshold-label {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #9ca3af;
+  }
+  .footnote {
+    margin-top: 12px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Population Comparison — PHQ-9 (Depression)</div>
+  <div class="chart-area">
+    <canvas id="chart"></canvas>
+    <div class="percentile-callout" id="callout">
+      <div class="callout-badge">88th percentile</div>
+      <div class="callout-sub">Score: 9.4</div>
+    </div>
+  </div>
+  <div class="threshold-labels" id="thresholds"></div>
+  <div class="footnote">Higher than 88% of the general U.S. adult population</div>
+</div>
+
+<script>
+const SCORE = 9.4;
+const MAX_SCORE = 27;
+
+// Right-skewed PDF (gamma distribution)
+function pdf(x) {
+  const k = 1.8, theta = 1.8;
+  if (x <= 0) return 0;
+  return Math.pow(x, k - 1) * Math.exp(-x / theta) / (Math.pow(theta, k) * gammaFn(k));
+}
+function gammaFn(z) {
+  const c = [0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,
+    -176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gammaFn(1 - z));
+  z -= 1; let x = c[0];
+  for (let i = 1; i < 9; i++) x += c[i] / (z + i);
+  const t = z + 7.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+const W = 540 - 64, H = 220;
+canvas.width = W * dpr;
+canvas.height = H * dpr;
+canvas.style.width = W + 'px';
+canvas.style.height = H + 'px';
+ctx.scale(dpr, dpr);
+
+const padT = 48, padB = 8;
+const chartH = H - padT - padB;
+
+const points = [];
+let maxY = 0;
+for (let i = 0; i <= 300; i++) {
+  const x = (i / 300) * MAX_SCORE;
+  const y = pdf(x);
+  if (y > maxY) maxY = y;
+  points.push({ x, y });
+}
+
+function xToC(x) { return (x / MAX_SCORE) * W; }
+function yToC(y) { return padT + chartH - (y / maxY) * chartH * 0.88; }
+
+const scoreX = xToC(SCORE);
+const scoreYVal = pdf(SCORE);
+
+// Filled area LEFT of score (steel blue)
+ctx.beginPath();
+ctx.moveTo(0, yToC(0));
+for (const p of points) {
+  if (xToC(p.x) > scoreX) break;
+  ctx.lineTo(xToC(p.x), yToC(p.y));
+}
+ctx.lineTo(scoreX, yToC(scoreYVal));
+ctx.lineTo(scoreX, yToC(0));
+ctx.closePath();
+ctx.fillStyle = 'rgba(91, 141, 184, 0.22)';
+ctx.fill();
+
+// Curve outline
+ctx.beginPath();
+ctx.moveTo(0, yToC(0));
+for (const p of points) ctx.lineTo(xToC(p.x), yToC(p.y));
+ctx.lineTo(W, yToC(0));
+ctx.strokeStyle = '#5B8DB8';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+// Severity threshold lines (5, 10, 15)
+[5, 10, 15].forEach(t => {
+  const tx = xToC(t);
+  ctx.beginPath();
+  ctx.moveTo(tx, padT + 10);
+  ctx.lineTo(tx, yToC(0));
+  ctx.strokeStyle = '#e4e8ec';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3, 3]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+});
+
+// Score vertical line
+ctx.beginPath();
+ctx.moveTo(scoreX, yToC(scoreYVal) - 2);
+ctx.lineTo(scoreX, yToC(0));
+ctx.strokeStyle = '#1a1d21';
+ctx.lineWidth = 2;
+ctx.stroke();
+
+// Score dot with glow
+ctx.beginPath();
+ctx.arc(scoreX, yToC(scoreYVal), 10, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(91,141,184,0.12)';
+ctx.fill();
+ctx.beginPath();
+ctx.arc(scoreX, yToC(scoreYVal), 6, 0, Math.PI * 2);
+ctx.fillStyle = '#5B8DB8';
+ctx.fill();
+ctx.strokeStyle = '#fff';
+ctx.lineWidth = 2.5;
+ctx.stroke();
+
+// Position callout
+const callout = document.getElementById('callout');
+callout.style.left = (scoreX + 32) + 'px'; // +32 for card padding
+callout.style.top = (yToC(scoreYVal) - 40) + 'px';
+
+// Threshold labels
+const thresholds = document.getElementById('thresholds');
+[
+  { score: 0, label: 'None' },
+  { score: 5, label: 'Mild' },
+  { score: 10, label: 'Moderate' },
+  { score: 15, label: 'Severe' },
+].forEach(t => {
+  const lbl = document.createElement('div');
+  lbl.className = 'threshold-label';
+  lbl.style.left = ((t.score / MAX_SCORE) * 100) + '%';
+  lbl.textContent = t.label;
+  thresholds.appendChild(lbl);
+});
+
+// Baseline
+ctx.beginPath();
+ctx.moveTo(0, yToC(0));
+ctx.lineTo(W, yToC(0));
+ctx.strokeStyle = '#e4e8ec';
+ctx.lineWidth = 1;
+ctx.stroke();
+</script>
+</body>
+</html>

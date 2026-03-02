@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept 1: Gradient Curve with Marker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f8f9fa; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 32px 24px;
+    width: 520px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #5a6270;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 20px;
+  }
+  .chart-container { position: relative; width: 100%; height: 200px; }
+  canvas { width: 100%; height: 100%; }
+  .score-label {
+    position: absolute;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+  }
+  .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a1d21;
+  }
+  .percentile-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5B8DB8;
+    margin-top: 2px;
+  }
+  .axis-labels {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0 0;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+  .footnote {
+    margin-top: 14px;
+    font-size: 11px;
+    color: #9ca3af;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-title">Population Comparison — PHQ-9 (Depression)</div>
+  <div class="chart-container">
+    <canvas id="chart"></canvas>
+    <div class="score-label" id="scoreLabel">
+      <div class="score-value">9.4</div>
+      <div class="percentile-text">88th percentile</div>
+    </div>
+  </div>
+  <div class="axis-labels">
+    <span>0</span><span>5</span><span>10</span><span>15</span><span>20</span><span>27</span>
+  </div>
+  <div class="footnote">Higher than 88% of the general U.S. adult population</div>
+</div>
+
+<script>
+const SCORE = 9.4;
+const MAX_SCORE = 27;
+const PERCENTILE = 88;
+
+// Right-skewed distribution (gamma-like)
+function pdf(x) {
+  const k = 1.8, theta = 1.8;
+  if (x <= 0) return 0;
+  return Math.pow(x, k - 1) * Math.exp(-x / theta) / (Math.pow(theta, k) * gamma(k));
+}
+function gamma(z) {
+  const g = 7;
+  const c = [0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,
+    -176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if (z < 0.5) return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+  z -= 1;
+  let x = c[0];
+  for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+  const t = z + g + 0.5;
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+}
+
+const canvas = document.getElementById('chart');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+const rect = canvas.parentElement.getBoundingClientRect();
+canvas.width = rect.width * dpr;
+canvas.height = 200 * dpr;
+canvas.style.width = rect.width + 'px';
+canvas.style.height = '200px';
+ctx.scale(dpr, dpr);
+
+const W = rect.width, H = 200;
+const padL = 0, padR = 0, padT = 40, padB = 10;
+const chartW = W - padL - padR;
+const chartH = H - padT - padB;
+
+// Build curve points
+const points = [];
+let maxY = 0;
+for (let i = 0; i <= 200; i++) {
+  const x = (i / 200) * MAX_SCORE;
+  const y = pdf(x);
+  if (y > maxY) maxY = y;
+  points.push({ x, y });
+}
+
+function xToCanvas(x) { return padL + (x / MAX_SCORE) * chartW; }
+function yToCanvas(y) { return padT + chartH - (y / maxY) * chartH * 0.9; }
+
+const scoreCanvasX = xToCanvas(SCORE);
+
+// Draw filled area (left of score)
+const gradLeft = ctx.createLinearGradient(padL, 0, xToCanvas(MAX_SCORE), 0);
+gradLeft.addColorStop(0, 'rgba(91,141,184,0.35)');
+gradLeft.addColorStop(0.5, 'rgba(91,141,184,0.2)');
+gradLeft.addColorStop(1, 'rgba(75,85,99,0.15)');
+
+ctx.beginPath();
+ctx.moveTo(padL, yToCanvas(0));
+for (const p of points) {
+  if (xToCanvas(p.x) > scoreCanvasX) break;
+  ctx.lineTo(xToCanvas(p.x), yToCanvas(p.y));
+}
+// Close at score position
+const scoreY = pdf(SCORE);
+ctx.lineTo(scoreCanvasX, yToCanvas(scoreY));
+ctx.lineTo(scoreCanvasX, yToCanvas(0));
+ctx.closePath();
+ctx.fillStyle = gradLeft;
+ctx.fill();
+
+// Draw full curve outline
+const gradLine = ctx.createLinearGradient(padL, 0, xToCanvas(MAX_SCORE), 0);
+gradLine.addColorStop(0, '#5B8DB8');
+gradLine.addColorStop(0.6, '#6B7A8D');
+gradLine.addColorStop(1, '#4B5563');
+
+ctx.beginPath();
+ctx.moveTo(padL, yToCanvas(0));
+for (const p of points) {
+  ctx.lineTo(xToCanvas(p.x), yToCanvas(p.y));
+}
+ctx.lineTo(xToCanvas(MAX_SCORE), yToCanvas(0));
+ctx.strokeStyle = gradLine;
+ctx.lineWidth = 2.5;
+ctx.stroke();
+
+// Draw right side lightly filled
+ctx.beginPath();
+let started = false;
+for (const p of points) {
+  if (xToCanvas(p.x) < scoreCanvasX) continue;
+  if (!started) {
+    ctx.moveTo(scoreCanvasX, yToCanvas(scoreY));
+    started = true;
+  }
+  ctx.lineTo(xToCanvas(p.x), yToCanvas(p.y));
+}
+ctx.lineTo(xToCanvas(MAX_SCORE), yToCanvas(0));
+ctx.lineTo(scoreCanvasX, yToCanvas(0));
+ctx.closePath();
+ctx.fillStyle = 'rgba(75,85,99,0.06)';
+ctx.fill();
+
+// Vertical marker line
+ctx.beginPath();
+ctx.moveTo(scoreCanvasX, yToCanvas(scoreY) - 4);
+ctx.lineTo(scoreCanvasX, yToCanvas(0));
+ctx.strokeStyle = '#1a1d21';
+ctx.lineWidth = 1.5;
+ctx.setLineDash([4, 3]);
+ctx.stroke();
+ctx.setLineDash([]);
+
+// Glowing dot
+ctx.beginPath();
+ctx.arc(scoreCanvasX, yToCanvas(scoreY), 7, 0, Math.PI * 2);
+ctx.fillStyle = '#5B8DB8';
+ctx.fill();
+ctx.strokeStyle = '#fff';
+ctx.lineWidth = 2.5;
+ctx.stroke();
+// Glow
+ctx.beginPath();
+ctx.arc(scoreCanvasX, yToCanvas(scoreY), 12, 0, Math.PI * 2);
+ctx.fillStyle = 'rgba(91,141,184,0.15)';
+ctx.fill();
+
+// Position the label
+const label = document.getElementById('scoreLabel');
+label.style.left = scoreCanvasX + 'px';
+label.style.bottom = (H - yToCanvas(scoreY) + 18) + 'px';
+</script>
+</body>
+</html>
