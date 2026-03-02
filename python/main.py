@@ -148,6 +148,7 @@ class Attune:
         self.insight_engine = None
         self.notification_manager = None
         self.active_runner = None
+        self.analytics_engine = None
         self.server = None
         self._shutdown = threading.Event()
 
@@ -185,8 +186,35 @@ class Attune:
         # Wire notification manager into orchestrator
         self.orchestrator.notification_manager = self.notification_manager
 
+        # Wire analytics engine into orchestrator (set after analytics init below)
+
         # Create active assessment runner (Voice Scan)
         self.active_runner = ActiveAssessmentRunner(self.db, self.orchestrator)
+
+        # Initialize analytics engine
+        if config.ANALYTICS_ENABLED and config.SUPABASE_URL and config.SUPABASE_KEY:
+            from backend.analytics import AnalyticsEngine
+            try:
+                app_version = os.environ.get('npm_package_version', '1.0.0')
+                self.analytics_engine = AnalyticsEngine(
+                    supabase_url=config.SUPABASE_URL,
+                    supabase_key=config.SUPABASE_KEY,
+                    data_dir=config.DATA_DIR,
+                    app_version=app_version,
+                    flush_interval=config.ANALYTICS_FLUSH_INTERVAL,
+                    db=self.db,
+                )
+                self.analytics_engine.start()
+                logger.info("Analytics engine initialized")
+            except Exception as e:
+                logger.warning(f"Analytics engine failed to start (non-fatal): {e}")
+                self.analytics_engine = None
+        else:
+            logger.info("Analytics disabled (no Supabase credentials)")
+
+        # Wire analytics engine into orchestrator
+        if self.analytics_engine:
+            self.orchestrator.analytics_engine = self.analytics_engine
 
         # Wire up API dependencies
         deps.db = self.db
@@ -195,6 +223,7 @@ class Attune:
         deps.insight_engine = self.insight_engine
         deps.notification_manager = self.notification_manager
         deps.active_runner = self.active_runner
+        deps.analytics_engine = self.analytics_engine
 
         # Wire up legacy route globals (routes.py endpoints use module-level vars)
         routes.db = self.db
@@ -286,6 +315,8 @@ class Attune:
 
     def _cleanup(self):
         logger.info("Shutting down...")
+        if self.analytics_engine:
+            self.analytics_engine.stop()
         if self.notification_manager:
             self.notification_manager.stop()
         if self.orchestrator:

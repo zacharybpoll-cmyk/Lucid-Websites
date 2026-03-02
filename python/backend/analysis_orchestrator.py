@@ -39,6 +39,8 @@ class AnalysisOrchestrator:
         self.meeting_active = False
         # Notification manager — set by main.py after init
         self.notification_manager = None
+        # Analytics engine — set by main.py after init
+        self.analytics_engine = None
 
         # Active assessment callback — when set, all audio routes here instead of passive pipeline
         self._active_callback = None
@@ -452,6 +454,18 @@ class AnalysisOrchestrator:
                     self.notification_manager.on_new_reading(reading)
                 except Exception as ne:
                     logger.error(f"Notification error: {ne}")
+
+            # Analytics: track voice reading
+            if self.analytics_engine:
+                try:
+                    today_readings = self.db.get_today_readings()
+                    self.analytics_engine.track('voice_reading', {
+                        'reading_count_today': len(today_readings) if today_readings else 1,
+                        'speech_duration_sec': round(duration_sec, 1),
+                        'zone': scores.get('zone', ''),
+                    })
+                except Exception as ae:
+                    logger.debug(f"Analytics tracking error (non-fatal): {ae}")
 
             # Success — update shared state under lock
             with self._state_lock:

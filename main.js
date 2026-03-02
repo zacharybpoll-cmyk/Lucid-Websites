@@ -77,6 +77,7 @@ let mainWindow = null;
 let pythonProcess = null;
 let pythonRestartCount = 0;
 let isQuitting = false;
+let appLaunchTime = Date.now();
 
 // Ensure data directory exists
 function ensureDataDir() {
@@ -414,6 +415,19 @@ ipcMain.handle('open-system-settings', () => {
   shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone');
 });
 
+// ============ Analytics Helper ============
+
+function trackAnalyticsEvent(eventType, payload = {}) {
+  const postData = JSON.stringify({ event_type: eventType, payload });
+  const req = http.request({
+    hostname: API_HOST, port: API_PORT, path: '/api/track', method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) },
+  }, () => {}); // fire-and-forget
+  req.on('error', () => {}); // silently ignore
+  req.write(postData);
+  req.end();
+}
+
 // ============ App Lifecycle ============
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -438,6 +452,14 @@ if (!gotTheLock) {
 
       await pollForServer();
       console.log('[Main] Server is up!');
+
+      // Track app launch
+      const os = require('os');
+      trackAnalyticsEvent('app_launch', {
+        app_version: CURRENT_VERSION,
+        os_version: `macOS ${os.release()}`,
+        first_launch: false // will be true on very first launch (no onboarding complete)
+      });
 
       const status = await checkOnboardingStatus();
       console.log('[Main] Onboarding status:', status);
@@ -516,6 +538,11 @@ if (!gotTheLock) {
 
   app.on('before-quit', () => {
     isQuitting = true;
+
+    // Track app quit with session duration
+    const sessionDurationSec = Math.round((Date.now() - appLaunchTime) / 1000);
+    trackAnalyticsEvent('app_quit', { session_duration_sec: sessionDurationSec });
+
     if (pythonProcess) {
       console.log('[Main] Sending SIGTERM to Python...');
       pythonProcess.kill('SIGTERM');

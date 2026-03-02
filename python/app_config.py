@@ -94,6 +94,12 @@ class AppConfig:
     # VAD Settings
     vad_speech_threshold: float = 0.40              # Silero VAD speech probability threshold
 
+    # Analytics (Supabase)
+    analytics_enabled: bool = True
+    analytics_flush_interval: int = 30              # seconds between batch flushes
+    supabase_url: str = "https://gddruxtkyroopqwbkpje.supabase.co"
+    supabase_key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdkZHJ1eHRreXJvb3Bxd2JrcGplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODI3MjEsImV4cCI6MjA4ODA1ODcyMX0.Jb10BRRNzNTMzerf20NvHiAeSQRCaja1BXwRh6t4lZ0"
+
     @property
     def db_path(self) -> Path:
         return self.data_dir / "burnout.db"
@@ -185,3 +191,9 @@ ACTIVE_STATUS_POLL_MS = config.active_status_poll_ms
 
 # VAD Settings
 VAD_SPEECH_THRESHOLD = config.vad_speech_threshold
+
+# Analytics (Supabase)
+ANALYTICS_ENABLED = config.analytics_enabled
+ANALYTICS_FLUSH_INTERVAL = config.analytics_flush_interval
+SUPABASE_URL = config.supabase_url
+SUPABASE_KEY = config.supabase_key

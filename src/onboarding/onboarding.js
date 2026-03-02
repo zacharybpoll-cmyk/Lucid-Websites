@@ -58,6 +58,10 @@ let particleRAF = null;
 let enrollmentVerified = false;
 const CAROUSEL_DURATION = 6000; // ms per slide
 const TOTAL_SLIDES = 10;
+let _onboardingStartTime = Date.now();
+let _stepEnterTime = Date.now();
+let _stepsSkipped = 0;
+const STEP_NAMES = { 1: 'welcome', 2: 'carousel', 3: 'mic_permission', 4: 'voice_profile', 5: 'baseline_info', 6: 'ready' };
 
 // ============ Retry Helper ============
 
@@ -126,6 +130,15 @@ function goToStep(step) {
     return;
   }
 
+  // Analytics: track step transition
+  const timeOnStep = Math.round((Date.now() - _stepEnterTime) / 1000);
+  _trackOnboarding('onboarding_step', {
+    step: currentStep,
+    step_name: STEP_NAMES[currentStep] || `step_${currentStep}`,
+    action: 'leave',
+    time_on_step_sec: timeOnStep
+  });
+
   // Deactivate current
   const currentEl = document.getElementById(`step-${currentStep}`);
   if (currentEl) currentEl.classList.remove('active');
@@ -141,6 +154,7 @@ function goToStep(step) {
   }
 
   currentStep = step;
+  _stepEnterTime = Date.now();
 
   // Activate new
   const newEl = document.getElementById(`step-${step}`);
@@ -152,6 +166,14 @@ function goToStep(step) {
     dot.classList.remove('active', 'done');
     if (s < step) dot.classList.add('done');
     else if (s === step) dot.classList.add('active');
+  });
+
+  // Analytics: track step enter
+  _trackOnboarding('onboarding_step', {
+    step: step,
+    step_name: STEP_NAMES[step] || `step_${step}`,
+    action: 'enter',
+    time_on_step_sec: 0
   });
 
   // Start carousel auto-advance for step 2
@@ -875,7 +897,25 @@ async function completeOnboarding() {
     btn.textContent = 'Starting...';
   }
 
+  // Analytics: track onboarding complete
+  const totalTimeSec = Math.round((Date.now() - _onboardingStartTime) / 1000);
+  _trackOnboarding('onboarding_complete', {
+    total_time_sec: totalTimeSec,
+    steps_skipped: _stepsSkipped
+  });
+
   if (window.attune && window.attune.completeOnboarding) {
     await window.attune.completeOnboarding();
   }
+}
+
+// ============ Analytics Helper ============
+
+function _trackOnboarding(eventType, payload) {
+  // Fire-and-forget to backend analytics endpoint
+  fetch(`${API_BASE}/api/track`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ event_type: eventType, payload })
+  }).catch(() => {}); // never block onboarding
 }

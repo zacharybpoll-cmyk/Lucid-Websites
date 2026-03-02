@@ -1446,6 +1446,10 @@ async def active_update_notes(req: ActiveNotesRequest):
     return {'success': True}
 
 
+# Analytics router
+from api.routers.analytics import router as analytics_router
+app.include_router(analytics_router)
+
 # Mount static files (frontend) - must be AFTER API routes
 from pathlib import Path
 frontend_path = Path(__file__).parent.parent / "frontend"

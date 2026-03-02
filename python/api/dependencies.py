@@ -11,6 +11,7 @@ meeting_detector = None
 insight_engine = None
 notification_manager = None
 active_runner = None
+analytics_engine = None
 
 
 def get_db():

@@ -192,4 +192,13 @@ const API = {
     async deleteSpeakerProfile() {
         return await apiCall('/speaker/profile', { method: 'DELETE' });
     },
+
+    // Analytics — fire-and-forget (never blocks UI)
+    track(eventType, payload = {}) {
+        fetch(`${API_BASE}/track`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ event_type: eventType, payload })
+        }).catch(() => {}); // silently ignore failures
+    },
 };

@@ -122,6 +122,9 @@ window.AppState = {
     // Evening summary state
     eveningSummaryShown: false,
 
+    // Analytics: timestamp when current view was entered
+    _viewEnterTime: Date.now(),
+
     // Analysis error toast state (avoid spamming same error)
     lastShownAnalysisError: null,
 
@@ -164,7 +167,10 @@ async function init() {
     updateCurrentDate();
     updateDailyGreeting();
 
-    // 4. Wait for backend readiness, then load data and start polling
+    // 4. Setup analytics tracking
+    setupAnalyticsTracking();
+
+    // 5. Wait for backend readiness, then load data and start polling
     await waitForBackend();
 }
 
@@ -260,6 +266,17 @@ function setupNavigation() {
 }
 
 function switchView(view) {
+    // Analytics: track view switch with time on previous view
+    const timeOnPrev = Math.round((Date.now() - (AppState._viewEnterTime || Date.now())) / 1000);
+    if (AppState.currentView !== view) {
+        API.track('view_switch', {
+            from_view: AppState.currentView,
+            to_view: view,
+            time_on_previous_sec: timeOnPrev
+        });
+    }
+    AppState._viewEnterTime = Date.now();
+
     // Stop polling intervals when leaving the today view
     if (AppState.currentView === 'today' && view !== 'today') {
         stopPolling();
@@ -3138,4 +3155,66 @@ function drawEnrollmentLevelBars() {
 // Stub functions kept for any residual calls
 function initFirstLight() {}
 function completeFirstLightTask() {}
+
+// ========== Analytics Tracking ==========
+
+function setupAnalyticsTracking() {
+    // Track button clicks via delegated event listener
+    const TRACKED_BUTTONS = {
+        'settings-btn': 'settings_open',
+        'settings-close-btn': 'settings_close',
+        'export-readings-btn': 'export_csv',
+        'export-summaries-btn': 'export_csv',
+        'export-json-btn': 'export_json',
+        'speaker-setup-btn': 'enrollment_start',
+        'speaker-enhance-btn': 'enrollment_enhance',
+        'speaker-delete-btn': 'speaker_delete',
+        'speaker-reset-btn': 'enrollment_reset',
+        'enhance-record-btn': 'enrollment_enhance_record',
+    };
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('button, [onclick]');
+        if (!btn) return;
+
+        const id = btn.id;
+        if (id && TRACKED_BUTTONS[id]) {
+            API.track('button_click', {
+                button_id: TRACKED_BUTTONS[id],
+                context_view: AppState.currentView
+            });
+            return;
+        }
+
+        // Track specific onclick handlers by class or data attributes
+        if (btn.classList.contains('grove-revive-btn')) {
+            API.track('button_click', { button_id: 'grove_revive', context_view: 'grove' });
+        } else if (btn.classList.contains('compass-intention-btn')) {
+            API.track('button_click', { button_id: 'compass_set_intention', context_view: AppState.currentView });
+        } else if (btn.classList.contains('briefing-toggle')) {
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            API.track('button_click', {
+                button_id: expanded ? 'briefing_collapse' : 'briefing_expand',
+                context_view: AppState.currentView
+            });
+        }
+    });
+
+    // Track errors from API calls
+    const origApiCall = window.apiCall;
+    if (origApiCall) {
+        window.apiCall = async function(endpoint, options) {
+            try {
+                return await origApiCall(endpoint, options);
+            } catch (err) {
+                API.track('error', {
+                    error_type: 'api_error',
+                    error_message: err.message || String(err),
+                    context: endpoint
+                });
+                throw err;
+            }
+        };
+    }
+}
 
