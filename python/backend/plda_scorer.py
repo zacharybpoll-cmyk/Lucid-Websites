@@ -13,7 +13,7 @@ import numpy as np
 from pathlib import Path
 from typing import List, Optional
 
-logger = logging.getLogger('attune.plda')
+logger = logging.getLogger('lucid.plda')
 
 
 class PLDAScorer:

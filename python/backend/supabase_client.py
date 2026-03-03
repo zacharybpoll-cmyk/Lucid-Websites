@@ -8,7 +8,7 @@ from typing import List, Dict, Any, Optional
 
 import httpx
 
-logger = logging.getLogger('attune.supabase')
+logger = logging.getLogger('lucid.supabase')
 
 # Retry config
 MAX_RETRIES = 3

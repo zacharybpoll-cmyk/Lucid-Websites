@@ -53,7 +53,7 @@ class InsightEngine:
         time_context = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
 
         if reading_count == 0:
-            return "No readings yet today. Start speaking naturally and Attune will begin tracking."
+            return "No readings yet today. Start speaking naturally and Lucid will begin tracking."
 
         # Zone-based observation
         zone_msgs = {
@@ -547,7 +547,7 @@ class InsightEngine:
             if first_date:
                 capsules.append({
                     'trigger_type': 'week_1',
-                    'message': f'One week ago ({first_date}), your journey with Attune began.',
+                    'message': f'One week ago ({first_date}), your journey with Lucid began.',
                 })
 
         # Day 15: Compare stress now vs then
@@ -574,7 +574,7 @@ class InsightEngine:
             week4_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) for s in sorted_s[-7:]) / 7
             capsules.append({
                 'trigger_type': 'month_review',
-                'message': f'One month with Attune! Week 1 wellbeing: {week1_wellbeing:.0f} → Week 4 wellbeing: {week4_wellbeing:.0f}. {total_readings} readings captured.',
+                'message': f'One month with Lucid! Week 1 wellbeing: {week1_wellbeing:.0f} → Week 4 wellbeing: {week4_wellbeing:.0f}. {total_readings} readings captured.',
             })
 
         # Hours-spoken milestones (logarithmic spacing)
@@ -583,7 +583,7 @@ class InsightEngine:
             if total_hours >= milestone_hrs:
                 capsules.append({
                     'trigger_type': f'hours_{milestone_hrs}',
-                    'message': f"You've spoken for {milestone_hrs} {'hour' if milestone_hrs == 1 else 'hours'} while Attune listened.",
+                    'message': f"You've spoken for {milestone_hrs} {'hour' if milestone_hrs == 1 else 'hours'} while Lucid listened.",
                 })
 
         # Store new capsules (duplicates silently skipped via UNIQUE constraint)

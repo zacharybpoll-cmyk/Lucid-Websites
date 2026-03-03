@@ -10,7 +10,7 @@ import json
 import math
 
 
-logger = logging.getLogger('attune.engagement')
+logger = logging.getLogger('lucid.engagement')
 
 
 class EngagementTracker:
@@ -147,11 +147,11 @@ class EngagementTracker:
     # Waypoint lambdas: (summaries, reading_count: int, state) -> bool
     WAYPOINTS = [
         # Tier: Seedling (Days 1-3) - first 2 pre-completed
-        {'id': 'wp_welcome', 'name': 'Welcome', 'desc': 'Opened Attune for the first time', 'tier': 'Seedling', 'order': 1, 'auto': True},
+        {'id': 'wp_welcome', 'name': 'Welcome', 'desc': 'Opened Lucid for the first time', 'tier': 'Seedling', 'order': 1, 'auto': True},
         {'id': 'wp_first_voice', 'name': 'First Voice', 'desc': 'Recorded your first voice sample', 'tier': 'Seedling', 'order': 2, 'auto': True},
         {'id': 'wp_3_readings', 'name': 'Getting Started', 'desc': 'Complete 3 voice readings', 'tier': 'Seedling', 'order': 3, 'check': lambda s, rc, st: rc >= 3},
         {'id': 'wp_first_calm', 'name': 'First Calm', 'desc': 'Reach the Calm zone', 'tier': 'Seedling', 'order': 4, 'check': lambda s, rc, st: any(d.get('time_in_calm_min', 0) > 0 for d in s)},
-        {'id': 'wp_day3', 'name': 'Day 3', 'desc': 'Use Attune for 3 days', 'tier': 'Seedling', 'order': 5, 'check': lambda s, rc, st: len(s) >= 3},
+        {'id': 'wp_day3', 'name': 'Day 3', 'desc': 'Use Lucid for 3 days', 'tier': 'Seedling', 'order': 5, 'check': lambda s, rc, st: len(s) >= 3},
 
         # Tier: Sapling (Days 4-7)
         {'id': 'wp_10_readings', 'name': '10 Readings', 'desc': 'Complete 10 voice readings', 'tier': 'Sapling', 'order': 6, 'check': lambda s, rc, st: rc >= 10},
@@ -186,7 +186,7 @@ class EngagementTracker:
         {'id': 'wp_full_grove', 'name': 'Full Grove', 'desc': '30 healthy trees in your Grove', 'tier': 'Ancient', 'order': 27, 'check': lambda s, rc, st: st.get('growing_trees', 0) >= 30},
         {'id': 'wp_all_records', 'name': 'Veteran Listener', 'desc': '200+ voice readings', 'tier': 'Ancient', 'order': 28, 'check': lambda s, rc, st: rc >= 200},
         {'id': 'wp_90_days', 'name': 'Quarter Year', 'desc': '90-day streak', 'tier': 'Ancient', 'order': 29, 'check': lambda s, rc, st: st.get('streak', 0) >= 90},
-        {'id': 'wp_ancient', 'name': 'Ancient Grove', 'desc': 'Use Attune for 90+ days', 'tier': 'Ancient', 'order': 30, 'check': lambda s, rc, st: len(s) >= 90},
+        {'id': 'wp_ancient', 'name': 'Ancient Grove', 'desc': 'Use Lucid for 90+ days', 'tier': 'Ancient', 'order': 30, 'check': lambda s, rc, st: len(s) >= 90},
     ]
 
     def compute_waypoints(self) -> Dict[str, Any]:

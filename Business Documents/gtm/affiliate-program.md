@@ -1,8 +1,8 @@
-# Attune Creator Affiliate Program
+# Lucid Creator Affiliate Program
 
 ## Program Overview
 
-Turn vocal professionals into authentic ambassadors. The program prioritizes genuine product belief over promotional volume — only partner with people who've used Attune and found it valuable.
+Turn vocal professionals into authentic ambassadors. The program prioritizes genuine product belief over promotional volume — only partner with people who've used Lucid and found it valuable.
 
 ---
 
@@ -31,13 +31,13 @@ Commissions are **recurring** — creators earn every month their referrals stay
 ## What Creators Get
 
 ### Product Access
-- Free lifetime Attune subscription (while partnership is active)
+- Free lifetime Lucid subscription (while partnership is active)
 - Early access to new features (2 weeks before public release)
 - Priority support channel (direct Slack/email to founder)
 
 ### Marketing Assets
 - Custom discount code: `CREATORNAME` (short, verbal-friendly)
-- Personalized referral link: `attune.health/ref/creatorname`
+- Personalized referral link: `lucidvoice.com/ref/creatorname`
 - Brand assets kit (logo, screenshots, talking points — NOT scripts)
 - Optional: custom co-branded landing page for high performers
 
@@ -60,7 +60,7 @@ Commissions are **recurring** — creators earn every month their referrals stay
 ## Creator Requirements
 
 ### Must-Haves
-- [ ] Must actually use Attune for 2+ weeks before promoting
+- [ ] Must actually use Lucid for 2+ weeks before promoting
 - [ ] Must genuinely believe the product is useful (we will ask)
 - [ ] Must disclose the affiliate relationship per FTC guidelines
 - [ ] At least 1,000 followers on primary platform (flexible for high-engagement small accounts)
@@ -80,7 +80,7 @@ Commissions are **recurring** — creators earn every month their referrals stay
 ## Onboarding Flow
 
 ### Step 1: Product Trial (Week 1-4)
-1. Creator receives free Attune access
+1. Creator receives free Lucid access
 2. Uses product genuinely for 2-4 weeks
 3. No promotional obligation during trial period
 
@@ -100,7 +100,7 @@ Commissions are **recurring** — creators earn every month their referrals stay
 1. Monthly earnings report
 2. Quarterly check-in call (optional)
 3. Early feature access notifications
-4. Amplify their content on Attune's channels (with permission)
+4. Amplify their content on Lucid's channels (with permission)
 
 ---
 
@@ -137,16 +137,16 @@ Commissions are **recurring** — creators earn every month their referrals stay
 
 ### FTC Disclosure Requirements
 All creators must clearly disclose the affiliate relationship. Accepted formats:
-- Video: verbal disclosure ("I'm a paid partner of Attune" or "affiliate link in bio")
+- Video: verbal disclosure ("I'm a paid partner of Lucid" or "affiliate link in bio")
 - Post caption: "#ad" or "#partner" or "affiliate link" near the top (not buried)
-- Bio: "Attune affiliate" or similar permanent disclosure
+- Bio: "Lucid affiliate" or similar permanent disclosure
 
 ### Affiliate Agreement (Key Terms)
 - Non-exclusive (creators can promote competitors)
 - Either party can terminate with 30 days notice
 - Commissions on existing referrals honored through their 12-month window even after termination
 - No medical claims, no income guarantees
-- Creator owns their content; Attune may reshare with permission
+- Creator owns their content; Lucid may reshare with permission
 
 ---
 

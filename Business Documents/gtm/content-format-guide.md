@@ -1,15 +1,15 @@
-# Attune Content Format Guide
+# Lucid Content Format Guide
 ## What to Post, How It Should Look, and Why
 
-*A comprehensive content strategy for TikTok and Instagram based on what the most successful health/biomarker/wellness brands are doing — and how Attune can win the wide-open vocal health category.*
+*A comprehensive content strategy for TikTok and Instagram based on what the most successful health/biomarker/wellness brands are doing — and how Lucid can win the wide-open vocal health category.*
 
 ---
 
-## Part 1: Visual Identity — Attune's Signature Look
+## Part 1: Visual Identity — Lucid's Signature Look
 
 Every winning health brand owns a visual element that's instantly recognizable in a scroll. Glucose Goddess owns the glucose curve graph. WHOOP owns green/yellow/red recovery circles. AG1 owns the green powder scoop. Oura owns the glowing ring on a nightstand. Levels owns the real-time glucose overlay on food.
 
-Attune needs its own unmistakable visual vocabulary.
+Lucid needs its own unmistakable visual vocabulary.
 
 ### Primary Visual: The Voice Waveform
 
@@ -31,7 +31,7 @@ This waveform appears in every piece of content — as a background element, a d
 | Background | Warm Charcoal | #1F2937 | Dark mode cards, overlays |
 | Text | Clean White | #F9FAFB | All on-screen text |
 
-### The Attune Score Card
+### The Lucid Score Card
 
 An Apple Health-style widget that appears as a persistent visual element:
 
@@ -39,7 +39,7 @@ An Apple Health-style widget that appears as a persistent visual element:
 - **Center**: Large number (0-100) with color-coded background (teal/amber/coral)
 - **Below number**: Recovery status text ("Recovered" / "Watch it" / "Rest your voice")
 - **Bottom**: Trend arrow (up/down/flat) with percentage change
-- **Corner**: Attune logo watermark (subtle, never dominant)
+- **Corner**: Lucid logo watermark (subtle, never dominant)
 
 This card is the visual anchor — the thing people screenshot and share.
 
@@ -63,7 +63,7 @@ This card is the visual anchor — the thing people screenshot and share.
 
 ## Part 2: The 15 Ranked Content Formats
 
-Each format is ranked by a composite score weighing: virality potential (how shareable), production ease (can you make 3/week), brand building (does it position Attune as the authority), and conversion potential (does it drive app downloads).
+Each format is ranked by a composite score weighing: virality potential (how shareable), production ease (can you make 3/week), brand building (does it position Lucid as the authority), and conversion potential (does it drive app downloads).
 
 ---
 
@@ -72,7 +72,7 @@ Each format is ranked by a composite score weighing: virality potential (how sha
 
 #### Why This Wins
 
-This is the Glucose Goddess playbook applied to voice. Jessie Inchauspe built a 6M-follower empire by making invisible glucose data visible and personal. Her format: show the data, explain what it means, give one actionable tip. Attune's app data IS the content — no actors, no scripts, no production budget needed.
+This is the Glucose Goddess playbook applied to voice. Jessie Inchauspe built a 6M-follower empire by making invisible glucose data visible and personal. Her format: show the data, explain what it means, give one actionable tip. Lucid's app data IS the content — no actors, no scripts, no production budget needed.
 
 Data stories work because they satisfy curiosity ("what does my data look like?"), create urgency ("I didn't know this was happening"), and position the product as the source of truth.
 
@@ -80,7 +80,7 @@ Data stories work because they satisfy curiosity ("what does my data look like?"
 
 **Second 0-1**: Black screen fades in. Bold white text appears: "My voice after 3 hours of Zoom calls." No face yet — just text. This is the hook.
 
-**Second 1-3**: Cut to the Attune app score card filling 60% of the screen. The Voice Strain Score reads 78 in coral. Below it: "Strained — Rest your voice." The score card is angled slightly, as if someone just glanced at their phone. Behind it, a blurred desk setup suggests a real workspace.
+**Second 1-3**: Cut to the Lucid app score card filling 60% of the screen. The Voice Strain Score reads 78 in coral. Below it: "Strained — Rest your voice." The score card is angled slightly, as if someone just glanced at their phone. Behind it, a blurred desk setup suggests a real workspace.
 
 **Second 3-8**: The presenter appears — chest-up, warm lighting from the left, plain wall behind them. They're wearing a simple solid-color top. They hold their phone up showing the app, then gesture toward the camera. On-screen text overlays their key point: "My voice strain jumped 40 points in one afternoon."
 
@@ -88,7 +88,7 @@ Data stories work because they satisfy curiosity ("what does my data look like?"
 
 **Second 15-22**: Back to the presenter. They explain one surprising insight from the data. On-screen text reinforces the key stat: "Voice strain correlates with cognitive fatigue — not just vocal fatigue."
 
-**Second 22-28**: Close with the score card transitioning from coral to teal (recovery animation). Text overlay: "Track yours — link in bio." Attune logo appears in corner.
+**Second 22-28**: Close with the score card transitioning from coral to teal (recovery animation). Text overlay: "Track yours — link in bio." Lucid logo appears in corner.
 
 #### Who Appears on Camera
 
@@ -115,7 +115,7 @@ The founder, a team member, or a relatable user. Not a model, not a voice actor.
 
 - **Difficulty**: Easy once you have app data. Medium if adding waveform animations.
 - **Time to produce**: 30-60 minutes per video (record, add text, basic edit)
-- **Equipment**: Phone camera, natural light, the Attune app
+- **Equipment**: Phone camera, natural light, the Lucid app
 - **Posting frequency**: 3-4x/week (this is your bread and butter)
 - **Best platform**: TikTok first (higher discovery), repurpose to IG Reels
 - **Expected engagement**: 3-5% on TikTok, 1.5-2.5% on IG
@@ -127,7 +127,7 @@ The founder, a team member, or a relatable user. Not a model, not a voice actor.
 
 #### Why This Wins
 
-The before/after reveal is one of the most psychologically compelling content formats. It exploits the "curiosity gap" — the viewer needs to see the transformation to feel satisfied. Fitness creators built entire empires on this format. For Attune, the transformation isn't physical — it's the dramatic visual difference between a healthy waveform and a strained one.
+The before/after reveal is one of the most psychologically compelling content formats. It exploits the "curiosity gap" — the viewer needs to see the transformation to feel satisfied. Fitness creators built entire empires on this format. For Lucid, the transformation isn't physical — it's the dramatic visual difference between a healthy waveform and a strained one.
 
 #### What the Viewer Sees — Frame by Frame
 
@@ -163,7 +163,7 @@ The before/after reveal is one of the most psychologically compelling content fo
 
 - **Difficulty**: Easy — two app screenshots/recordings and basic editing
 - **Time to produce**: 15-30 minutes
-- **Equipment**: Phone, Attune app, any video editor with split-screen capability
+- **Equipment**: Phone, Lucid app, any video editor with split-screen capability
 - **Posting frequency**: 2x/week
 - **Best platform**: Equal performance on both TikTok and IG Reels
 - **Expected engagement**: 4-6% on TikTok, 2-3% on IG
@@ -189,7 +189,7 @@ Huberman uses a similar approach: sit down, explain one thing clearly, use speci
 
 **Second 18-25**: The "mind-blown" connector — the presenter links this fact to something the viewer does daily. "So when your throat feels scratchy after a long call... that's 3 million collisions happening in your vocal folds." Text: "3,000,000 collisions."
 
-**Second 25-32**: The actionable close. One simple thing the viewer can do. "Give your voice a 5-minute break every 30 minutes of talking." Text: "5 min break / 30 min talking." End with Attune logo and "Follow for more voice science."
+**Second 25-32**: The actionable close. One simple thing the viewer can do. "Give your voice a 5-minute break every 30 minutes of talking." Text: "5 min break / 30 min talking." End with Lucid logo and "Follow for more voice science."
 
 #### Who Appears on Camera
 
@@ -230,11 +230,11 @@ Ideally the founder (builds personal brand + company brand simultaneously). Alte
 
 The "day in my life" format dominates TikTok because it gives viewers a narrative arc — a beginning, middle, and end. WHOOP pioneered this in fitness: track your body through a real day and narrate what the data reveals. The format works because it's simultaneously aspirational ("I want to track my life like that") and relatable ("my days feel like that too").
 
-For Attune, this format makes voice monitoring feel natural and integrated — not clinical. It shows the app as a lifestyle companion, not a medical tool.
+For Lucid, this format makes voice monitoring feel natural and integrated — not clinical. It shows the app as a lifestyle companion, not a medical tool.
 
 #### What the Viewer Sees — Frame by Frame
 
-**Second 0-3**: Alarm clock / morning light. The presenter picks up their phone. On-screen text: "Tracking my voice strain through an entire workday." The Attune score card appears: Voice Strain Score 12 (teal). Label: "6:30 AM — Fresh."
+**Second 0-3**: Alarm clock / morning light. The presenter picks up their phone. On-screen text: "Tracking my voice strain through an entire workday." The Lucid score card appears: Voice Strain Score 12 (teal). Label: "6:30 AM — Fresh."
 
 **Second 3-8**: Quick montage of morning routine — coffee, getting ready. Voice-over or text narrates: "Morning voice is usually my cleanest reading." Brief clip of them speaking to someone or on a call. Score card floats in corner: still low (15-20).
 
@@ -266,7 +266,7 @@ For Attune, this format makes voice monitoring feel natural and integrated — n
 
 - **Difficulty**: Medium — requires planning and capturing footage throughout a real day
 - **Time to produce**: 2-3 hours (capture throughout day, 30-60 min edit)
-- **Equipment**: Phone, Attune app, basic editing app (CapCut, InShot)
+- **Equipment**: Phone, Lucid app, basic editing app (CapCut, InShot)
 - **Posting frequency**: 1x/week (higher effort, reserve for impact)
 - **Best platform**: TikTok (narrative works better with TikTok's algorithm)
 - **Expected engagement**: 3-5% on TikTok, 2-3% on IG
@@ -280,7 +280,7 @@ For Attune, this format makes voice monitoring feel natural and integrated — n
 
 Debunking content creates intellectual tension — the viewer's existing belief is challenged, and they need to see the resolution. This is one of the highest-performing formats on health TikTok because it makes the viewer feel smarter ("I always thought that was true!") and gives them something to share ("did you know whispering is actually BAD?").
 
-The format also positions Attune as a myth-buster — the brand that cuts through folk wisdom with actual data. This is the same authority play that made Glucose Goddess a household name: "Everything you've been told about glucose is wrong."
+The format also positions Lucid as a myth-buster — the brand that cuts through folk wisdom with actual data. This is the same authority play that made Glucose Goddess a household name: "Everything you've been told about glucose is wrong."
 
 #### What the Viewer Sees — Frame by Frame
 
@@ -290,7 +290,7 @@ The format also positions Attune as a myth-buster — the brand that cuts throug
 
 **Second 5-12**: The presenter appears, animated and slightly incredulous. "I know — I believed this too." They explain the science in simple terms. On-screen text highlights key phrases: "Whispering forces your vocal folds into an unnatural position" with a simple diagram or waveform comparison.
 
-**Second 12-20**: The data proof. Show Attune app data comparing: "Normal speech — Strain: 22" vs. "Whispering — Strain: 38." The waveform comparison makes the invisible visible. Text: "Whispering = 73% MORE strain than normal speech."
+**Second 12-20**: The data proof. Show Lucid app data comparing: "Normal speech — Strain: 22" vs. "Whispering — Strain: 38." The waveform comparison makes the invisible visible. Text: "Whispering = 73% MORE strain than normal speech."
 
 **Second 20-26**: The actionable alternative. "Instead of whispering, just speak softly at a lower volume." Quick demo of the difference. Score comparison: "Soft speech — Strain: 18."
 
@@ -331,19 +331,19 @@ The format also positions Attune as a myth-buster — the brand that cuts throug
 
 This is the Bryan Johnson biohacker playbook. Johnson built 2.5M followers by running experiments on his own body and sharing the results. The format works because the viewer is invested in the outcome — they want to see if the experiment confirms or denies their expectation.
 
-For Attune, this format is gold because the app can measure and prove results that would otherwise be invisible. "I tested 5 vocal warm-ups — only 1 actually reduced strain (data proof)" is impossible to resist.
+For Lucid, this format is gold because the app can measure and prove results that would otherwise be invisible. "I tested 5 vocal warm-ups — only 1 actually reduced strain (data proof)" is impossible to resist.
 
 #### What the Viewer Sees — Frame by Frame
 
 **Second 0-3**: Bold text on screen: "I tested 5 popular vocal warm-ups to see which one ACTUALLY works." Below, a numbered list appears: "1. Lip trills 2. Humming 3. Straw phonation 4. Scales 5. Yawning." The presenter is visible but secondary — the text is the hook.
 
-**Second 3-10**: Quick montage of the presenter doing each warm-up. Each clip is 1-2 seconds. They look slightly ridiculous doing some of them (humor helps). The Attune score card appears after each one with a quick flash of the strain reading. No reveals yet — just data collection.
+**Second 3-10**: Quick montage of the presenter doing each warm-up. Each clip is 1-2 seconds. They look slightly ridiculous doing some of them (humor helps). The Lucid score card appears after each one with a quick flash of the strain reading. No reveals yet — just data collection.
 
 **Second 10-18**: "The results" text appears. A simple ranked list or bar chart animation shows the results. The winner is revealed last (saved for maximum tension). Each result shows the before/after strain score. The most effective warm-up gets a green highlight and a "WINNER" badge.
 
 **Second 18-25**: The presenter explains WHY the winner worked best. One sentence of science. "Straw phonation creates back-pressure that gently stretches and aligns the vocal folds — like a warm-up stretch for your throat." On-screen text reinforces the mechanism.
 
-**Second 25-30**: Close with a challenge: "Try it and tell me if your voice feels different." CTA to download Attune and run their own experiment.
+**Second 25-30**: Close with a challenge: "Try it and tell me if your voice feels different." CTA to download Lucid and run their own experiment.
 
 #### Hook Examples
 
@@ -364,7 +364,7 @@ For Attune, this format is gold because the app can measure and prove results th
 
 - **Difficulty**: Medium — requires planning, multiple recording sessions, and real experimentation
 - **Time to produce**: 2-4 hours (experiment time + editing)
-- **Equipment**: Phone, Attune app, whatever's being tested
+- **Equipment**: Phone, Lucid app, whatever's being tested
 - **Posting frequency**: 1x/week (quality over quantity — each needs a real test)
 - **Best platform**: TikTok for discovery, IG Reels for saves
 - **Expected engagement**: 4-6% on TikTok, 2-4% on IG
@@ -376,13 +376,13 @@ For Attune, this format is gold because the app can measure and prove results th
 
 #### Why This Wins
 
-This format turns the product into the hero of a story. The narrative: the app detected something the user didn't notice. It's the "Oura caught my fever before I felt sick" moment that went viral and sold millions of rings. For Attune, it's "My app told me to rest my voice — and I realized I was on hour 4 of calls without a break."
+This format turns the product into the hero of a story. The narrative: the app detected something the user didn't notice. It's the "Oura caught my fever before I felt sick" moment that went viral and sold millions of rings. For Lucid, it's "My app told me to rest my voice — and I realized I was on hour 4 of calls without a break."
 
 This format is fundamentally a product demo, but wrapped in a story that makes it feel like content, not an ad.
 
 #### What the Viewer Sees — Frame by Frame
 
-**Second 0-2**: Close-up of a phone screen. An Attune notification pops up: "Voice Strain Alert: Your strain score hit 75. Consider a voice break." The notification is the hook — viewers instinctively pay attention to phone notifications.
+**Second 0-2**: Close-up of a phone screen. An Lucid notification pops up: "Voice Strain Alert: Your strain score hit 75. Consider a voice break." The notification is the hook — viewers instinctively pay attention to phone notifications.
 
 **Second 2-6**: Pull back to reveal the presenter at their desk, mid-workday. They look surprised — they pick up the phone and check the app. On-screen text: "I didn't even realize I was straining."
 
@@ -392,7 +392,7 @@ This format is fundamentally a product demo, but wrapped in a story that makes i
 
 **Second 18-24**: Score card recovery: 75 → 52 (amber → teal transition). The presenter smiles. "My voice caught what I missed." Text: "This is why you monitor."
 
-**Second 24-28**: Close. "Download Attune — your voice will thank you." Logo and CTA.
+**Second 24-28**: Close. "Download Lucid — your voice will thank you." Logo and CTA.
 
 #### Hook Examples
 
@@ -436,7 +436,7 @@ Levels did this brilliantly with glucose rankings of foods. AG1 does it with "to
 
 **Second 20-25**: The #1 reveal. Dramatic pause. "#1 — Auctioneer (avg. strain: 91)." Or whatever the real answer is. The top 3 are all coral-coded. The presenter appears briefly: "Did your job make the list?"
 
-**Second 25-30**: CTA: "Tag someone whose voice deserves a break." Close with Attune logo.
+**Second 25-30**: CTA: "Tag someone whose voice deserves a break." Close with Lucid logo.
 
 #### Hook Examples
 
@@ -483,9 +483,9 @@ The challenge: you need real stories from real people. This can't be scripted or
 
 **Second 18-25**: The pivot to hope/awareness. "What I wish I'd known is that the damage was happening for months before I lost my voice. It was invisible." Text: "Vocal damage is invisible — until it's not."
 
-**Second 25-32**: The connection to Attune (subtle, not salesy). "Now there are tools that can catch this early. I wish I'd had something like this." Brief flash of the Attune score card. The storyteller smiles.
+**Second 25-32**: The connection to Lucid (subtle, not salesy). "Now there are tools that can catch this early. I wish I'd had something like this." Brief flash of the Lucid score card. The storyteller smiles.
 
-**Second 32-35**: Text: "If your voice matters to your life, protect it." Attune logo. End.
+**Second 32-35**: Text: "If your voice matters to your life, protect it." Lucid logo. End.
 
 #### Hook Examples
 
@@ -523,7 +523,7 @@ The key insight: you're providing expert commentary on content people are ALREAD
 
 #### What the Viewer Sees — Frame by Frame
 
-**Second 0-5**: The original clip plays (a viral moment — someone's voice cracking, a singer straining, a teacher yelling, a coach losing their voice at a game). The Attune presenter appears in a stitch/duet format beside or after the original.
+**Second 0-5**: The original clip plays (a viral moment — someone's voice cracking, a singer straining, a teacher yelling, a coach losing their voice at a game). The Lucid presenter appears in a stitch/duet format beside or after the original.
 
 **Second 5-15**: The presenter reacts with genuine expertise (not performative shock). "OK, let me show you what's actually happening here." They pull up a waveform or score card illustration. On-screen text explains the vocal mechanics: "That crack? It's the vocal folds losing contact due to swelling."
 
@@ -561,21 +561,21 @@ The key insight: you're providing expert commentary on content people are ALREAD
 
 #### Why This Wins
 
-AG1's genius was turning a supplement into a morning ritual. The "scoop moment" — green powder, water, stir — became its own aesthetic. Millions of people now associate starting their day with that visual. For Attune, the equivalent is the morning voice check-in: wake up, check your voice score, understand your baseline, start your day informed.
+AG1's genius was turning a supplement into a morning ritual. The "scoop moment" — green powder, water, stir — became its own aesthetic. Millions of people now associate starting their day with that visual. For Lucid, the equivalent is the morning voice check-in: wake up, check your voice score, understand your baseline, start your day informed.
 
-This format makes Attune aspirational — part of a healthy morning routine alongside meditation, exercise, and good nutrition.
+This format makes Lucid aspirational — part of a healthy morning routine alongside meditation, exercise, and good nutrition.
 
 #### What the Viewer Sees — Frame by Frame
 
 **Second 0-3**: Soft morning light. An alarm turns off. The presenter reaches for their phone on the nightstand. On-screen text: "My morning voice ritual." Calm, ambient music.
 
-**Second 3-8**: They open the Attune app. Close-up of the score card: Voice Strain Score 15 (teal). "Recovered." Text: "Every morning I check my voice baseline."
+**Second 3-8**: They open the Lucid app. Close-up of the score card: Voice Strain Score 15 (teal). "Recovered." Text: "Every morning I check my voice baseline."
 
 **Second 8-15**: Quick morning routine montage — water, stretching, maybe a gentle vocal warm-up (humming while making coffee). The app is visible on the counter or in their hand, showing real-time analysis. Text: "3-minute voice warm-up while the coffee brews."
 
 **Second 15-22**: They check the app again. Score: 12 (even lower after warm-up). Text: "Warmed up and ready." They smile, grab their coffee, head to their desk/car/studio.
 
-**Second 22-28**: "Taking 2 minutes to check in with your voice sets your whole day up." Text overlay: "Your voice is the one instrument you use every day. Warm it up." Attune logo. CTA.
+**Second 22-28**: "Taking 2 minutes to check in with your voice sets your whole day up." Text overlay: "Your voice is the one instrument you use every day. Warm it up." Lucid logo. CTA.
 
 #### Hook Examples
 
@@ -610,9 +610,9 @@ The challenge: this requires partnerships with real clinicians who are camera-co
 
 **Second 3-12**: The clinical insight. They use simple language (not jargon) to explain one concept. Maybe they show a diagram, a scope image (with permission), or use a model of the larynx. Text highlights key phrases.
 
-**Second 12-20**: They connect it to daily life. "This is why your voice sounds rough after a long day — and why monitoring it matters." Brief appearance of the Attune app as a tool they reference (not sell).
+**Second 12-20**: They connect it to daily life. "This is why your voice sounds rough after a long day — and why monitoring it matters." Brief appearance of the Lucid app as a tool they reference (not sell).
 
-**Second 20-28**: Actionable advice. "Here's the one thing you can do today." Simple, specific, evidence-based. End with: "Follow [Attune] for more voice science."
+**Second 20-28**: Actionable advice. "Here's the one thing you can do today." Simple, specific, evidence-based. End with: "Follow [Lucid] for more voice science."
 
 #### Hook Examples
 
@@ -637,19 +637,19 @@ The challenge: this requires partnerships with real clinicians who are camera-co
 
 #### Why This Wins
 
-"What you think X looks like vs. what data shows" is a format built on the gap between perception and reality. For voice health, the gap is massive — people think strain is obvious (yelling, coughing) but data shows it's often invisible (slight pitch drift, reduced clarity, shortened phrases). Making the invisible visible is Attune's core value proposition.
+"What you think X looks like vs. what data shows" is a format built on the gap between perception and reality. For voice health, the gap is massive — people think strain is obvious (yelling, coughing) but data shows it's often invisible (slight pitch drift, reduced clarity, shortened phrases). Making the invisible visible is Lucid's core value proposition.
 
 #### What the Viewer Sees — Frame by Frame
 
 **Second 0-3**: Split screen. Left side labeled "What you think vocal strain looks like." Right side labeled "What data shows." Left side: someone dramatically yelling or coughing. Right side: deliberately blurred/hidden.
 
-**Second 3-8**: Left side plays the expected scenario. Right side reveals: a person in a quiet meeting, talking normally. Their Attune score reads 72 (coral). Text: "Strain isn't always loud."
+**Second 3-8**: Left side plays the expected scenario. Right side reveals: a person in a quiet meeting, talking normally. Their Lucid score reads 72 (coral). Text: "Strain isn't always loud."
 
 **Second 8-18**: Side-by-side waveform comparison. The "yelling" waveform is obviously strained. The "quiet meeting" waveform is ALSO strained — but in a different, subtler way. The presenter explains the difference: "Sustained moderate use causes more cumulative damage than brief loud use."
 
 **Second 18-25**: Data proof. Two score cards side by side. "30 minutes of yelling — Strain: 68." "4 hours of meetings — Strain: 74." The quiet scenario is worse. Text: "Volume isn't the problem. Duration is."
 
-**Second 25-30**: CTA: "The damage you can't see is the damage that matters. Track it." Attune logo.
+**Second 25-30**: CTA: "The damage you can't see is the damage that matters. Track it." Lucid logo.
 
 #### Hook Examples
 
@@ -684,7 +684,7 @@ Analyzing public figures' vocal health rides trending search traffic. When Adele
 
 **Second 12-20**: Connect to broader science. "This is exactly what happens when you sing/speak for [duration] without rest." Educational context that applies to the viewer too.
 
-**Second 20-25**: "You don't have to be [celebrity] to experience this. Your voice takes the same kind of hits." Flash of the Attune score card. CTA.
+**Second 20-25**: "You don't have to be [celebrity] to experience this. Your voice takes the same kind of hits." Flash of the Lucid score card. CTA.
 
 #### Hook Examples
 
@@ -744,7 +744,7 @@ The catch: challenges need critical mass to take off. Most branded challenges fa
 ## Part 3: "Don't Do This" — 10 Mistakes to Avoid
 
 ### 1. Don't Lead with the Product
-The hook must be a human insight, not a feature. "My voice strain hit 92" works. "Attune's voice analysis feature measures..." doesn't. Nobody scrolls TikTok to learn about product features — they scroll for stories, surprises, and "that's me" moments.
+The hook must be a human insight, not a feature. "My voice strain hit 92" works. "Lucid's voice analysis feature measures..." doesn't. Nobody scrolls TikTok to learn about product features — they scroll for stories, surprises, and "that's me" moments.
 
 ### 2. Don't Use Stock Footage
 Lo-fi authenticity outperforms polished production in 2026 short-form video. A phone-recorded video with genuine emotion beats a professionally shot ad every time. Audiences can smell inauthenticity in 0.5 seconds and will scroll past.
@@ -768,7 +768,7 @@ Cadence beats virality. Posting 12-15 pieces per week consistently will outperfo
 Reply to comments within the first hour of posting. Comments in the first 60 minutes are weighted 3x by TikTok's algorithm. A comment reply video (responding to a user's comment with a new video) gets 2.4x more distribution than a standard post.
 
 ### 9. Don't Create Content Requiring Prior Knowledge
-Every video must stand alone. A viewer who has never heard of Attune, vocal strain scores, or voice biomarkers should understand your video. No "as I explained in my last video" — treat every video as someone's first.
+Every video must stand alone. A viewer who has never heard of Lucid, vocal strain scores, or voice biomarkers should understand your video. No "as I explained in my last video" — treat every video as someone's first.
 
 ### 10. Don't Fake Data or Exaggerate Claims
 Accurate health information content receives 2.4x more average views than inaccurate content. Beyond the ethical imperative, accuracy is literally a growth strategy. One debunked claim can destroy brand trust permanently. Show real data, cite real science, and when you're uncertain, say so.
@@ -837,7 +837,7 @@ The largest vocal health account on TikTok has approximately **84,000 followers*
 - Oura Ring (sleep): **580K followers**
 - Levels (glucose monitoring): **320K followers**
 
-There is no "Glucose Goddess of Voice." Attune can own this category.
+There is no "Glucose Goddess of Voice." Lucid can own this category.
 
 ### Performance Benchmarks from Health Content
 
@@ -869,7 +869,7 @@ There is no "Glucose Goddess of Voice." Attune can own this category.
 
 ### The Glucose Goddess Analogy (North Star)
 
-Jessie Inchauspe's growth pattern is Attune's blueprint:
+Jessie Inchauspe's growth pattern is Lucid's blueprint:
 1. She made **invisible data visible** (glucose curves from a CGM)
 2. She used a **consistent visual language** (the glucose graph in every post)
 3. She led with **"hacks" and surprising findings**, not product features
@@ -877,7 +877,7 @@ Jessie Inchauspe's growth pattern is Attune's blueprint:
 5. She used **real, personal data** — not hypothetical or clinical examples
 6. She posted **consistently** — minimum 5x/week for 18 months before breakthrough
 
-Attune's voice strain data can follow the exact same playbook. The waveform is the glucose curve. The strain score is the glucose spike number. The format is transferable — the category is brand new.
+Lucid's voice strain data can follow the exact same playbook. The waveform is the glucose curve. The strain score is the glucose spike number. The format is transferable — the category is brand new.
 
 ---
 
@@ -904,4 +904,4 @@ Attune's voice strain data can follow the exact same playbook. The waveform is t
 
 ---
 
-*This guide replaces the earlier content-calendar.md with a comprehensive, research-backed strategy. The calendar provided weekly templates — this guide provides the why, the what, and the exactly-how-it-should-look for every piece of content Attune creates.*
+*This guide replaces the earlier content-calendar.md with a comprehensive, research-backed strategy. The calendar provided weekly templates — this guide provides the why, the what, and the exactly-how-it-should-look for every piece of content Lucid creates.*

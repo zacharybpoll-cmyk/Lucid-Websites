@@ -1,4 +1,4 @@
-# Attune Go-to-Market Strategy
+# Lucid Go-to-Market Strategy
 **Last updated**: 2026-02-28
 **Status**: Active — Month 1 execution phase
 

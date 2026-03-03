@@ -1,7 +1,7 @@
 """
-Dev middleware and API endpoints for Attune Steel Dev build.
+Dev middleware and API endpoints for Lucid Steel Dev build.
 Adds request logging, database inspection, and debug tools.
-Only loaded when ATTUNE_DEV_MODE=1.
+Only loaded when LUCID_DEV_MODE=1.
 """
 import time
 import json
@@ -17,7 +17,7 @@ from fastapi import APIRouter, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger('attune.dev')
+logger = logging.getLogger('lucid.dev')
 
 # ============ Request Logger Middleware ============
 

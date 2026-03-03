@@ -1,4 +1,4 @@
-# Attune Steel — Voice Wellness Monitor (Steel Edition)
+# Lucid — Voice Wellness Monitor
 
 ## What
 macOS menubar app. Passive voice analysis (Kintsugi DAM model). Detects stress, mood, energy, depression risk. All local/private — no cloud processing.
@@ -7,18 +7,16 @@ macOS menubar app. Passive voice analysis (Kintsugi DAM model). Detects stress, 
 FastAPI + pywebview + pystray + Silero VAD + Kintsugi DAM + SQLite
 
 ## Source & Deploy Locations
-- **Source**: `/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel/`
-- **App**: `~/Desktop/Attune Steel.app` (bundle ID: `com.electron.attune-steel`)
+- **Source**: `/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid/`
+- **App**: `~/Desktop/Lucid.app` (bundle ID: `com.electron.lucid`)
 
 ## App Isolation
 
-Attune Steel is fully independent from Attune (Dev) and Attune Health:
+Lucid is fully independent from other app variants:
 
 | App | Bundle ID | Package Name | userData Dir | Source |
 |-----|-----------|-------------|--------------|--------|
-| Attune Steel | `com.electron.attune-steel` | `attune-steel` | `~/Library/Application Support/attune-steel/` | Attune-Steel |
-| Attune (Dev) | `com.electron.attune-dev` | `attune-dev` | `~/Library/Application Support/attune-dev/` | Attune |
-| Attune Health | `com.electron.attune-health` | `attune-health` | `~/Library/Application Support/attune-health/` | Attune-Health |
+| Lucid | `com.electron.lucid` | `lucid` | `~/Library/Application Support/lucid/` | Lucid |
 
 **CRITICAL**: Never change `"name"` in `package.json` without updating build commands. The name determines the userData directory.
 
@@ -27,42 +25,42 @@ Attune Steel is fully independent from Attune (Dev) and Attune Health:
 ### Fast-Deploy (1-3 file changes)
 ```bash
 # 1. Copy changed files into app bundle
-cp <changed-files> ~/Desktop/"Attune Steel.app"/Contents/Resources/python/
+cp <changed-files> ~/Desktop/"Lucid.app"/Contents/Resources/python/
 
 # 2. Clear Electron HTTP cache (MANDATORY — Chromium serves stale JS without this)
-rm -rf ~/Library/Application\ Support/attune-steel/Cache ~/Library/Application\ Support/attune-steel/Code\ Cache
+rm -rf ~/Library/Application\ Support/lucid/Cache ~/Library/Application\ Support/lucid/Code\ Cache
 
 # 3. Kill and relaunch
-pkill -f "Attune Steel" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 1 && open ~/Desktop/"Attune Steel.app"
+pkill -f "Lucid" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 1 && open ~/Desktop/"Lucid.app"
 
 # 4. ALWAYS screenshot after relaunch to confirm changes are live
 ```
 
 ### Full Rebuild (many files or structural changes)
 ```bash
-cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel" && \
-pkill -f "Attune Steel" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 2 && \
-npx electron-packager . "Attune Steel" --platform=darwin --arch=arm64 \
-  --icon=assets/icon.icns --app-bundle-id=com.electron.attune-steel \
+cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid" && \
+pkill -f "Lucid" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 2 && \
+npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
+  --icon=assets/icon.icns --app-bundle-id=com.electron.lucid \
   --app-version=1.0.0 \
   --ignore='^/.*-darwin-arm64$' --ignore='^/\.git' --ignore='^/python' \
-  --ignore='^\/(Business|claude-dashboard|attune-steel-website|scripts|build)' \
+  --ignore='^\/(Business|claude-dashboard|lucid-website|scripts|build)' \
   --ignore='\.(docx|pdf|zip|png|pptx)$' \
   --overwrite && \
-cp -R python "./Attune Steel-darwin-arm64/Attune Steel.app/Contents/Resources/" && \
-rm -rf ~/Desktop/"Attune Steel.app" && \
-mv "./Attune Steel-darwin-arm64/Attune Steel.app" ~/Desktop/"Attune Steel.app" && \
-codesign --sign - --force --deep ~/Desktop/"Attune Steel.app"
+cp -R python "./Lucid-darwin-arm64/Lucid.app/Contents/Resources/" && \
+rm -rf ~/Desktop/"Lucid.app" && \
+mv "./Lucid-darwin-arm64/Lucid.app" ~/Desktop/"Lucid.app" && \
+codesign --sign - --force --deep ~/Desktop/"Lucid.app"
 
 # Clear cache after rebuild
-rm -rf ~/Library/Application\ Support/attune-steel/Cache ~/Library/Application\ Support/attune-steel/Code\ Cache
+rm -rf ~/Library/Application\ Support/lucid/Cache ~/Library/Application\ Support/lucid/Code\ Cache
 ```
 
 ## Test Command
 No automated test suite yet. Manual verification:
 ```bash
 # 1. Start the app
-open ~/Desktop/"Attune Steel.app"
+open ~/Desktop/"Lucid.app"
 
 # 2. Verify backend health
 curl -s http://localhost:8767/api/health | python3 -c "import sys,json; d=json.load(sys.stdin); assert d.get('ready')==True, f'Not ready: {d}'; print('PASS: Backend ready')"
@@ -75,7 +73,7 @@ curl -s http://localhost:8767/api/dashboard | python3 -c "import sys,json; json.
 v1.0.0
 
 ## Shared Lessons
-All Attune variants share one lessons file: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/attune-lessons.md`
+All app variants share one lessons file: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/lucid-lessons.md`
 
 ## Known Hardcoded Values
 - `app.js`: Speaker Gate debug threshold display reads `adaptive_threshold` from gate stats dynamically
@@ -83,9 +81,9 @@ All Attune variants share one lessons file: `/Users/zacharypoll/Desktop/Document
 
 ## Error Monitoring & Crash Reporting
 
-Same architecture as Attune Dev. Log locations under `~/Library/Application Support/attune-steel/`:
+Log locations under `~/Library/Application Support/lucid/`:
 - `crash_log.txt` — Electron + Python uncaught exceptions (sanitized)
-- `attune.log` — Python rotating log (5MB, 3 backups)
+- `lucid.log` — Python rotating log (5MB, 3 backups)
 
 ## Performance Benchmarks
 
@@ -93,19 +91,19 @@ Same architecture as Attune Dev. Log locations under `~/Library/Application Supp
 |--------|--------|----------------|
 | Startup → splash | <2s | Time from `open` to splash |
 | Splash → ready | <15s | Until `/api/health` returns `ready: true` |
-| Memory (idle) | <500MB | `ps aux \| grep attune-steel` |
+| Memory (idle) | <500MB | `ps aux \| grep lucid` |
 | Memory (active) | <1.5GB | Same during analysis |
 
 ## Code Signing & Notarization
 
-See Attune Dev CLAUDE.md for full workflow — substitute `com.electron.attune-steel` for bundle ID and `"Attune Steel"` for app name.
+Substitute `com.electron.lucid` for bundle ID and `"Lucid"` for app name in the standard code signing workflow.
 
 ## Dependency Audit
 ```bash
-cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel"
+cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid"
 npm audit
 cd python && ./venv/bin/pip audit 2>/dev/null || echo "pip-audit not installed"
 ```
 
 ## API Reference
-Same 61 endpoints as Attune Dev on port 8767. Full docs: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/attune-api-reference.md`
+Same 61 endpoints on port 8767. Full docs: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/lucid-api-reference.md`

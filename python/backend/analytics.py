@@ -20,7 +20,7 @@ from typing import Optional, Dict, Any
 
 from backend.supabase_client import SupabaseClient
 
-logger = logging.getLogger('attune.analytics')
+logger = logging.getLogger('lucid.analytics')
 
 MAX_QUEUE_SIZE = 10_000
 PENDING_FILENAME = "pending_analytics.json"

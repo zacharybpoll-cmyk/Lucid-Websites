@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Dict, Optional
 import app_config as config
 
-logger = logging.getLogger('attune.dam')
+logger = logging.getLogger('lucid.dam')
 
 DAM_PATH = config.DAM_DIR
 DAM_HASH_FILE = Path(config.DATA_DIR) / '.dam_model_hash'

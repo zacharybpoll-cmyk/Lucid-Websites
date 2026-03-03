@@ -1,4 +1,4 @@
-"""Generate Attune Steel Naming Analysis V2 document."""
+"""Generate Lucid Naming Analysis V2 document."""
 
 import os
 from docx import Document
@@ -109,7 +109,7 @@ NAMES = [
     {
         "rank": 1,
         "name": "Lucid",
-        "combined": "Attune Lucid",
+        "combined": "Lucid Lucid",
         "tagline": "Become lucid.",
         "etymology": 'Latin lucidus = "clear, bright, shining"',
         "evokes": "Hearing 'Lucid' makes you feel clearer — the word performs its own meaning. "
@@ -124,16 +124,16 @@ NAMES = [
             "Single word, two syllables, universally known — maximum memorability",
         ],
         "risks": [
-            "Brand coherence with 'Attune' requires a conceptual step (attunement creates lucidity)",
+            "Brand coherence with 'Lucid' requires a conceptual step (attunement creates lucidity)",
             "Lucid dreaming association could confuse some audiences initially",
-            "Strongest as standalone — 'Attune Lucid' is good but not as natural as 'Attune Tonic'",
+            "Strongest as standalone — 'Lucid Lucid' is good but not as natural as 'Lucid Tonic'",
         ],
         "scores": {"catch": 10, "accuracy": 8, "persona": 10, "brand": 7, "diff": 10},
         "standalone_analysis": "Strongest as an independent brand. 'Lucid' stands entirely on its own — "
                                "no parent brand needed. App icon: a clean glow or lens flare. "
                                "Marketing: 'Become lucid.' / 'What does lucid sound like?'",
-        "combined_analysis": "'Attune Lucid' works conceptually (attunement creates lucidity) but the "
-                            "sonic/musical thread from 'Attune' is weaker than with 'Tonic.' The pairing "
+        "combined_analysis": "'Lucid Lucid' works conceptually (attunement creates lucidity) but the "
+                            "sonic/musical thread from 'Lucid' is weaker than with 'Tonic.' The pairing "
                             "feels more like a product line extension than a unified concept.",
         "touchpoints": {
             "notification": '"Lucid check: your stress markers shifted."',
@@ -145,7 +145,7 @@ NAMES = [
     {
         "rank": 2,
         "name": "Latent",
-        "combined": "Attune Latent",
+        "combined": "Lucid Latent",
         "tagline": "What's latent in your voice?",
         "etymology": 'Latin latere = "to lie hidden, present but not yet visible"',
         "evokes": "'Latent' IS what the product detects — latent stress, latent burnout, latent health "
@@ -168,7 +168,7 @@ NAMES = [
         "standalone_analysis": "'Latent' is mysterious and intelligent. Works as a standalone brand "
                                "for a technically sophisticated audience. App icon: something partially "
                                "revealed. Marketing: 'What's latent in your voice?'",
-        "combined_analysis": "'Attune Latent' creates a cause-and-effect relationship: attunement reveals "
+        "combined_analysis": "'Lucid Latent' creates a cause-and-effect relationship: attunement reveals "
                             "the latent. Conceptually strong — 'we attune to what's latent in your voice.' "
                             "The pairing has real narrative logic.",
         "touchpoints": {
@@ -181,16 +181,16 @@ NAMES = [
     {
         "rank": 3,
         "name": "Tonic",
-        "combined": "Attune Tonic",
+        "combined": "Lucid Tonic",
         "tagline": "Find your fundamental.",
         "etymology": "Music: the fundamental note you tune to (the home key). Health: something that restores vigor.",
         "evokes": "The dual meaning is genuinely rare: in music theory, the tonic note IS what you attune to — "
                   "the reference pitch, the home key. In health, a tonic restores balance and vigor. Both meanings "
                   "converge: finding your fundamental truth through voice (clarity) and restoring wellness (health). "
-                  "This makes 'Attune Tonic' the most conceptually unified pairing of all three candidates.",
+                  "This makes 'Lucid Tonic' the most conceptually unified pairing of all three candidates.",
         "strengths": [
             "Dual meaning — music theory (fundamental note) + health (restorative) — both on-brand",
-            "Strongest 'Attune +' option — 'the tonic note is what you attune to' has real logic",
+            "Strongest 'Lucid +' option — 'the tonic note is what you attune to' has real logic",
             "All-9s consistency — no weak dimension, the most balanced scorer",
             "Premium, craft/artisanal feel — 'tonic' evokes quality and intentionality",
             "Tagline 'Find your fundamental' works on multiple levels",
@@ -202,9 +202,9 @@ NAMES = [
         ],
         "scores": {"catch": 9, "accuracy": 9, "persona": 9, "brand": 9, "diff": 9},
         "standalone_analysis": "'Tonic' has a premium, craft feel. Works as standalone but the music-theory "
-                               "connection is less obvious without 'Attune.' App icon: a tuning fork or "
+                               "connection is less obvious without 'Lucid.' App icon: a tuning fork or "
                                "waveform. Marketing: 'Find your fundamental.'",
-        "combined_analysis": "'Attune Tonic' is the strongest combined option. The tonic note is literally "
+        "combined_analysis": "'Lucid Tonic' is the strongest combined option. The tonic note is literally "
                             "what you attune to in music — this isn't a forced connection, it's music theory. "
                             "The pairing rewards discovery: 'Oh, tonic means the note you tune to.' This "
                             "'a-ha moment' builds brand affinity.",
@@ -212,16 +212,16 @@ NAMES = [
             "notification": '"Your tonic reading: stress markers are elevated."',
             "report": '"Your Tonic Report — This Week\'s Vocal Fundamentals"',
             "marketing": '"Every voice has a fundamental. Find yours."',
-            "app_store": '"Attune Tonic — Voice Wellness Monitor"',
+            "app_store": '"Lucid Tonic — Voice Wellness Monitor"',
         },
     },
 ]
 
 # V1 reference scores (top 3 from V1 for context)
 V1_REFERENCE = [
-    {"name": "Attune Signal", "scores": {"catch": 9, "accuracy": 8, "persona": 9, "brand": 8, "diff": 9}},
-    {"name": "Attune Sense", "scores": {"catch": 8, "accuracy": 7, "persona": 8, "brand": 9, "diff": 7}},
-    {"name": "Attune Pulse", "scores": {"catch": 9, "accuracy": 6, "persona": 8, "brand": 7, "diff": 6}},
+    {"name": "Lucid Signal", "scores": {"catch": 9, "accuracy": 8, "persona": 9, "brand": 8, "diff": 9}},
+    {"name": "Lucid Sense", "scores": {"catch": 8, "accuracy": 7, "persona": 8, "brand": 9, "diff": 7}},
+    {"name": "Lucid Pulse", "scores": {"catch": 9, "accuracy": 6, "persona": 8, "brand": 7, "diff": 6}},
 ]
 
 COMPETITORS = [
@@ -267,7 +267,7 @@ font.color.rgb = DARK_GRAY
 # TITLE
 # ═══════════════════════════════════════════════════════════════════════
 
-title = doc.add_heading("Attune — Naming Analysis V2", level=0)
+title = doc.add_heading("Lucid — Naming Analysis V2", level=0)
 for run in title.runs:
     run.font.color.rgb = STEEL_BLUE
     run.font.size = Pt(28)
@@ -289,7 +289,7 @@ doc.add_paragraph()  # spacer
 add_styled_heading(doc, "1. Executive Summary")
 
 add_body(doc,
-    "V1 of this analysis evaluated 10 naming options. The top scorer was 'Attune Signal' at 8.7/10. "
+    "V1 of this analysis evaluated 10 naming options. The top scorer was 'Lucid Signal' at 8.7/10. "
     "Upon review, the V1 candidates shared three structural weaknesses: they were descriptive rather "
     "than evocative, they didn't change the listener's emotional state, and they lacked a 'discovery "
     "layer' that rewards deeper investigation."
@@ -311,7 +311,7 @@ run.font.color.rgb = DARK_GRAY
 run2 = p.add_run(
     "Lucid (9.15) — phonosemantic congruence, the word performs its meaning. "
     "Latent (9.05) — maximum accuracy, the word IS what the product detects. "
-    "Tonic (9.00) — dual music/health meaning, strongest 'Attune +' pairing."
+    "Tonic (9.00) — dual music/health meaning, strongest 'Lucid +' pairing."
 )
 run2.font.size = Pt(11)
 run2.font.color.rgb = DARK_GRAY
@@ -401,7 +401,7 @@ framework_data = [
      'Does it speak to "Invisible Burnout" (awareness, early warning) and '
      '"Quantified Self" (data, optimization, edge)? Would both personas want to download it?'),
     ("Brand Coherence", "15%",
-     'Does it fit the "Attune" family and the "Attuned to you" brand promise? '
+     'Does it fit the "Lucid" family and the "Lucidd to you" brand promise? '
      "Does it extend the parent brand without conflicting?"),
     ("Competitive Differentiation", "15%",
      "Is the name unique in the voice AI and wellness tech landscape? "
@@ -547,14 +547,14 @@ for entry in NAMES:
     doc.add_paragraph()  # spacer
 
 # ═══════════════════════════════════════════════════════════════════════
-# 5. STANDALONE VS. "ATTUNE +" ANALYSIS
+# 5. STANDALONE VS. "LUCID +" ANALYSIS
 # ═══════════════════════════════════════════════════════════════════════
 
-add_styled_heading(doc, "5. Standalone vs. 'Attune +' Analysis")
+add_styled_heading(doc, "5. Standalone vs. 'Lucid +' Analysis")
 
 add_body(doc,
-    "Each candidate works in two formats: as a standalone brand or paired with 'Attune.' "
-    "The right choice depends on long-term brand architecture — whether Attune remains the "
+    "Each candidate works in two formats: as a standalone brand or paired with 'Lucid.' "
+    "The right choice depends on long-term brand architecture — whether Lucid remains the "
     "parent brand or the product eventually stands alone."
 )
 
@@ -611,7 +611,7 @@ for i, w in enumerate(widths):
 doc.add_paragraph()
 
 add_body(doc,
-    "Key insight: If you plan to keep the Attune parent brand long-term, Tonic is the strongest "
+    "Key insight: If you plan to keep the Lucid parent brand long-term, Tonic is the strongest "
     "pairing. If the product may eventually stand alone (like how 'Instagram' dropped 'Burbn'), "
     "Lucid has the most independent brand equity.",
     italic=True,
@@ -701,7 +701,7 @@ doc.add_paragraph()
 
 add_body(doc,
     "V1 top-3 included for reference (grayed). All three V2 candidates outscore the previous "
-    "best (Attune Signal at 8.65) by 0.35\u20130.50 points.",
+    "best (Lucid Signal at 8.65) by 0.35\u20130.50 points.",
     italic=True,
 )
 
@@ -772,9 +772,9 @@ decisions = [
     ("Choose LUCID if...",
      "you want maximum standalone brand power and the strongest emotional trigger. "
      "Lucid is the name that makes people feel something just by hearing it. Best for: "
-     "an independent brand identity that doesn't need 'Attune' as a crutch. "
+     "an independent brand identity that doesn't need 'Lucid' as a crutch. "
      "Risk tolerance: you're comfortable with the lucid-dreaming association. "
-     "Brand architecture: the product may eventually outgrow the Attune family.",
+     "Brand architecture: the product may eventually outgrow the Lucid family.",
      "9.15"),
     ("Choose LATENT if...",
      "accuracy and intellectual appeal are your top priorities. 'Latent' is the most "
@@ -784,11 +784,11 @@ decisions = [
      "immediately understand. Brand architecture: works well in either format.",
      "9.05"),
     ("Choose TONIC if...",
-     "you want the strongest 'Attune +' pairing and the most balanced name with no weak "
-     "dimensions. The music-theory connection makes 'Attune Tonic' feel like it was always "
-     "meant to be. Best for: keeping Attune as the parent brand long-term. "
+     "you want the strongest 'Lucid +' pairing and the most balanced name with no weak "
+     "dimensions. The music-theory connection makes 'Lucid Tonic' feel like it was always "
+     "meant to be. Best for: keeping Lucid as the parent brand long-term. "
      "Risk tolerance: lowest \u2014 Tonic has no controversial associations and all-9s consistency. "
-     "Brand architecture: committed to the Attune family.",
+     "Brand architecture: committed to the Lucid family.",
      "9.00"),
 ]
 
@@ -875,8 +875,8 @@ add_body(doc,
 # SAVE
 # ═══════════════════════════════════════════════════════════════════════
 
-output_dir = "/Users/zacharypoll/Desktop/Documents/Claude Code/Attune-Steel/Business Documents"
-output_path = os.path.join(output_dir, "Attune Steel Naming Analysis V2.docx")
+output_dir = "/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid-Steel/Business Documents"
+output_path = os.path.join(output_dir, "Lucid Naming Analysis V2.docx")
 doc.save(output_path)
 print(f"Document saved to: {output_path}")
 

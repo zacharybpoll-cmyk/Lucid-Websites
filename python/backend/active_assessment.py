@@ -18,7 +18,7 @@ from backend.database import Database
 from backend.analysis_orchestrator import AnalysisOrchestrator
 import app_config as config
 
-logger = logging.getLogger('attune.active_assessment')
+logger = logging.getLogger('lucid.active_assessment')
 
 
 class ActiveAssessmentRunner:

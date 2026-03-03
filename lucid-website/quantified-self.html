@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucid Steel — Complete Your Health Stack</title>
+    <meta name="description" content="Your Oura tracks your body. Nothing tracks your mind. Until now. Lucid uses clinically validated voice biomarkers to passively measure stress, mood, and emotional state — the missing layer in your health stack. 100% on-device.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== RESET & BASE ========== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1a1d21;
+            background: #f8f9fa;
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        img { max-width: 100%; height: auto; display: block; }
+        a { color: inherit; text-decoration: none; }
+        button { cursor: pointer; border: none; font-family: inherit; }
+
+        /* ========== TYPOGRAPHY ========== */
+        h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; line-height: 1.2; }
+        h1 { font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -0.02em; }
+        h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.01em; }
+        h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+        h4 { font-size: 1.125rem; }
+        p { font-size: 1.0625rem; line-height: 1.7; color: #3a3f47; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.25rem; line-height: 1.6; }
+        .text-light { color: #f8f9fa; }
+        em, .italic { font-family: 'Playfair Display', Georgia, serif; font-style: italic; }
+
+        /* ========== LAYOUT ========== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+        .container-wide { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+        .section { padding: 7rem 0; }
+        .section-dark { background: #1a3a4f; color: #f8f9fa; }
+        .section-dark p { color: rgba(240, 244, 248, 0.8); }
+        .section-cream { background: #f0f2f4; }
+        .text-center { text-align: center; }
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+
+        /* ========== NAVIGATION ========== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1.25rem 0;
+            transition: all 0.4s ease;
+        }
+        .nav.scrolled {
+            background: rgba(240, 244, 248, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 1px 20px rgba(0,0,0,0.06);
+            padding: 0.875rem 0;
+        }
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            letter-spacing: -0.02em;
+        }
+        .nav-logo span { color: #5B8DB8; }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        .nav-links a {
+            font-size: 0.9375rem;
+            font-weight: 450;
+            color: #1a1d21;
+            transition: color 0.3s;
+            letter-spacing: 0.01em;
+        }
+        .nav-links a:hover { color: #5B8DB8; }
+        .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+        .btn-text {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: #1a1d21;
+            background: none;
+            transition: color 0.3s;
+        }
+        .btn-text:hover { color: #5B8DB8; }
+        .btn-primary {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            padding: 0.75rem 1.75rem;
+            border-radius: 100px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            letter-spacing: 0.01em;
+        }
+        .btn-primary:hover {
+            background: #0f2d40;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(26, 58, 79, 0.3);
+        }
+        .btn-gold {
+            background: #5B8DB8;
+            color: #fff;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-gold:hover {
+            background: #4a7a9e;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(91, 141, 184, 0.35);
+        }
+        .btn-outline {
+            background: transparent;
+            color: #1a3a4f;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1.5px solid #1a3a4f;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-outline:hover {
+            background: #1a3a4f;
+            color: #f8f9fa;
+        }
+        .btn-outline-light {
+            background: transparent;
+            color: #f8f9fa;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1.5px solid rgba(240, 244, 248, 0.4);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-outline-light:hover {
+            background: rgba(240, 244, 248, 0.1);
+            border-color: rgba(240, 244, 248, 0.7);
+        }
+        .btn-white {
+            background: #f8f9fa;
+            color: #1a3a4f;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-white:hover {
+            background: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Mobile menu */
+        .nav-mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            width: 28px;
+            height: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+        .nav-mobile-toggle span {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: #1a1d21;
+            position: absolute;
+            left: 0;
+            transition: all 0.3s ease;
+        }
+        .nav-mobile-toggle span:nth-child(1) { top: 0; }
+        .nav-mobile-toggle span:nth-child(2) { top: 9px; }
+        .nav-mobile-toggle span:nth-child(3) { top: 18px; }
+        .nav-mobile-toggle.open span:nth-child(1) { top: 9px; transform: rotate(45deg); }
+        .nav-mobile-toggle.open span:nth-child(2) { opacity: 0; }
+        .nav-mobile-toggle.open span:nth-child(3) { top: 9px; transform: rotate(-45deg); }
+
+        /* ========== HERO ========== */
+        .hero {
+            padding: 10rem 0 6rem;
+            background: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-inner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .hero-content { position: relative; z-index: 2; }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(26, 58, 79, 0.08);
+            color: #1a3a4f;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin-bottom: 1.75rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #5B8DB8;
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .hero h1 { margin-bottom: 1.5rem; color: #1a3a4f; }
+        .hero h1 em { color: #5B8DB8; }
+        .hero-description {
+            font-size: 1.1875rem;
+            line-height: 1.7;
+            color: #5a6270;
+            margin-bottom: 2.25rem;
+            max-width: 520px;
+        }
+        .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .hero-image {
+            position: relative;
+            z-index: 1;
+        }
+        .hero-image img {
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        /* ========== TRUST STRIP ========== */
+        .trust-strip {
+            padding: 3rem 0;
+            background: #1a3a4f;
+        }
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+        .trust-item { text-align: center; }
+        .trust-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #5B8DB8;
+            margin-bottom: 0.25rem;
+        }
+        .trust-label {
+            font-size: 0.8125rem;
+            color: rgba(240, 244, 248, 0.7);
+            font-weight: 400;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        /* ========== FEATURES TABS ========== */
+        .features-section { background: #f8f9fa; }
+        .features-header { margin-bottom: 3.5rem; }
+        .features-header p {
+            max-width: 640px;
+            margin: 1rem auto 0;
+        }
+        .features-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 3.5rem;
+            flex-wrap: wrap;
+        }
+        .feature-tab {
+            padding: 0.75rem 1.5rem;
+            border-radius: 100px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            background: transparent;
+            color: #5a6270;
+            border: 1.5px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .feature-tab:hover {
+            color: #1a3a4f;
+            background: rgba(26, 58, 79, 0.06);
+        }
+        .feature-tab.active {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            border-color: #1a3a4f;
+        }
+        .feature-panel {
+            display: none;
+            animation: fadeInPanel 0.4s ease;
+        }
+        .feature-panel.active { display: grid; }
+        @keyframes fadeInPanel {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .feature-panel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .feature-visual img {
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+        }
+        .feature-content h3 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+            color: #1a3a4f;
+        }
+        .feature-content p {
+            margin-bottom: 1.5rem;
+        }
+        .feature-bullets {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.875rem;
+        }
+        .feature-bullets li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            color: #3a3f47;
+        }
+        .feature-bullets li::before {
+            content: '';
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(91, 141, 184, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2px;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 6L5 9L10 3' stroke='%235B8DB8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        /* ========== HEALTH STACK ========== */
+        .stack-section { background: #f0f2f4; }
+        .stack-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 2rem;
+            align-items: center;
+            margin-top: 3.5rem;
+        }
+        .stack-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+        }
+        .stack-card-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+        .stack-card-icon.body { background: rgba(26, 58, 79, 0.1); }
+        .stack-card-icon.mind { background: rgba(91, 141, 184, 0.15); }
+        .stack-card h3 { margin-bottom: 0.75rem; color: #1a3a4f; }
+        .stack-card ul {
+            list-style: none;
+            margin-top: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.625rem;
+        }
+        .stack-card li {
+            font-size: 0.9375rem;
+            color: #5a6270;
+            padding-left: 1.25rem;
+            position: relative;
+        }
+        .stack-card li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .stack-card.body-card li::before { background: #5B8DB8; }
+        .stack-card.mind-card li::before { background: #5B8DB8; }
+        .stack-plus {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #5B8DB8;
+            font-weight: 300;
+        }
+        .stack-result {
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .stack-result-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            background: #1a3a4f;
+            color: #f8f9fa;
+            padding: 1.25rem 2.5rem;
+            border-radius: 100px;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+        .stack-result-card .equals {
+            color: #5B8DB8;
+            font-size: 1.5rem;
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .how-section { background: #f8f9fa; }
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+            margin-top: 3.5rem;
+        }
+        .how-step {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            position: relative;
+        }
+        .how-step-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 300;
+            color: rgba(91, 141, 184, 0.2);
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+        .how-step-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: rgba(26, 58, 79, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+        .how-step-icon svg { width: 32px; height: 32px; color: #1a3a4f; }
+        .how-step h3 { margin-bottom: 0.75rem; color: #1a3a4f; }
+        .how-step p { font-size: 0.9375rem; }
+        .how-connector {
+            position: absolute;
+            right: -1.25rem;
+            top: 50%;
+            width: 2.5rem;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(91, 141, 184, 0.4), rgba(91, 141, 184, 0));
+        }
+        .how-step:last-child .how-connector { display: none; }
+
+        /* ========== SCIENCE ========== */
+        .science-section {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+        }
+        .science-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.15;
+        }
+        .science-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .science-content { position: relative; z-index: 2; }
+        .science-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .science-text h2 { margin-bottom: 1.25rem; }
+        .science-text h2 em { color: #5B8DB8; }
+        .science-text > p { margin-bottom: 2rem; }
+        .science-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .science-stat {
+            background: rgba(240, 244, 248, 0.08);
+            border: 1px solid rgba(240, 244, 248, 0.12);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        .science-stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #5B8DB8;
+            margin-bottom: 0.25rem;
+        }
+        .science-stat-label {
+            font-size: 0.8125rem;
+            color: rgba(240, 244, 248, 0.7);
+            line-height: 1.4;
+        }
+        .science-visual img {
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .science-citation {
+            margin-top: 2.5rem;
+            padding: 1.25rem 1.5rem;
+            background: rgba(240, 244, 248, 0.06);
+            border-left: 3px solid #5B8DB8;
+            border-radius: 0 12px 12px 0;
+        }
+        .science-citation p {
+            font-size: 0.875rem;
+            color: rgba(240, 244, 248, 0.65);
+            font-style: italic;
+        }
+
+        /* ========== SCENARIOS ========== */
+        .scenarios-section { background: #f0f2f4; }
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3.5rem;
+        }
+        .scenario-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 2.25rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .scenario-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+        .scenario-time {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #5B8DB8;
+            margin-bottom: 0.75rem;
+        }
+        .scenario-card h3 { margin-bottom: 0.75rem; color: #1a3a4f; font-size: 1.25rem; }
+        .scenario-card p { font-size: 0.9375rem; margin-bottom: 1.25rem; }
+        .scenario-insight {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.75rem 1rem;
+            background: rgba(26, 58, 79, 0.06);
+            border-radius: 12px;
+            font-size: 0.8125rem;
+            color: #1a3a4f;
+            font-weight: 500;
+        }
+        .scenario-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-calm { background: #5B8DB8; }
+        .dot-steady { background: #b5a84a; }
+        .dot-tense { background: #d4943a; }
+
+        /* ========== PRICING ========== */
+        .pricing-section { background: #f8f9fa; }
+        .pricing-header { margin-bottom: 3.5rem; }
+        .pricing-header p { max-width: 600px; margin: 1rem auto 0; }
+        .pricing-card-wrapper { max-width: 520px; margin: 0 auto; }
+        .pricing-card {
+            background: #fff;
+            border: 1px solid rgba(26, 58, 79, 0.08);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+        }
+        .pricing-card-header {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .pricing-card-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f8f9fa;
+        }
+        .pricing-card-header .price {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: #5B8DB8;
+        }
+        .pricing-card-header .price-period {
+            font-size: 1rem;
+            color: rgba(240, 244, 248, 0.6);
+            font-weight: 400;
+        }
+        .pricing-card-header .price-annual {
+            font-size: 0.875rem;
+            color: rgba(240, 244, 248, 0.5);
+            margin-top: 0.25rem;
+        }
+        .pricing-trial {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(91, 141, 184, 0.15);
+            color: #7aacc8;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            letter-spacing: 0.02em;
+        }
+        .pricing-card-body { padding: 2.5rem; }
+        .pricing-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .pricing-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            color: #3a3f47;
+        }
+        .pricing-check {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(91, 141, 184, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1px;
+        }
+        .pricing-check svg { width: 12px; height: 12px; color: #5B8DB8; }
+        .pricing-card-body .btn-gold {
+            width: 100%;
+            justify-content: center;
+            padding: 1rem;
+            font-size: 1.0625rem;
+        }
+        .pricing-note {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.8125rem;
+            color: #7a8290;
+        }
+
+        /* ========== COMPARISON ========== */
+        .comparison-table {
+            max-width: 860px;
+            margin: 3rem auto 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.9375rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .comparison-table th {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #7a8290;
+            background: rgba(26, 58, 79, 0.03);
+        }
+        .comparison-table th:nth-child(2),
+        .comparison-table td:nth-child(2) { text-align: center; }
+        .comparison-table th:nth-child(3),
+        .comparison-table td:nth-child(3) { text-align: center; }
+        .comparison-table td:first-child { color: #3a3f47; }
+        .comparison-table th:nth-child(4),
+        .comparison-table td:nth-child(4) { text-align: center; }
+        .comparison-table td:first-child { color: #3a3f47; }
+        .check-yes { color: #5B8DB8; font-weight: 600; }
+        .check-no { color: #c8cdd4; }
+        .check-partial { color: #5B8DB8; font-weight: 600; }
+
+        /* ========== THERAPY COST COMPARISON ========== */
+        .cost-comparison {
+            max-width: 900px;
+            margin: 0 auto 3rem;
+        }
+        .cost-comparison-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .cost-comparison-header h3 {
+            font-size: 1.25rem;
+            color: #1a3a4f;
+            margin-bottom: 0.5rem;
+        }
+        .cost-comparison-header p {
+            font-size: 0.9375rem;
+            color: #7a8290;
+        }
+        .cost-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .cost-card {
+            background: #fff;
+            border: 1px solid rgba(26, 58, 79, 0.1);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .cost-card h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #7a8290;
+            margin-bottom: 1rem;
+        }
+        .cost-card .cost-price {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            margin-bottom: 0.25rem;
+        }
+        .cost-card .cost-annual {
+            font-size: 0.8125rem;
+            color: #7a8290;
+            margin-bottom: 1rem;
+        }
+        .cost-card .cost-note {
+            font-size: 0.8125rem;
+            color: #9aa2ae;
+            line-height: 1.5;
+        }
+        .cost-card.highlighted {
+            background: #1a3a4f;
+            border-color: #1a3a4f;
+            box-shadow: 0 12px 40px rgba(26, 58, 79, 0.25);
+            transform: translateY(-4px);
+            position: relative;
+        }
+        .cost-card.highlighted h4 {
+            color: rgba(240, 244, 248, 0.6);
+        }
+        .cost-card.highlighted .cost-price {
+            color: #5B8DB8;
+            font-size: 2.5rem;
+        }
+        .cost-card.highlighted .cost-annual {
+            color: rgba(240, 244, 248, 0.5);
+        }
+        .cost-card.highlighted .cost-note {
+            color: rgba(240, 244, 248, 0.6);
+        }
+        .cost-card-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #5B8DB8;
+            color: #fff;
+            padding: 0.35rem 1rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .cost-comparison-callout {
+            text-align: center;
+            padding: 1.25rem 1.5rem;
+            background: rgba(26, 58, 79, 0.05);
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            color: #3a3f47;
+            line-height: 1.6;
+        }
+        .cost-comparison-callout strong { color: #1a3a4f; }
+
+        @media (max-width: 768px) {
+            .cost-comparison-grid {
+                grid-template-columns: 1fr;
+                max-width: 320px;
+                margin: 0 auto 1.5rem;
+            }
+            .cost-card.highlighted {
+                transform: none;
+                order: -1;
+            }
+        }
+
+        /* ========== TESTIMONIALS ========== */
+        .testimonials-section { background: #f0f2f4; }
+        .testimonials-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3.5rem;
+        }
+        .testimonial-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 2.25rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .testimonial-stars {
+            color: #5B8DB8;
+            font-size: 0.875rem;
+            letter-spacing: 2px;
+            margin-bottom: 1.25rem;
+        }
+        .testimonial-card blockquote {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: #3a3f47;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+        .testimonial-author {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+        }
+        .testimonial-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(26, 58, 79, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            color: #1a3a4f;
+            font-size: 1rem;
+        }
+        .testimonial-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: #1a1d21;
+        }
+        .testimonial-role {
+            font-size: 0.8125rem;
+            color: #7a8290;
+        }
+
+        /* ========== PRESS ========== */
+        .press-strip {
+            padding: 3.5rem 0;
+            background: #f8f9fa;
+            border-top: 1px solid rgba(0,0,0,0.05);
+        }
+        .press-label {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #9aa2ae;
+            margin-bottom: 2rem;
+        }
+        .press-logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 3.5rem;
+            flex-wrap: wrap;
+        }
+        .press-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #a0a8b4;
+            transition: color 0.3s;
+        }
+        .press-logo:hover { color: #6a7280; }
+
+        /* ========== FINAL CTA ========== */
+        .final-cta {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            padding: 7rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .final-cta-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.08;
+        }
+        .final-cta-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .final-cta-content { position: relative; z-index: 2; }
+        .final-cta h2 {
+            max-width: 800px;
+            margin: 0 auto 1.5rem;
+        }
+        .final-cta h2 em { color: #5B8DB8; }
+        .final-cta p {
+            max-width: 560px;
+            margin: 0 auto 2.5rem;
+            font-size: 1.125rem;
+            color: rgba(240, 244, 248, 0.75);
+        }
+        .final-cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            background: #0d1f2d;
+            color: rgba(240, 244, 248, 0.6);
+            padding: 4rem 0 2rem;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        .footer-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        .footer-brand span { color: #5B8DB8; }
+        .footer-tagline {
+            font-size: 0.9375rem;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+            color: rgba(240, 244, 248, 0.5);
+            margin-bottom: 1.5rem;
+        }
+        .footer-newsletter {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 340px;
+        }
+        .footer-newsletter input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 100px;
+            border: 1px solid rgba(240, 244, 248, 0.15);
+            background: rgba(240, 244, 248, 0.05);
+            color: #f8f9fa;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .footer-newsletter input::placeholder { color: rgba(240, 244, 248, 0.3); }
+        .footer-newsletter input:focus { border-color: rgba(91, 141, 184, 0.5); }
+        .footer-newsletter button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 100px;
+            background: #5B8DB8;
+            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .footer-newsletter button:hover { background: #4a7a9e; }
+        .footer-col h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(240, 244, 248, 0.4);
+            margin-bottom: 1.25rem;
+        }
+        .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+        .footer-col a {
+            font-size: 0.9375rem;
+            transition: color 0.3s;
+        }
+        .footer-col a:hover { color: #f8f9fa; }
+        .footer-bottom {
+            border-top: 1px solid rgba(240, 244, 248, 0.08);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .footer-bottom p { font-size: 0.8125rem; color: rgba(240, 244, 248, 0.35); }
+        .footer-legal {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .footer-legal a { font-size: 0.8125rem; color: rgba(240, 244, 248, 0.35); }
+        .footer-legal a:hover { color: rgba(240, 244, 248, 0.6); }
+
+        /* ========== MIMETIC SECTION ========== */
+        .mimetic-section {
+            background: #f0f2f4;
+            padding: 6rem 0;
+        }
+        .mimetic-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        .mimetic-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 2.5rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .mimetic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+        .mimetic-card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(26, 58, 79, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .mimetic-card h3 {
+            font-size: clamp(1.125rem, 1.5vw, 1.25rem);
+            margin-bottom: 1rem;
+            color: #1a3a4f;
+            line-height: 1.35;
+        }
+        .mimetic-card p {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+        @media (max-width: 768px) {
+            .mimetic-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ========== SOCIAL PROOF / TESTIMONIAL SECTION ========== */
+        .social-proof-section {
+            background: #f8f9fa;
+        }
+        .social-proof-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+        .proof-card {
+            background: #fff;
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 20px;
+            padding: 2.25rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .proof-card-quote {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.375rem;
+            font-style: italic;
+            line-height: 1.4;
+            color: #1a3a4f;
+            margin-bottom: 1.25rem;
+        }
+        .proof-card p {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+        }
+        .proof-card-author {
+            display: flex;
+            align-items: center;
+            gap: 0.875rem;
+        }
+        .proof-card-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(26, 58, 79, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            color: #1a3a4f;
+            font-size: 1rem;
+        }
+        .proof-card-name {
+            font-weight: 600;
+            font-size: 0.9375rem;
+            color: #1a1d21;
+        }
+        .proof-card-role {
+            font-size: 0.8125rem;
+            color: #7a8290;
+        }
+        @media (max-width: 768px) {
+            .social-proof-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ========== FAQ SECTION ========== */
+        .faq-section {
+            background: #f8f9fa;
+        }
+        .faq-list {
+            max-width: 760px;
+            margin: 3rem auto 0;
+        }
+        .faq-item {
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .faq-question {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #1a3a4f;
+            background: none;
+            text-align: left;
+            line-height: 1.4;
+            gap: 1rem;
+        }
+        .faq-question:hover { color: #5B8DB8; }
+        .faq-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
+        }
+        .faq-item.open .faq-icon { transform: rotate(45deg); }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 300px;
+            padding-bottom: 1.5rem;
+        }
+        .faq-answer p {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        /* ========== ANIMATIONS ========== */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fade-in-delay-1 { transition-delay: 0.1s; }
+        .fade-in-delay-2 { transition-delay: 0.2s; }
+        .fade-in-delay-3 { transition-delay: 0.3s; }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1024px) {
+            .hero-inner { grid-template-columns: 1fr; text-align: center; }
+            .hero-description { margin: 0 auto 2.25rem; }
+            .hero-ctas { justify-content: center; }
+            .hero-image { max-width: 600px; margin: 0 auto; }
+            .feature-panel-grid { grid-template-columns: 1fr; }
+            .feature-visual { order: -1; }
+            .science-grid { grid-template-columns: 1fr; }
+            .science-visual { order: -1; max-width: 500px; margin: 0 auto; }
+            .stack-grid { grid-template-columns: 1fr; }
+            .stack-plus { text-align: center; }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .section { padding: 4.5rem 0; }
+            .nav-links { display: none; }
+            .nav-mobile-toggle { display: block; }
+            .nav-links.mobile-open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(240, 244, 248, 0.98);
+                backdrop-filter: blur(20px);
+                padding: 1.5rem 2rem;
+                gap: 1.25rem;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            }
+            .hero { padding: 7rem 0 4rem; }
+            .trust-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+            .features-tabs { gap: 0.375rem; }
+            .feature-tab { padding: 0.625rem 1rem; font-size: 0.8125rem; }
+            .how-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+            .how-connector { display: none; }
+            .scenarios-grid { grid-template-columns: 1fr; }
+            .testimonials-grid { grid-template-columns: 1fr; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .press-logos { gap: 2rem; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 0 1.25rem; }
+            .hero-ctas { flex-direction: column; align-items: stretch; }
+            .hero-ctas .btn-gold,
+            .hero-ctas .btn-outline { justify-content: center; }
+            .science-stats { grid-template-columns: 1fr; }
+            .final-cta-buttons { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ============ NAVIGATION ============ -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">Lucid<span>.</span></a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#science">Science</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#pricing">Pricing</a></li>
+            </ul>
+            <div class="nav-right">
+                <button class="btn-text" style="display:none;">Log In</button>
+                <a href="#pricing" class="btn-primary">Complete Your Health Stack</a>
+                <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-inner">
+                <div class="hero-content fade-in">
+                    <div class="hero-badge">Now in Early Access</div>
+                    <h1>You Compare Sleep Scores. <em>Imagine Comparing Stress Resilience.</em></h1>
+                    <p class="hero-description">
+                        Your Oura tracks your body. Nothing tracks your mind. Until now. Lucid uses clinically validated voice biomarkers to passively measure the one thing your wearables miss.
+                    </p>
+                    <div class="hero-ctas">
+                        <a href="#pricing" class="btn-gold">
+                            Complete Your Health Stack
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </a>
+                        <a href="#science" class="btn-outline">
+                            See the Science
+                        </a>
+                    </div>
+                </div>
+                <div class="hero-image fade-in fade-in-delay-2">
+                    <img src="images/hero-dashboard.jpg" alt="Lucid Steel dashboard showing Stress, Mood, Energy, and Calm scores with voice waveform analysis" loading="eager">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ TRUST STRIP ============ -->
+    <section class="trust-strip">
+        <div class="container">
+            <div class="trust-grid">
+                <div class="trust-item fade-in">
+                    <div class="trust-number">35,000</div>
+                    <div class="trust-label">People in Training Data</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-1">
+                    <div class="trust-number">71%</div>
+                    <div class="trust-label">Clinical Accuracy</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-2">
+                    <div class="trust-number">100%</div>
+                    <div class="trust-label">On-Device Processing</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-3">
+                    <div class="trust-number">0</div>
+                    <div class="trust-label">Audio Ever Stored</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ MIMETIC / SOCIAL SPREAD ============ -->
+    <section class="mimetic-section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>First We Tracked Movement. Then Sleep. Then Recovery. <em>Now: The Mind.</em></h2>
+                <p class="text-lg" style="max-width: 640px; margin: 1rem auto 0;">Each generation of health tracking unlocked insights people didn't know they were missing. Voice biomarkers are the next layer — and the early adopters are already discovering patterns they never saw before.</p>
+            </div>
+            <div class="mimetic-grid">
+                <div class="mimetic-card fade-in">
+                    <div class="mimetic-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <h3>You Already Compare Sleep Scores. <em>Now Compare Stress Resilience.</em></h3>
+                    <p>You share Oura scores at dinner. You compare HRV with your training partners. Lucid gives you the next metric worth comparing — and the one that actually explains how you feel on any given day.</p>
+                </div>
+                <div class="mimetic-card fade-in fade-in-delay-1">
+                    <div class="mimetic-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <h3>Your Oura Tracks Your Body. Nothing Tracks Your Mind.</h3>
+                    <p>Heart rate, HRV, sleep stages, SpO2, temperature — your body is covered. But you have zero objective data on your emotional and cognitive state. Lucid fills that gap with the same scientific rigor you expect from your wearables.</p>
+                </div>
+                <div class="mimetic-card fade-in fade-in-delay-2">
+                    <div class="mimetic-card-icon">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M10 21h4M12 17v4"/></svg>
+                    </div>
+                    <h3>Your Body Has a Dashboard. <em>Your Mind Deserves One Too.</em></h3>
+                    <p>You've optimized sleep, nutrition, and exercise. Now bring that same data-driven approach to the one variable that affects all of them — your emotional and cognitive state.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ HEALTH FEATURES (Tabbed) ============ -->
+    <section class="features-section section" id="features">
+        <div class="container">
+            <div class="features-header text-center fade-in">
+                <h2>You Track Your Sleep, Your Steps, Your Heart Rate. <em>What About Your Mind?</em></h2>
+                <p class="text-lg">HRV, sleep stages, blood oxygen, recovery — your body is covered. Lucid adds the emotional layer, giving you objective data on stress, mood, energy, and resilience.</p>
+            </div>
+
+            <div class="features-tabs fade-in">
+                <button class="feature-tab active" data-tab="stress">Stress & Calm</button>
+                <button class="feature-tab" data-tab="mood">Mood & Energy</button>
+                <button class="feature-tab" data-tab="correlations">Correlations</button>
+                <button class="feature-tab" data-tab="metrics">Raw Metrics</button>
+            </div>
+
+            <!-- Stress Tab -->
+            <div class="feature-panel active" data-panel="stress">
+                <div class="feature-panel-grid">
+                    <div class="feature-visual">
+                        <img src="images/stress-feature.png" alt="Woman on video call with Lucid wellness scores overlay showing Calmness 82, Energy 76, Stress 18, Depression 12, Anxiety 15" loading="lazy">
+                    </div>
+                    <div class="feature-content">
+                        <h3>Your Voice Changes 30 Minutes Before You Feel Stressed. <em>We Catch It.</em></h3>
+                        <p>Lucid detects involuntary vocal biomarkers — micro-changes in pitch, jitter, and spectral energy that shift when your nervous system activates. Most people can't self-report stress accurately. Your voice can.</p>
+                        <ul class="feature-bullets">
+                            <li>Real-time stress and calm scores (0-100) — objective, not self-reported</li>
+                            <li>Zone classification: Calm, Steady, Tense, or Stressed</li>
+                            <li>Personal baseline calibration adapts to your unique vocal signature</li>
+                            <li>Hourly timeline shows exactly when stress spikes happen</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mood Tab -->
+            <div class="feature-panel" data-panel="mood">
+                <div class="feature-panel-grid">
+                    <div class="feature-visual">
+                        <img src="images/flatlay.jpg" alt="Mood and Energy tracking dashboard" loading="lazy">
+                    </div>
+                    <div class="feature-content">
+                        <h3>Mood & Energy, <em>Measured Objectively</em></h3>
+                        <p>Built on the Kintsugi DAM model — a 244M-parameter transformer trained on 35,000 people and validated in the largest voice biomarker study ever published. It detects depression and anxiety signals from 25 seconds of natural speech. Clinical-grade data, not guesswork.</p>
+                        <ul class="feature-bullets">
+                            <li>Depression and anxiety scores derived from clinical-grade AI</li>
+                            <li>Energy levels tracked via RMS power, speech rate, and pitch range</li>
+                            <li>Daily "Canopy Score" summarizes your overall vocal wellness</li>
+                            <li>Trend lines show your mood trajectory over days and weeks</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Correlations Tab -->
+            <div class="feature-panel" data-panel="correlations">
+                <div class="feature-panel-grid">
+                    <div class="feature-visual">
+                        <img src="images/integration.jpg" alt="Data correlation between voice stress and HRV" loading="lazy">
+                    </div>
+                    <div class="feature-content">
+                        <h3>Find What <em>Actually</em> Moves the Needle</h3>
+                        <p>The Correlation Explorer connects your voice data with your Oura, Whoop, and Apple Health data. Stop guessing which lifestyle changes work — see the data. Cross-reference mental state with sleep, HRV, and activity.</p>
+                        <ul class="feature-bullets">
+                            <li>"Your stress is 40% higher on days you sleep less than 6 hours"</li>
+                            <li>Cross-reference with HRV, sleep quality, temperature, and activity data</li>
+                            <li>Automatic pattern detection across 7+ day windows</li>
+                            <li>Export correlations as CSV for your own analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw Metrics Tab -->
+            <div class="feature-panel" data-panel="metrics">
+                <div class="feature-panel-grid">
+                    <div class="feature-visual">
+                        <img src="images/voice-science.jpg" alt="Raw acoustic feature visualization" loading="lazy">
+                    </div>
+                    <div class="feature-content">
+                        <h3>Every Acoustic Feature, <em>Right at Your Fingertips</em></h3>
+                        <p>You're not a casual user — you want the raw data. Lucid gives you access to every acoustic feature the AI model uses, so you can build your own analyses, spot your own patterns, and truly own your data.</p>
+                        <ul class="feature-bullets">
+                            <li>8 raw acoustic features: F0/pitch, RMS, jitter, spectral centroid, entropy, zero-crossing rate, speech rate, shimmer</li>
+                            <li>Full data export via CSV, JSON, or REST API</li>
+                            <li>Plug into Notion, Obsidian, Google Sheets, or your own dashboards</li>
+                            <li>API access for developers and researchers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ============ HEALTH STACK COMPLETE ============ -->
+    <section class="stack-section section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Your Body Has Data. <em>Your Mind Deserves It Too.</em></h2>
+                <p class="text-lg" style="max-width: 640px; margin: 1rem auto 0;">You already invest in tracking your physical health. Lucid adds the missing data stream — your emotional and cognitive state, measured objectively, every day.</p>
+            </div>
+            <div class="stack-grid">
+                <div class="stack-card body-card fade-in">
+                    <div class="stack-card-icon body">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                    </div>
+                    <h3>Your Physical Stack</h3>
+                    <p style="font-size: 0.9375rem; color: #5a6270;">Oura, Whoop, Apple Watch, blood panels — your body is covered.</p>
+                    <ul>
+                        <li>Heart rate & HRV</li>
+                        <li>Sleep stages & quality</li>
+                        <li>Activity & recovery</li>
+                        <li>Blood biomarkers</li>
+                        <li>SpO2 & temperature</li>
+                    </ul>
+                </div>
+                <div class="stack-plus fade-in fade-in-delay-1">+</div>
+                <div class="stack-card mind-card fade-in fade-in-delay-2">
+                    <div class="stack-card-icon mind">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#5B8DB8" stroke-width="1.5"><path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M10 21h4M12 17v4"/></svg>
+                    </div>
+                    <h3>Your Mental Stack</h3>
+                    <p style="font-size: 0.9375rem; color: #5a6270;">Lucid — voice-based emotional wellness, continuous and effortless.</p>
+                    <ul>
+                        <li>Stress & calm tracking</li>
+                        <li>Mood & depression signals</li>
+                        <li>Energy & cognitive load</li>
+                        <li>Anxiety & depression signals</li>
+                        <li>Vocal biomarker trends</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="stack-result fade-in">
+                <div class="stack-result-card">
+                    Body <span class="equals">+</span> Mind <span class="equals">=</span> <em>Complete Wellness</em>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="how-section section" id="how-it-works">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Setup Takes <em>12 Seconds.</em> Really.</h2>
+                <p class="text-lg" style="max-width: 560px; margin: 1rem auto 0;">No new hardware. No daily check-ins. Just speak naturally — Lucid processes your voice locally and adds the data to your existing stack.</p>
+            </div>
+            <div class="how-grid">
+                <div class="how-step fade-in">
+                    <div class="how-step-number">01</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <h3>Download & Launch</h3>
+                    <p>Install the macOS app. It lives quietly in your menubar — invisible until you need it. Zero configuration.</p>
+                    <div class="how-connector"></div>
+                </div>
+                <div class="how-step fade-in fade-in-delay-1">
+                    <div class="how-step-number">02</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <h3>Just Speak Naturally</h3>
+                    <p>Talk, take calls, think out loud. Lucid passively analyzes your voice in the background — zero effort, zero cloud, 100% on-device.</p>
+                    <div class="how-connector"></div>
+                </div>
+                <div class="how-step fade-in fade-in-delay-2">
+                    <div class="how-step-number">03</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    </div>
+                    <h3>See Your Complete Data</h3>
+                    <p>By day three, you'll have stress, mood, and energy data correlating with your Oura and Whoop scores. Export everything. Build your own dashboards. The data is yours.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SCIENCE & VALIDATION ============ -->
+    <section class="science-section section" id="science">
+        <div class="science-bg">
+            <img src="images/voice-science.jpg" alt="" loading="lazy">
+        </div>
+        <div class="container science-content">
+            <div class="science-grid">
+                <div class="science-text fade-in">
+                    <h2>Trained on 35,000 People. <em>Your Therapist Has Seen 3,000.</em></h2>
+                    <p class="text-lg" style="color: rgba(240, 244, 248, 0.8);">
+                        Lucid is powered by the Kintsugi DAM — a 244M-parameter AI model backed by $30M in research, validated in the largest voice biomarker study ever published. This isn't a wellness gimmick. It's clinical-grade science.
+                    </p>
+                    <div class="science-stats">
+                        <div class="science-stat">
+                            <div class="science-stat-value">14,898</div>
+                            <div class="science-stat-label">Adults in the double-blind validation study</div>
+                        </div>
+                        <div class="science-stat">
+                            <div class="science-stat-value">71.3%</div>
+                            <div class="science-stat-label">Sensitivity detecting depression from 25s of speech</div>
+                        </div>
+                        <div class="science-stat">
+                            <div class="science-stat-value">244M</div>
+                            <div class="science-stat-label">Parameter transformer model (Whisper architecture)</div>
+                        </div>
+                        <div class="science-stat">
+                            <div class="science-stat-value">863 hrs</div>
+                            <div class="science-stat-label">Of labeled speech in the training dataset</div>
+                        </div>
+                    </div>
+                    <div class="science-citation">
+                        <p>Published in <strong style="color: rgba(240,244,248,0.85);">Annals of Family Medicine</strong> (January 2025) — one of the top peer-reviewed medical journals. This isn't startup science. This is clinical-grade AI.</p>
+                    </div>
+                </div>
+                <div class="science-visual fade-in fade-in-delay-2">
+                    <img src="images/voice-science.jpg" alt="Voice biomarker science visualization — sound waves transforming into health data" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ SOCIAL PROOF ============ -->
+    <section class="social-proof-section section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>What the Data Community Is <em>Finding</em></h2>
+                <p class="text-lg" style="max-width: 600px; margin: 1rem auto 0;">The missing data stream they didn't know they needed.</p>
+            </div>
+            <div class="social-proof-grid">
+                <div class="proof-card fade-in">
+                    <div class="proof-card-quote">"I've tracked everything for 5 years. Lucid is the first tool that fills the mental health gap."</div>
+                    <p>I correlate my Lucid stress scores with my Oura HRV data and the patterns are undeniable. Poor sleep doesn't just make me tired — it makes my stress response 35% worse.</p>
+                    <div class="proof-card-author">
+                        <div class="proof-card-avatar">A</div>
+                        <div>
+                            <div class="proof-card-name">Alex R.</div>
+                            <div class="proof-card-role">r/QuantifiedSelf</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="proof-card fade-in fade-in-delay-1">
+                    <div class="proof-card-quote">"I export my Lucid data to Obsidian and cross-reference it with everything."</div>
+                    <p>The raw acoustic features are gold. I've built a personal dashboard that correlates my voice energy with my sleep scores, morning routines, and supplement protocols. Nothing else gives me this data.</p>
+                    <div class="proof-card-author">
+                        <div class="proof-card-avatar">P</div>
+                        <div>
+                            <div class="proof-card-name">Priya M.</div>
+                            <div class="proof-card-role">Biohacker & Wellness Coach</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="proof-card fade-in fade-in-delay-2">
+                    <div class="proof-card-quote">"Finally — raw acoustic features I can plug into my own dashboards."</div>
+                    <p>The API is clean, the CSV export is instant, and the data quality is solid. I wrote a script to pipe my Lucid scores into Grafana alongside my Whoop data. Game changer.</p>
+                    <div class="proof-card-author">
+                        <div class="proof-card-avatar">D</div>
+                        <div>
+                            <div class="proof-card-name">David C.</div>
+                            <div class="proof-card-role">Developer & Self-Tracker</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="pricing-section section" id="pricing">
+        <div class="container">
+            <div class="pricing-header text-center fade-in">
+                <h2>One Membership. <em>Everything Included.</em></h2>
+                <p class="text-lg">No tiers. No upsells. Full access to every feature, every raw metric, and full API access. You already spend $30/month on Oura — $14.99 for the missing mental health layer is a rounding error.</p>
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(91, 141, 184, 0.12); color: #3a6a8a; padding: 0.5rem 1.25rem; border-radius: 100px; font-size: 0.8125rem; font-weight: 600; margin-top: 1rem; letter-spacing: 0.02em;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Early adopter pricing — locks in at signup
+                </div>
+            </div>
+
+            <!-- Therapy Cost Comparison -->
+            <div class="cost-comparison fade-in">
+                <div class="cost-comparison-header">
+                    <h3>How Lucid Compares to <em>Traditional Options</em></h3>
+                    <p>Continuous emotional wellness monitoring at a fraction of the cost</p>
+                </div>
+                <div class="cost-comparison-grid">
+                    <div class="cost-card">
+                        <h4>Traditional Therapy</h4>
+                        <div class="cost-price">$400–800</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$4,800–9,600/year<br>1 session per week</div>
+                    </div>
+                    <div class="cost-card">
+                        <h4>Online Therapy (BetterHelp)</h4>
+                        <div class="cost-price">$280–400</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$3,360–4,800/year<br>1 session per week</div>
+                    </div>
+                    <div class="cost-card highlighted">
+                        <div class="cost-card-badge">Save 97% vs. therapy</div>
+                        <h4>Lucid</h4>
+                        <div class="cost-price">$14.99</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$149/year<br>Continuous daily monitoring</div>
+                    </div>
+                </div>
+                <div class="cost-comparison-callout">
+                    A single psychiatrist session costs <strong>$250–500</strong>. Lucid monitors you <strong>every day</strong> for less than one session per year.
+                </div>
+            </div>
+
+            <div class="pricing-card-wrapper fade-in">
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <h3>Lucid Membership</h3>
+                        <div class="price">$14.99<span class="price-period">/mo</span></div>
+                        <div class="price-annual">or $149/year (save $30)</div>
+                        <div class="pricing-trial">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                            First 30 days free
+                        </div>
+                    </div>
+                    <div class="pricing-card-body">
+                        <ul class="pricing-features">
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Real-time stress, mood, energy & calm tracking
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Clinically validated depression & anxiety detection
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Correlation Explorer — connect with Oura, Whoop & Apple Health
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                12+ raw acoustic biomarkers with full data access
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                CSV, JSON & REST API data export
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                100% on-device — your voice never leaves your Mac
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="#5B8DB8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Weekly insights & trend reports
+                            </li>
+                        </ul>
+                        <a href="#" class="btn-gold" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.0625rem;">
+                            Start Your Free Trial
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <p class="pricing-note">No credit card required. Cancel anytime. Your data stays local, always.</p>
+            </div>
+
+            <!-- Comparison table -->
+            <div class="comparison-table fade-in" style="margin-top: 4rem;">
+                <div style="text-align: center; padding: 2rem 2rem 0;">
+                    <h3 style="font-size: 1.25rem; color: #1a3a4f;">Not Your Average <em>Wellness App</em></h3>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Lucid</th>
+                                <th>Mood Journals</th>
+                                <th>Therapist</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Passive — zero daily effort</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Objective biomarkers</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Clinically validated AI</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-partial">&#9679;</td>
+                            </tr>
+                            <tr>
+                                <td>Continuous monitoring</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Correlates with wearables</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Raw data export & API</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>100% on-device / private</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-yes">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Human clinical insight & empathy</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-yes">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Under $15/month</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Detects what you can't self-report</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-partial">&#9679;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ============ FAQ / OBJECTION HANDLING ============ -->
+    <section class="faq-section section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Questions You're <em>Already Asking</em></h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Is my voice data private? Where does it go?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Nowhere. Lucid processes everything on your Mac — your voice never leaves your device. No cloud. No recordings saved. No audio stored. The AI model runs locally using your CPU, and only numerical biomarker scores are kept in a local database. This is verifiable: Lucid works with your internet off. No cloud means you own your data completely.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        How does it integrate with my existing health stack?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Lucid correlates your voice biomarker data with Oura, Whoop, Apple Health, and any wearable that exports data. Use the Correlation Explorer to cross-reference stress with HRV, sleep quality, and activity. Export everything via CSV, JSON, or REST API. Plug it into Notion, Obsidian, Google Sheets, or your own dashboards. Your data, your way.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        How accurate is voice-based stress detection, really?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The Kintsugi DAM model behind Lucid was validated in a double-blind study of 14,898 adults, published in the Annals of Family Medicine. It detects depression signals from 25 seconds of speech with 71.3% sensitivity — outperforming standard PHQ-9 screening questionnaires. This isn't startup science; it's the largest voice biomarker study ever published. This isn't a wellness gimmick. It's the largest voice biomarker validation study ever published.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        How is this different from mood journals or wellness apps?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Mood journals rely on self-reporting — and 51% of people can't accurately report their own mental state. Lucid measures objective biomarkers from your voice, passively, without you doing anything. Plus you get full raw data access and API — something no mood app offers. It's the difference between guessing your heart rate and wearing a monitor.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Does it hear other people in my meetings?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. During setup, you record a short voice profile. Lucid uses speaker identification to isolate your voice and ignore everyone else. Only your speech is analyzed — other speakers are filtered out automatically.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        $14.99/month seems like a lot for a voice app.
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Your Oura Ring costs $300 plus $6/month. Your Whoop is $30/month. You already invest in your health stack because the data is worth it. Lucid adds the one data stream none of them can provide — your mental and emotional state, measured objectively, every day. You get 30 days free to decide if it completes your stack.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ LIFESTYLE SECTION ============ -->
+    <section class="section" style="background: #f8f9fa; padding: 5rem 0;">
+        <div class="container">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;">
+                <div class="fade-in">
+                    <img src="images/lifestyle.jpg" alt="Professional using Lucid at a standing desk" style="border-radius: 20px; box-shadow: 0 16px 48px rgba(0,0,0,0.1);" loading="lazy">
+                </div>
+                <div class="fade-in fade-in-delay-1">
+                    <h2>Designed for People Who <em>Track Everything</em></h2>
+                    <p style="margin: 1.25rem 0 1.5rem; font-size: 1.0625rem;">
+                        Your microphone captures what wearables can't — the micro-tremors, pitch shifts, and energy patterns that reveal your cognitive and emotional state. No new hardware. No daily effort. Just the voice you already use every day.
+                    </p>
+                    <p style="font-size: 1.0625rem; margin-bottom: 2rem;">
+                        Full raw data access. REST API. CSV and JSON export. Plug into Notion, Obsidian, or your own dashboards. 100% on-device — your voice never leaves your Mac.
+                    </p>
+                    <a href="#pricing" class="btn-gold">
+                        Complete Your Health Stack
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="final-cta">
+        <div class="final-cta-bg">
+            <img src="images/voice-science.jpg" alt="" loading="lazy">
+        </div>
+        <div class="container final-cta-content">
+            <h2 class="fade-in">What If You Could Actually Measure How You Feel? <em>Not Guess. Measure.</em></h2>
+            <p class="fade-in fade-in-delay-1">Objective voice biomarkers. Real patterns. Real self-knowledge. Clinically validated. 100% on-device.</p>
+            <div class="final-cta-buttons fade-in fade-in-delay-2">
+                <a href="#pricing" class="btn-white">
+                    Start Your Free Trial
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <a href="#features" class="btn-outline-light">Explore Features</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">Lucid<span>.</span></div>
+                    <div class="footer-tagline">Clarity through voice.</div>
+                    <p style="font-size: 0.875rem; margin-bottom: 1.5rem;">Know your stress before you feel it. Clinically validated voice biomarkers, processed 100% on your device.</p>
+                    <div class="footer-newsletter">
+                        <input type="email" placeholder="Enter your email">
+                        <button>Subscribe</button>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#">Download</a></li>
+                        <li><a href="#">Changelog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Science</h4>
+                    <ul>
+                        <li><a href="#science">Research</a></li>
+                        <li><a href="#">Kintsugi DAM</a></li>
+                        <li><a href="#">Clinical Validation</a></li>
+                        <li><a href="#">API Docs</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Twitter / X</a></li>
+                        <li><a href="#">Reddit</a></li>
+                        <li><a href="#">Discord</a></li>
+                        <li><a href="#">Product Hunt</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Lucid Steel. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Security</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============ JAVASCRIPT ============ -->
+    <script>
+        // Nav scroll effect
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 40);
+        });
+
+        // Mobile menu toggle
+        const mobileToggle = document.getElementById('mobileToggle');
+        const navLinks = document.getElementById('navLinks');
+        mobileToggle.addEventListener('click', () => {
+            mobileToggle.classList.toggle('open');
+            navLinks.classList.toggle('mobile-open');
+        });
+
+        // Close mobile menu on link click
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileToggle.classList.remove('open');
+                navLinks.classList.remove('mobile-open');
+            });
+        });
+
+        // Feature tabs
+        const tabs = document.querySelectorAll('.feature-tab');
+        const panels = document.querySelectorAll('.feature-panel');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                panels.forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.querySelector(`[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+            });
+        });
+
+        // Scroll-triggered fade-in animations
+        const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -40px 0px' };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+        // FAQ accordion
+        document.querySelectorAll('.faq-question').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = btn.parentElement;
+                const wasOpen = item.classList.contains('open');
+                document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+                if (!wasOpen) item.classList.add('open');
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    const offset = 80;
+                    const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

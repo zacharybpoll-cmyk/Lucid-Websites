@@ -1,5 +1,5 @@
 /**
- * Attune Steel Dev — Floating Dev Toolbar
+ * Lucid Dev — Floating Dev Toolbar
  * Injected into the main window via executeJavaScript in main-dev.js.
  * This file exists as documentation / for potential dynamic loading.
  *
@@ -15,10 +15,10 @@
 // touching production files.
 
 (function() {
-  if (document.getElementById('attune-dev-toolbar')) return; // Already injected
+  if (document.getElementById('lucid-dev-toolbar')) return; // Already injected
 
   const toolbar = document.createElement('div');
-  toolbar.id = 'attune-dev-toolbar';
+  toolbar.id = 'lucid-dev-toolbar';
   toolbar.style.cssText = [
     'position:fixed', 'bottom:8px', 'left:8px',
     'background:rgba(0,0,0,0.85)', 'color:#a3e635',

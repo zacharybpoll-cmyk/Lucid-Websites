@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-# build-dist.sh — Distribution build for Attune Health
+# build-dist.sh — Distribution build for Lucid
 # Creates an optimized .app bundle with minimal size (~2.4GB target)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "=== Attune Health Distribution Build ==="
+echo "=== Lucid Distribution Build ==="
 echo "Root: $ROOT"
 
-# 1. Kill any running Attune processes
-echo "--- Killing existing Attune processes..."
-pkill -f "Attune" 2>/dev/null || true
+# 1. Kill any running Lucid processes
+echo "--- Killing existing Lucid processes..."
+pkill -f "Lucid" 2>/dev/null || true
 sleep 1
 
 # 2. Create clean python-dist by copying python/ excluding unnecessary files
@@ -79,8 +79,8 @@ echo "  python-dist size: $DIST_SIZE"
 
 # 6. Run electron-packager with python-dist as extra resource
 echo "--- Running electron-packager..."
-npx electron-packager . "Attune Health" --platform=darwin --arch=arm64 \
-  --icon=assets/icon.icns --app-bundle-id=com.electron.attune-health \
+npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
+  --icon=assets/icon.icns --app-bundle-id=com.electron.lucid \
   --app-version=1.0.0 --extra-resource=python-dist \
   --ignore='^/python$' --ignore='^/python/' \
   --ignore='^/python-dist$' --ignore='^/python-dist/' \
@@ -89,19 +89,18 @@ npx electron-packager . "Attune Health" --platform=darwin --arch=arm64 \
   --ignore='^/dist$' --ignore='^/dist/' \
   --ignore='^/tasks$' --ignore='^/tasks/' \
   --ignore='^/scripts$' --ignore='^/scripts/' \
-  --ignore='^/CLAUDE\.md$' --ignore='^/Attune_' --ignore='^/~\$' \
+  --ignore='^/CLAUDE\.md$' --ignore='^/Lucid_' --ignore='^/~\$' \
   --ignore='^/Screenshot' --ignore='^/first-breath-preview\.html$' \
-  --ignore='^/Attune-darwin-arm64$' --ignore='^/Attune-darwin-arm64/' \
-  --ignore='^/Attune Health-darwin-arm64$' --ignore='^/Attune Health-darwin-arm64/' \
-  --ignore='^/attune-health-website$' --ignore='^/attune-health-website/' \
+  --ignore='^/Lucid-darwin-arm64$' --ignore='^/Lucid-darwin-arm64/' \
+  --ignore='^/lucid-website$' --ignore='^/lucid-website/' \
   --ignore='\.zip$' --ignore='\.docx$' --ignore='\.pdf$' \
   --ignore='^/Claude_Code' --ignore='^/README-INSTALL' \
-  --ignore='^/Vision Care' --ignore='^/attune_assessment' \
+  --ignore='^/Vision Care' --ignore='^/lucid_assessment' \
   --ignore='^/\.git$' --ignore='^/\.git/' \
   --overwrite
 
 # 7. Rename python-dist -> python inside the .app bundle
-APP_BUNDLE="./Attune Health-darwin-arm64/Attune Health.app"
+APP_BUNDLE="./Lucid-darwin-arm64/Lucid.app"
 RESOURCES="$APP_BUNDLE/Contents/Resources"
 if [ -d "$RESOURCES/python-dist" ]; then
   echo "--- Renaming python-dist -> python in app bundle..."
@@ -127,20 +126,20 @@ find "$RESOURCES/python" -name "*.pyc" -delete 2>/dev/null || true
 
 # 9. Move to Desktop
 echo "--- Moving to Desktop..."
-rm -rf ~/Desktop/"Attune Health.app"
-mv "$APP_BUNDLE" ~/Desktop/"Attune Health.app"
+rm -rf ~/Desktop/"Lucid.app"
+mv "$APP_BUNDLE" ~/Desktop/"Lucid.app"
 
 # 10. Clean up
 echo "--- Cleaning up..."
 rm -rf python-dist
-rm -rf "./Attune Health-darwin-arm64"
+rm -rf "./Lucid-darwin-arm64"
 
 # 11. Report final size
-FINAL_SIZE=$(du -sh ~/Desktop/"Attune Health.app" | cut -f1)
+FINAL_SIZE=$(du -sh ~/Desktop/"Lucid.app" | cut -f1)
 echo ""
 echo "=== Build Complete ==="
-echo "  Location: ~/Desktop/Attune Health.app"
+echo "  Location: ~/Desktop/Lucid.app"
 echo "  Size: $FINAL_SIZE"
 echo ""
 echo "To create ZIP for distribution:"
-echo "  cd ~/Desktop && zip -r -9 'Attune-Health-v1.0.0-arm64.zip' 'Attune Health.app'"
+echo "  cd ~/Desktop && zip -r -9 'Lucid-v1.0.0-arm64.zip' 'Lucid.app'"

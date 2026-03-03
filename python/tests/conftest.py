@@ -1,4 +1,4 @@
-"""Pytest fixtures for Attune test suite."""
+"""Pytest fixtures for Lucid test suite."""
 import os
 import sys
 import tempfile
@@ -9,7 +9,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 # Set data dir to temp for tests (must be set BEFORE importing app_config)
-os.environ['ATTUNE_DATA_DIR'] = tempfile.mkdtemp()
+os.environ['LUCID_DATA_DIR'] = tempfile.mkdtemp()
 
 
 @pytest.fixture

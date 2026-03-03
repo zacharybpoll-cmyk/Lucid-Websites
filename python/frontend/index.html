@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.plot.ly 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self';">
-    <title>Attune</title>
+    <title>Lucid</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -313,7 +313,7 @@
         <main class="main-content">
             <!-- Header -->
             <header class="app-header">
-                <h1>Attune</h1>
+                <h1>Lucid</h1>
                 <div class="header-right">
                     <span id="current-date"></span>
                     <!-- Echo notification dot -->
@@ -374,7 +374,7 @@
                             </div>
                             <div class="speak-hero-mic-dot" id="speak-hero-mic-dot"></div>
                         </div>
-                        <p class="speak-hero-footnote">Attune listens passively during calls and conversations. This first reading helps calibrate your baseline.</p>
+                        <p class="speak-hero-footnote">Lucid listens passively during calls and conversations. This first reading helps calibrate your baseline.</p>
                     </div>
 
                     <!-- Daily greeting (returning user, no readings today) -->
@@ -394,7 +394,7 @@
                     <div id="enrollment-required-banner" class="enrollment-required-banner" style="display: none;">
                         <div class="enrollment-required-content">
                             <strong>Voice profile required</strong>
-                            <p>Set up your voice profile so Attune only analyzes your voice — not coworkers, TV, or other speakers.</p>
+                            <p>Set up your voice profile so Lucid only analyzes your voice — not coworkers, TV, or other speakers.</p>
                             <button class="btn btn-primary" onclick="startEnrollment()">Set Up Voice Profile</button>
                         </div>
                     </div>
@@ -414,7 +414,7 @@
                                 <button class="info-btn" data-info="canopy">i</button>
                                 <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), built from today's voice readings. Combines seven voice dimensions — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and stability — plus your calm-time recovery. Higher-validity signals carry more weight.</div>
                             </span>
-                            <span class="ring-gauge-tagline">Attuned to you.</span>
+                            <span class="ring-gauge-tagline">Clarity through voice.</span>
                         </div>
 
                         <!-- Ring gauge SVG — JS fills this -->
@@ -598,7 +598,7 @@
                         <div class="echoes-section glass-card">
                             <h3 class="section-label" style="position: relative;">ECHOES
                                 <button class="info-btn" data-info="echoes">i</button>
-                                <div class="info-popover" id="info-echoes">Pattern discoveries found in your data over time. New insights appear as Attune learns your vocal habits.</div>
+                                <div class="info-popover" id="info-echoes">Pattern discoveries found in your data over time. New insights appear as Lucid learns your vocal habits.</div>
                             </h3>
                             <div id="echoes-container" class="echoes-list">
                                 <div class="echoes-empty">Patterns will appear after 7+ days of data</div>
@@ -797,7 +797,7 @@
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>Once 30 seconds of verified speech accumulates, a grace period begins. Attune keeps collecting up to 60 seconds, then auto-triggers the analysis. If you stop speaking between 30-60 seconds, the analysis auto-triggers after 15 seconds of silence.</p>
+                                <p>Once 30 seconds of verified speech accumulates, a grace period begins. Lucid keeps collecting up to 60 seconds, then auto-triggers the analysis. If you stop speaking between 30-60 seconds, the analysis auto-triggers after 15 seconds of silence.</p>
                             </div>
                         </div>
 
@@ -813,7 +813,7 @@
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-                                <span>How does Attune protect my privacy?</span>
+                                <span>How does Lucid protect my privacy?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
@@ -847,7 +847,7 @@
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>Attune uses the Kintsugi DAM model — a 244M-parameter transformer trained on 35,000 diverse subjects. It was clinically validated in a 14,898-participant study published in Annals of Family Medicine (2025), achieving 71.3% sensitivity and 73.5% specificity from just 25 seconds of natural speech.</p>
+                                <p>Lucid uses the Kintsugi DAM model — a 244M-parameter transformer trained on 35,000 diverse subjects. It was clinically validated in a 14,898-participant study published in Annals of Family Medicine (2025), achieving 71.3% sensitivity and 73.5% specificity from just 25 seconds of natural speech.</p>
                             </div>
                         </div>
 
@@ -857,17 +857,17 @@
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>Attune needs about 3 days of voice data to build your personal baseline. Everyone's voice is different — what sounds "stressed" for you might be "normal" for someone else. Calibration learns YOUR patterns so scores are personalized, not generic.</p>
+                                <p>Lucid needs about 3 days of voice data to build your personal baseline. Everyone's voice is different — what sounds "stressed" for you might be "normal" for someone else. Calibration learns YOUR patterns so scores are personalized, not generic.</p>
                             </div>
                         </div>
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-                                <span>Can Attune hear other people's voices?</span>
+                                <span>Can Lucid hear other people's voices?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>No. Attune uses ECAPA-TDNN speaker verification to check every ~1.2-second audio segment against your enrolled voice profile. Segments that don't match you are rejected. This means coworkers on calls, TV audio, and other speakers are filtered out.</p>
+                                <p>No. Lucid uses ECAPA-TDNN speaker verification to check every ~1.2-second audio segment against your enrolled voice profile. Segments that don't match you are rejected. This means coworkers on calls, TV audio, and other speakers are filtered out.</p>
                             </div>
                         </div>
 
@@ -877,7 +877,7 @@
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p><strong>Echoes</strong> are pattern discoveries — insights Attune finds in your data over time (e.g., "Your stress peaks on Wednesdays"). They appear after 7+ days of use. <strong>Compass</strong> is your weekly wellness direction — ascending, holding, or descending — updated every Monday with a personal intention you can set.</p>
+                                <p><strong>Echoes</strong> are pattern discoveries — insights Lucid finds in your data over time (e.g., "Your stress peaks on Wednesdays"). They appear after 7+ days of use. <strong>Compass</strong> is your weekly wellness direction — ascending, holding, or descending — updated every Monday with a personal intention you can set.</p>
                             </div>
                         </div>
                     </div>
@@ -898,7 +898,7 @@
             </div>
             <div class="settings-section">
                 <h3>Voice Profile</h3>
-                <p class="settings-desc">Enroll your voice so Attune only analyzes you — not coworkers, TV, or other speakers.</p>
+                <p class="settings-desc">Enroll your voice so Lucid only analyzes you — not coworkers, TV, or other speakers.</p>
                 <div id="speaker-status" class="speaker-status">
                     <div id="speaker-status-badge" class="speaker-badge speaker-badge-inactive">Not Set Up</div>
                 </div>
@@ -908,7 +908,7 @@
             </div>
             <div class="settings-section">
                 <h3>Notifications</h3>
-                <p class="settings-desc">Control which notifications Attune sends you.</p>
+                <p class="settings-desc">Control which notifications Lucid sends you.</p>
                 <div id="notification-settings" class="notification-settings"></div>
             </div>
             <div class="settings-section">
@@ -920,7 +920,7 @@
             </div>
             <div class="settings-section">
                 <h3>API Access</h3>
-                <p class="settings-desc">Use your API token to access Attune data from external tools.</p>
+                <p class="settings-desc">Use your API token to access Lucid data from external tools.</p>
                 <button class="btn btn-secondary" style="width: 100%;" onclick="showApiToken()">Show API Token</button>
                 <pre id="api-token-display" style="display: none; word-break: break-all; padding: 8px; margin-top: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 12px;"></pre>
             </div>
@@ -951,7 +951,7 @@
                 <div id="enrollment-step-1" class="enrollment-step active">
                     <h3>Normal Voice</h3>
                     <p>Speak naturally for 10 seconds. Describe your morning, or read this aloud:</p>
-                    <blockquote class="enrollment-prompt">"I'm setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day. This only takes a minute and helps keep my data private."</blockquote>
+                    <blockquote class="enrollment-prompt">"I'm setting up my voice profile so that Lucid can recognize me and focus on my wellness readings throughout the day. This only takes a minute and helps keep my data private."</blockquote>
                 </div>
 
                 <!-- Step 2: Animated -->
@@ -1004,7 +1004,7 @@
                 <div id="enrollment-done" class="enrollment-done" style="display: none;">
                     <div class="enrollment-checkmark">&#10003;</div>
                     <h3>Voice Profile Active</h3>
-                    <p>Attune will now analyze only your voice.</p>
+                    <p>Lucid will now analyze only your voice.</p>
                     <button id="enrollment-finish-btn" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Done</button>
                 </div>
             </div>
@@ -1091,7 +1091,7 @@
                     <thead>
                         <tr>
                             <th></th>
-                            <th>Attune</th>
+                            <th>Lucid</th>
                             <th>Self-Report Surveys</th>
                             <th>Therapist Assessment</th>
                         </tr>

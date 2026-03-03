@@ -1,5 +1,5 @@
 """
-The Bridge — Webhook Manager for Attune
+The Bridge — Webhook Manager for Lucid
 Dispatches POST requests to registered webhook URLs when conditions are met.
 """
 import logging
@@ -8,7 +8,7 @@ import time
 from typing import Dict, List, Any, Optional
 import json
 
-logger = logging.getLogger('attune.webhook')
+logger = logging.getLogger('lucid.webhook')
 
 
 class WebhookManager:

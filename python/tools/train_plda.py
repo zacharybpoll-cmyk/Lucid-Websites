@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Offline PLDA training script for Attune speaker verification.
+Offline PLDA training script for Lucid speaker verification.
 
 Trains a PLDA model from pre-extracted ECAPA-TDNN embeddings.
 The trained model improves speaker discrimination beyond cosine similarity.

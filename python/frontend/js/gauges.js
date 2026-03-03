@@ -382,7 +382,7 @@ function _renderRevealCard(canopyScore, scores, delta) {
             _ringScoreReveal = true;
             _metBarReveal = true;
             window.AppState.canopyRevealed = true;
-            localStorage.setItem('attune-last-revealed-count', String(window.AppState.currentReadingCount || 0));
+            localStorage.setItem('lucid-last-revealed-count', String(window.AppState.currentReadingCount || 0));
             renderRingGauge(canopyScore, scores, delta);
             updateMetricBars(_gaugeState.scores);
         }, 300);
@@ -406,7 +406,7 @@ function renderRingGauge(canopyScore, scores, delta) {
     const showScoreEarly = canopyScore !== null && canopyScore !== undefined;
     if (showScoreEarly && !window.AppState.canopyRevealed) {
         const currentCount = window.AppState.currentReadingCount || 0;
-        const lastRevealed = parseInt(localStorage.getItem('attune-last-revealed-count') || '0', 10);
+        const lastRevealed = parseInt(localStorage.getItem('lucid-last-revealed-count') || '0', 10);
         if (currentCount > lastRevealed && currentCount > 1) {
             // 2nd+ reading of the day: show reveal card
             _renderRevealCard(canopyScore, scores, delta);
@@ -415,7 +415,7 @@ function renderRingGauge(canopyScore, scores, delta) {
             // First reading or no new readings — skip overlay, go straight to display
             window.AppState.canopyRevealed = true;
             if (currentCount > lastRevealed) {
-                localStorage.setItem('attune-last-revealed-count', String(currentCount));
+                localStorage.setItem('lucid-last-revealed-count', String(currentCount));
             }
         }
     }
@@ -625,7 +625,7 @@ function updateMetricBars(scores) {
 // ============ Theme Toggle ============
 
 function initThemeToggle() {
-    const saved = localStorage.getItem('attune-theme') || 'day';
+    const saved = localStorage.getItem('lucid-theme') || 'day';
     document.documentElement.dataset.theme = saved;
     updateThemeIcon(saved);
 
@@ -634,7 +634,7 @@ function initThemeToggle() {
     btn.addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'night' ? 'day' : 'night';
         document.documentElement.dataset.theme = next;
-        localStorage.setItem('attune-theme', next);
+        localStorage.setItem('lucid-theme', next);
         updateThemeIcon(next);
         // Re-render ring gauge for new theme colors
         renderRingGauge(_gaugeState.canopy, _gaugeState.scores, _gaugeState.delta);

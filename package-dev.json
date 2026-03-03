@@ -1,13 +1,13 @@
 {
-  "name": "attune-steel-dev",
+  "name": "lucid-dev",
   "version": "1.0.0-dev",
-  "description": "Attune Steel — Development Build with diagnostics",
+  "description": "Lucid — Clarity through voice.",
   "main": "main-dev.js",
   "scripts": {
     "start": "electron . --main main-dev.js",
     "setup": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && ./venv/bin/pip install -r dam/requirements.txt"
   },
-  "author": "Attune",
+  "author": "Lucid",
   "license": "UNLICENSED",
   "private": true,
   "build": {

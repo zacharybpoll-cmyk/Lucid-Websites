@@ -1,5 +1,5 @@
 /**
- * Attune Steel — Development Build
+ * Lucid — Development Build
  * Standalone Electron entry point with dev diagnostics.
  * Does NOT modify or import main.js.
  */
@@ -23,7 +23,7 @@ const PYTHON_DIR = IS_PACKAGED
   : path.join(__dirname, 'python');
 const VENV_PYTHON = path.join(PYTHON_DIR, 'venv', 'bin', 'python');
 const MAIN_PY = path.join(PYTHON_DIR, 'main_dev.py');
-const DATA_DIR = path.join(app.getPath('userData'), 'attune-data');
+const DATA_DIR = path.join(app.getPath('userData'), 'lucid-data');
 
 // ============ Crash Reporting ============
 const CRASH_LOG = path.join(DATA_DIR, 'crash_log.txt');
@@ -129,9 +129,9 @@ function spawnPython() {
 
     const env = {
       ...process.env,
-      ATTUNE_DATA_DIR: DATA_DIR,
-      ATTUNE_API_PORT: String(API_PORT),
-      ATTUNE_DEV_MODE: '1',
+      LUCID_DATA_DIR: DATA_DIR,
+      LUCID_API_PORT: String(API_PORT),
+      LUCID_DEV_MODE: '1',
       PYTHONUNBUFFERED: '1',
     };
 
@@ -195,7 +195,7 @@ function spawnPython() {
         }, delay);
       } else {
         console.error('[Python] Failed to restart after 3 attempts.');
-        dialog.showErrorBox('Attune Steel Dev — Backend Error',
+        dialog.showErrorBox('Lucid Dev — Backend Error',
           'The backend crashed and could not be restarted after 3 attempts.\nPlease restart the application.');
       }
     });
@@ -323,14 +323,14 @@ function showMainApp() {
     mainWindow.webContents.executeJavaScript(`
       // DEV badge
       const badge = document.createElement('div');
-      badge.id = 'attune-dev-badge';
+      badge.id = 'lucid-dev-badge';
       badge.textContent = 'DEV';
       badge.style.cssText = 'position:fixed;top:8px;right:12px;background:#ef4444;color:#fff;padding:2px 10px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:1px;z-index:99999;pointer-events:none;font-family:-apple-system,system-ui,sans-serif;';
       document.body.appendChild(badge);
 
       // Floating dev toolbar
       const toolbar = document.createElement('div');
-      toolbar.id = 'attune-dev-toolbar';
+      toolbar.id = 'lucid-dev-toolbar';
       toolbar.style.cssText = 'position:fixed;bottom:8px;left:8px;background:rgba(0,0,0,0.85);color:#a3e635;padding:4px 12px;border-radius:6px;font-size:11px;font-family:ui-monospace,monospace;z-index:99999;display:flex;gap:12px;pointer-events:none;';
       toolbar.innerHTML = '<span>:${API_PORT}</span><span id="dev-mem">--MB</span><span id="dev-readings">0 readings</span>';
       document.body.appendChild(toolbar);
@@ -365,7 +365,7 @@ function showDiagnostics() {
 
   diagnosticsWindow = new BrowserWindow({
     width: 900, height: 650,
-    title: 'Attune Steel Dev — Diagnostics',
+    title: 'Lucid Dev — Diagnostics',
     backgroundColor: '#1e1e2e',
     webPreferences: {
       nodeIntegration: false, contextIsolation: true,

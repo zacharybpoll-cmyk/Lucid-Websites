@@ -8,7 +8,7 @@ overlap are rejected before ECAPA verification (saves compute).
 import logging
 import numpy as np
 
-logger = logging.getLogger('attune.overlap')
+logger = logging.getLogger('lucid.overlap')
 
 
 class OverlapDetector:

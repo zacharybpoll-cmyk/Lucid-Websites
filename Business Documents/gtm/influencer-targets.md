@@ -130,7 +130,7 @@ Diverse group with one commonality: their voice is their livelihood.
 | Qualified | Meets criteria (follower count, engagement, content fit) |
 | Contacted | Initial outreach sent |
 | Responded | They replied (positive, negative, or neutral) |
-| Trial | Using Attune free, no partnership yet |
+| Trial | Using Lucid free, no partnership yet |
 | Partnership | Active affiliate partnership |
 | Declined | Said no — respect it, don't re-contact |
 | Dormant | Was active, now inactive 60+ days |

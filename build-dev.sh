@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================================
-# Attune Steel — Dev Build Script
+# Lucid — Dev Build Script
 # Builds the dev variant without touching production files.
 # ============================================================
 set -euo pipefail
@@ -8,19 +8,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-APP_NAME="Attune Steel Dev"
+APP_NAME="Lucid Dev"
 BUILD_DIR="${APP_NAME}-darwin-arm64"
-BUNDLE_ID="com.electron.attune-steel-dev"
+BUNDLE_ID="com.electron.lucid-dev"
 VERSION="1.0.0-dev"
 
-echo "=== Attune Steel Dev — Build ==="
+echo "=== Lucid Dev — Build ==="
 echo "Source: $SCRIPT_DIR"
 echo "Output: $SCRIPT_DIR/$BUILD_DIR/$APP_NAME.app"
 echo ""
 
 # 1. Kill any running dev instance
 echo "[1/5] Stopping existing dev instance..."
-pkill -f "Attune Steel Dev" 2>/dev/null || true
+pkill -f "Lucid Dev" 2>/dev/null || true
 sleep 1
 
 # 2. Swap package.json for dev variant
@@ -38,7 +38,7 @@ npx electron-packager . "$APP_NAME" \
   --app-version="$VERSION" \
   --extra-resource=python \
   --ignore="^/${BUILD_DIR//\//\\/}$" \
-  --ignore="^/Attune Steel-darwin-arm64$" \
+  --ignore="^/Lucid-darwin-arm64$" \
   --ignore='^\/(\.git|\.github|node_modules\/\.cache)' \
   --overwrite
 
@@ -48,8 +48,8 @@ mv package.json.bak package.json
 
 # 5. Clear dev app cache
 echo "[5/5] Clearing dev app cache..."
-rm -rf ~/Library/Application\ Support/attune-steel-dev/Cache \
-       ~/Library/Application\ Support/attune-steel-dev/Code\ Cache \
+rm -rf ~/Library/Application\ Support/lucid-dev/Cache \
+       ~/Library/Application\ Support/lucid-dev/Code\ Cache \
        2>/dev/null || true
 
 echo ""

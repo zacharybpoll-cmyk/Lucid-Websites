@@ -23,7 +23,7 @@ from backend.baseline_calibrator import BaselineCalibrator
 from backend.database import Database
 import app_config as config
 
-logger = logging.getLogger('attune.orchestrator')
+logger = logging.getLogger('lucid.orchestrator')
 
 
 class AnalysisOrchestrator:

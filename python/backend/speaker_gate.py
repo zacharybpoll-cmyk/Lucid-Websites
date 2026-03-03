@@ -27,7 +27,7 @@ from datetime import datetime
 from typing import Optional, Callable
 import app_config as config
 
-logger = logging.getLogger('attune.speaker_gate')
+logger = logging.getLogger('lucid.speaker_gate')
 
 
 class SpeakerGate:

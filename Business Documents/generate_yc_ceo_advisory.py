@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate Attune Steel YC CEO Advisory Document.
+"""Generate Lucid YC CEO Advisory Document.
 
-Advisory written as if from the CEO of Y Combinator to the founder of Attune Steel
+Advisory written as if from the CEO of Y Combinator to the founder of Lucid
 after acceptance into the next batch.
 """
 
@@ -159,7 +159,7 @@ for _ in range(6):
 
 title = doc.add_paragraph()
 title.alignment = WD_ALIGN_PARAGRAPH.CENTER
-run = title.add_run('ATTUNE STEEL')
+run = title.add_run('LUCID')
 run.bold = True
 run.font.size = Pt(36)
 run.font.color.rgb = RGBColor(0x1B, 0x1B, 0x1B)
@@ -288,7 +288,7 @@ add_callout_box(doc,
     '"Does this get the app into one more person\'s hands?"\n'
     '\n'
     'Not "does this make the product better." Not "does this impress investors."\n'
-    'Does this get one more person to download, install, open, and use Attune Steel?\n'
+    'Does this get one more person to download, install, open, and use Lucid?\n'
     'If the answer is no, it can wait.',
 )
 
@@ -310,7 +310,7 @@ doc.add_heading('Priority #1: Apple Developer Enrollment + Notarization', level=
 
 doc.add_paragraph(
     'This is the single highest-leverage action you can take this week. Right now, '
-    'when someone downloads Attune Steel, macOS throws up a warning that the app is '
+    'when someone downloads Lucid, macOS throws up a warning that the app is '
     'from an "unidentified developer" and blocks it from opening. The user has to '
     'right-click, select Open, confirm a second dialog, and possibly go into System '
     'Settings to approve it. Every single step loses 40-60% of users. Your install '
@@ -327,7 +327,7 @@ notarize_steps = [
     ('Enroll in Apple Developer Program ($99/year). ', 'Do this today. Not tomorrow. Today. Enrollment can take 24-48 hours to process.'),
     ('Code-sign the app with your Developer ID certificate. ', 'This eliminates the Gatekeeper warning entirely. The app opens like any other macOS application.'),
     ('Submit for notarization via xcrun notarytool. ', 'Apple scans for malware and approves within minutes. This is automated, not a manual review.'),
-    ('Staple the notarization ticket. ', 'Run xcrun stapler staple "Attune Steel.app". Now the app installs cleanly even offline.'),
+    ('Staple the notarization ticket. ', 'Run xcrun stapler staple "Lucid.app". Now the app installs cleanly even offline.'),
 ]
 
 for bold, rest in notarize_steps:
@@ -419,7 +419,7 @@ doc.add_paragraph('Goal: 25 hand-selected users, intense feedback loop')
 soft_launch = [
     ('Hand-pick 25 users from your personal network. ', 'Not random people. Specifically: quantified-self enthusiasts who own Oura/Whoop, knowledge workers in 4+ hours of meetings/day, people who\'ve expressed interest in voice/mental health tech. You want users who will actually use it daily and give you real feedback.'),
     ('Co-install sessions. ', '15-minute Zoom calls where you walk each person through download, install, and first voice reading. Yes, for all 25 of them. This is where you learn what\'s confusing, what breaks, what delights.'),
-    ('Weekly check-in cadence. ', 'Text or Slack each user every Monday: "How was Attune last week? Anything surprising?" Ship fixes within 24 hours of any feedback. Speed of iteration is your competitive advantage.'),
+    ('Weekly check-in cadence. ', 'Text or Slack each user every Monday: "How was Lucid last week? Anything surprising?" Ship fixes within 24 hours of any feedback. Speed of iteration is your competitive advantage.'),
     ('Conversion ask at Week 4. ', '"I\'m launching paid in two weeks. $14.99/month. Would you pay? Why or why not?" Their answers shape everything that follows.'),
 ]
 
@@ -556,7 +556,7 @@ doc.add_paragraph(
     'LinkedIn works for reaching knowledge workers and HR leaders, but only if you '
     'post consistently. Write about meeting fatigue, burnout research, and voice '
     'biomarker science. Don\'t pitch the product \u2014 build authority. When you do mention '
-    'Attune, it should feel like a natural extension of your expertise, not a sales pitch.'
+    'Lucid, it should feel like a natural extension of your expertise, not a sales pitch.'
 )
 
 doc.add_heading('6. Therapist Referral', level=3)
@@ -747,7 +747,7 @@ weaknesses = [
      'app" (monthly search volume: basically zero). You need to create the demand, not capture '
      'existing demand.'),
     ('Regulatory gray zone. ',
-     'Attune is positioned as a "wellness tool, not a medical device," similar to how Oura provides '
+     'Lucid is positioned as a "wellness tool, not a medical device," similar to how Oura provides '
      'HRV data. But you\'re detecting depression risk with a clinically validated model. If the FDA '
      'decides voice biomarker tools that reference clinical studies need clearance, you have a '
      'compliance problem. This isn\'t urgent, but it\'s a background risk that investors will ask about.'),
@@ -836,7 +836,7 @@ add_styled_table(doc,
 doc.add_paragraph(
     'Pros: Higher contract values. Lower churn (annual contracts). IT can push the app '
     'to 50+ Macs at once (solves distribution). Wellness budgets at mid-market companies '
-    'are $200-500/employee/year \u2014 Attune at $180/year fits neatly.'
+    'are $200-500/employee/year \u2014 Lucid at $180/year fits neatly.'
 )
 
 doc.add_paragraph(
@@ -872,7 +872,7 @@ doc.add_paragraph(
 
 doc.add_paragraph(
     'Cons: Therapists are conservative. They won\'t recommend an unsigned app. They need '
-    'HIPAA-adjacent assurances (even though Attune processes locally). And each therapist '
+    'HIPAA-adjacent assurances (even though Lucid processes locally). And each therapist '
     'is a slow, relationship-based sale. This channel takes 3-6 months to build but compounds '
     'beautifully once you have 20-30 therapists recommending you.'
 )
@@ -957,7 +957,7 @@ add_styled_table(doc,
 )
 
 doc.add_paragraph(
-    'Why they convert: Attune answers a question they ask every day: "Why am I so exhausted '
+    'Why they convert: Lucid answers a question they ask every day: "Why am I so exhausted '
     'after that meeting?" The Canopy Score and stress/calm tracking provide objective evidence '
     'that was previously invisible. Calendar integration (when shipped) makes this a must-have.'
 )
@@ -984,11 +984,11 @@ doc.add_heading('Tier 3: Future Markets (Months 7-12)', level=2)
 
 tier3_items = [
     ('B2B team wellness. ',
-     'HR and People Ops teams deploying Attune across 20-100 seat teams for aggregate '
+     'HR and People Ops teams deploying Lucid across 20-100 seat teams for aggregate '
      'wellness insights. Higher ACV ($3,600-18,000/year per account) but longer sales cycle. '
      'Requires admin dashboard, team analytics, and SOC 2.'),
     ('Therapist-assisted monitoring. ',
-     'Therapists recommending Attune to clients for between-session monitoring. Each therapist '
+     'Therapists recommending Lucid to clients for between-session monitoring. Each therapist '
      'is a distribution node for 5-15 clients. Requires clinical-specific dashboards and HIPAA '
      'considerations.'),
     ('Graduate students and researchers. ',
@@ -1376,7 +1376,7 @@ doc.add_heading('Mistake #2: Leading with "Mental Health" Instead of Clinical Au
 
 doc.add_paragraph(
     'The consumer mental health app market is crowded, skeptical, and burned by years of '
-    'unsubstantiated claims. If you position Attune as "another mental health app," you\'re '
+    'unsubstantiated claims. If you position Lucid as "another mental health app," you\'re '
     'competing with Calm, Headspace, BetterHelp, and a hundred others. You lose that fight. '
     'Instead, lead with what makes you genuinely different: a peer-reviewed, clinically '
     'validated model with the strongest evidence base in consumer voice AI. You\'re not a '
@@ -1388,10 +1388,10 @@ doc.add_heading('Mistake #3: Comparing to Therapy in Positioning', level=2)
 
 doc.add_paragraph(
     'Your website says "Save 97% vs. therapy." This comparison is useful for anchoring '
-    'price perception, but dangerous if it implies that Attune replaces therapy. It doesn\'t, '
+    'price perception, but dangerous if it implies that Lucid replaces therapy. It doesn\'t, '
     'and you should never suggest it does. Therapists are potential allies and referral '
     'partners. If they perceive you as positioning against them, you lose the entire clinician '
-    'channel. Better framing: "Attune fills the gap between therapy sessions with objective, '
+    'channel. Better framing: "Lucid fills the gap between therapy sessions with objective, '
     'continuous data. It makes therapy more effective, not less necessary."'
 )
 
@@ -1483,7 +1483,7 @@ doc.add_paragraph()
 meta = doc.add_paragraph()
 meta.alignment = WD_ALIGN_PARAGRAPH.CENTER
 run = meta.add_run(
-    'Attune Steel \u2014 YC S26 CEO Advisory\n'
+    'Lucid \u2014 YC S26 CEO Advisory\n'
     'Confidential \u2014 For Internal Use Only\n'
     '\n'
     '$30M in research. 14,898 patients. 244M parameters.\n'
@@ -1499,7 +1499,7 @@ run.font.italic = True
 # ══════════════════════════════════════════════════════════════════════
 
 output_dir = os.path.dirname(os.path.abspath(__file__))
-output_path = os.path.join(output_dir, 'Attune_Steel_YC_CEO_Advisory.docx')
+output_path = os.path.join(output_dir, 'Lucid_YC_CEO_Advisory.docx')
 doc.save(output_path)
 print(f'Document saved to: {output_path}')
 print(f'File size: {os.path.getsize(output_path) / 1024:.0f} KB')

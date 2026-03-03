@@ -1,13 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('attune', {
+contextBridge.exposeInMainWorld('lucid', {
   completeOnboarding: () => ipcRenderer.invoke('onboarding-complete'),
   getApiBase: () => ipcRenderer.invoke('get-api-base'),
   openSystemSettings: () => ipcRenderer.invoke('open-system-settings'),
 });
 
 // Dev-only APIs
-contextBridge.exposeInMainWorld('attuneDev', {
+contextBridge.exposeInMainWorld('lucidDev', {
   openDiagnostics: () => ipcRenderer.invoke('open-diagnostics'),
   getPythonLogs: () => ipcRenderer.invoke('get-python-logs'),
   restartBackend: () => ipcRenderer.invoke('restart-backend'),

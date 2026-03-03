@@ -1,4 +1,4 @@
-"""Centralized logging configuration for Attune."""
+"""Centralized logging configuration for Lucid."""
 import logging
 import logging.handlers
 import json
@@ -21,14 +21,14 @@ class JSONFormatter(logging.Formatter):
 
 
 def setup_logging(level=logging.INFO, log_dir=None):
-    """Configure attune logging with console output and optional file logging.
+    """Configure lucid logging with console output and optional file logging.
 
     Args:
         level: Console log level (default INFO).
-        log_dir: If provided, also write DEBUG-level logs to attune.log
+        log_dir: If provided, also write DEBUG-level logs to lucid.log
                  in this directory (RotatingFileHandler, 5MB, 3 backups).
     """
-    root = logging.getLogger('attune')
+    root = logging.getLogger('lucid')
     if root.handlers:
         return  # Already configured
     root.setLevel(logging.DEBUG)  # Root at DEBUG; handlers filter their own level
@@ -46,7 +46,7 @@ def setup_logging(level=logging.INFO, log_dir=None):
     # File handler (DEBUG level) — captures VAD diagnostics, pipeline details
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, 'attune.log')
+        log_path = os.path.join(log_dir, 'lucid.log')
         file_handler = logging.handlers.RotatingFileHandler(
             log_path, maxBytes=5 * 1024 * 1024, backupCount=3
         )

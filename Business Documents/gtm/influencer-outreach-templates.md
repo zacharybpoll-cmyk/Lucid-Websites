@@ -15,7 +15,7 @@ Hi [FIRST NAME],
 
 I've been following your [specific content reference — e.g., "series on vocal warmups" / "breakdown of belting technique" / "tips for vocal cord recovery"]. [Specific compliment about their approach or a recent video].
 
-I'm building Attune — it's a voice wellness monitor that passively tracks vocal health markers like strain, fatigue, and recovery through your natural speaking voice. Think of it like a Whoop or Oura Ring, but for your voice.
+I'm building Lucid — it's a voice wellness monitor that passively tracks vocal health markers like strain, fatigue, and recovery through your natural speaking voice. Think of it like a Whoop or Oura Ring, but for your voice.
 
 The reason I'm reaching out to you specifically: your audience clearly cares about protecting their voice, and I think you'd find the data genuinely useful for your own practice [or: for advising your students].
 
@@ -25,7 +25,7 @@ Either way, keep up the great work on [reference specific content].
 
 Best,
 [YOUR NAME]
-Founder, Attune
+Founder, Lucid
 
 ---
 
@@ -45,7 +45,7 @@ Hi [FIRST NAME],
 
 I listen to [PODCAST NAME] — [specific reference to an episode or recurring theme they discuss].
 
-Quick context: I'm building Attune, a voice wellness monitor that tracks vocal health through your natural speaking voice. It detects early signs of strain, fatigue, and vocal stress — the kind of stuff that can creep up after marathon recording sessions.
+Quick context: I'm building Lucid, a voice wellness monitor that tracks vocal health through your natural speaking voice. It detects early signs of strain, fatigue, and vocal stress — the kind of stuff that can creep up after marathon recording sessions.
 
 As someone who records [daily/weekly], you're putting your voice through more sustained use than most people. I built this partly because I saw podcasters and voice professionals dealing with vocal issues that could've been caught earlier.
 
@@ -54,7 +54,7 @@ I'd love to send you free access — no strings attached. If you find it genuine
 Worth a conversation?
 
 [YOUR NAME]
-Founder, Attune
+Founder, Lucid
 
 ---
 
@@ -68,7 +68,7 @@ Hi [DR./FIRST NAME],
 
 I came across your [work at X / content about Y / published research on Z] and wanted to reach out.
 
-I'm building Attune — a passive voice wellness monitor that tracks vocal biomarkers (strain patterns, fatigue indicators, pitch stability) through everyday speech. The premise is giving people continuous insight into their vocal health, not just snapshots during clinic visits.
+I'm building Lucid — a passive voice wellness monitor that tracks vocal biomarkers (strain patterns, fatigue indicators, pitch stability) through everyday speech. The premise is giving people continuous insight into their vocal health, not just snapshots during clinic visits.
 
 I'm specifically reaching out to SLPs because clinical credibility matters enormously in this space, and I want to make sure the product reflects how voice professionals actually think about vocal health.
 
@@ -76,7 +76,7 @@ Would you be open to trying it and giving me your honest clinical perspective? I
 
 Best,
 [YOUR NAME]
-Founder, Attune
+Founder, Lucid
 
 ---
 
@@ -100,20 +100,20 @@ If the timing isn't right, totally understand. Just didn't want to assume silenc
 
 ## Template 6: Partnership Offer (After they've tried the product for 2-4 weeks)
 
-**Subject**: "Partnership — sharing Attune with your audience"
+**Subject**: "Partnership — sharing Lucid with your audience"
 
 ---
 
 Hi [FIRST NAME],
 
-Thanks for trying Attune these past few weeks! [Reference any specific feedback they gave or metrics they mentioned finding useful.]
+Thanks for trying Lucid these past few weeks! [Reference any specific feedback they gave or metrics they mentioned finding useful.]
 
 I'd love to make this a formal partnership. Here's what I'm proposing:
 
 **For you:**
 - 25% recurring commission on every subscription your audience starts (for 12 months)
 - Your own discount code: `[CREATORNAME]` — easy to say in videos/podcasts
-- Free lifetime Attune access
+- Free lifetime Lucid access
 - Early access to new features before public release
 
 **For your audience:**

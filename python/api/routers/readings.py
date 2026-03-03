@@ -249,7 +249,7 @@ async def get_first_spark():
             result['unlocks'] = spark.get('unlocks')
         except (KeyError, TypeError, AttributeError) as e:
             logger.warning("Failed to interpret first reading: %s", e)
-            result['narrative'] = 'Welcome to Attune. Keep checking in to build your voice profile.'
+            result['narrative'] = 'Welcome to Lucid. Keep checking in to build your voice profile.'
 
     # Determine which unlocks are achieved
     try:

@@ -8,7 +8,7 @@ from typing import Dict, List, Optional
 from backend.database import Database
 import app_config as config
 
-logger = logging.getLogger('attune.calibration')
+logger = logging.getLogger('lucid.calibration')
 
 class BaselineCalibrator:
     def __init__(self, db: Database):

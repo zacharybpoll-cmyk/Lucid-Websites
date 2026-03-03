@@ -24,7 +24,7 @@ from collections import deque
 from pathlib import Path
 import app_config as config
 
-logger = logging.getLogger('attune.speaker')
+logger = logging.getLogger('lucid.speaker')
 
 # Patch torchaudio compatibility for speechbrain (torchaudio 2.10+ removed list_audio_backends)
 if not hasattr(torchaudio, 'list_audio_backends'):
@@ -60,7 +60,7 @@ class SpeakerVerifier:
         """Load ECAPA-TDNN model from SpeechBrain. Call from background thread."""
         from speechbrain.inference.speaker import EncoderClassifier
 
-        speaker_cache_env = os.environ.get('ATTUNE_SPEAKER_CACHE_DIR')
+        speaker_cache_env = os.environ.get('LUCID_SPEAKER_CACHE_DIR')
         cache_dir = Path(speaker_cache_env) if speaker_cache_env else (config.DATA_DIR / "speaker_model")
         cache_dir.mkdir(exist_ok=True)
 

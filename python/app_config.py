@@ -1,5 +1,5 @@
 """
-Configuration constants for Attune
+Configuration constants for Lucid
 """
 import os
 from dataclasses import dataclass, field
@@ -13,7 +13,7 @@ class AppConfig:
     # Paths
     base_dir: Path = field(default_factory=lambda: Path(__file__).parent)
     data_dir: Path = field(default_factory=lambda: Path(
-        os.environ.get('ATTUNE_DATA_DIR') or (Path(__file__).parent / "data")
+        os.environ.get('LUCID_DATA_DIR') or (Path(__file__).parent / "data")
     ))
     dam_dir: Path = field(default_factory=lambda: Path(__file__).parent / "dam")
 
@@ -53,7 +53,7 @@ class AppConfig:
 
     # FastAPI Settings
     api_host: str = "127.0.0.1"
-    api_port: int = field(default_factory=lambda: int(os.environ.get('ATTUNE_API_PORT', '8765')))
+    api_port: int = field(default_factory=lambda: int(os.environ.get('LUCID_API_PORT', '8765')))
 
     # Speaker Verification (ECAPA-TDNN)
     speaker_model_source: str = "speechbrain/spkrec-ecapa-voxceleb"

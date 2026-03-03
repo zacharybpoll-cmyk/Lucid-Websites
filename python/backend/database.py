@@ -1,5 +1,5 @@
 """
-Database layer for Attune
+Database layer for Lucid
 SQLite storage for readings, daily summaries, tags, and baselines
 """
 import sqlite3

@@ -302,29 +302,29 @@ class TestExceptionClasses:
         exc = ServiceNotReady("Insight engine")
         assert 'insight engine' in exc.message.lower()
 
-    def test_attune_error_base(self):
-        """AttuneError base class stores all fields."""
-        from api.exceptions import AttuneError
-        exc = AttuneError("Test error", "TEST_CODE", 418, 30)
+    def test_lucid_error_base(self):
+        """LucidError base class stores all fields."""
+        from api.exceptions import LucidError
+        exc = LucidError("Test error", "TEST_CODE", 418, 30)
         assert exc.message == "Test error"
         assert exc.code == "TEST_CODE"
         assert exc.status_code == 418
         assert exc.retry_after == 30
 
-    def test_attune_error_defaults(self):
-        """AttuneError defaults: status_code=500, retry_after=None."""
-        from api.exceptions import AttuneError
-        exc = AttuneError("err", "ERR")
+    def test_lucid_error_defaults(self):
+        """LucidError defaults: status_code=500, retry_after=None."""
+        from api.exceptions import LucidError
+        exc = LucidError("err", "ERR")
         assert exc.status_code == 500
         assert exc.retry_after is None
 
     def test_exception_hierarchy(self):
-        """All custom exceptions are subclasses of AttuneError and Exception."""
-        from api.exceptions import AttuneError, DatabaseNotReady, ModelNotLoaded, ServiceNotReady
-        assert issubclass(DatabaseNotReady, AttuneError)
-        assert issubclass(ModelNotLoaded, AttuneError)
-        assert issubclass(ServiceNotReady, AttuneError)
-        assert issubclass(AttuneError, Exception)
+        """All custom exceptions are subclasses of LucidError and Exception."""
+        from api.exceptions import LucidError, DatabaseNotReady, ModelNotLoaded, ServiceNotReady
+        assert issubclass(DatabaseNotReady, LucidError)
+        assert issubclass(ModelNotLoaded, LucidError)
+        assert issubclass(ServiceNotReady, LucidError)
+        assert issubclass(LucidError, Exception)
 
 
 # ---------------------------------------------------------------------------

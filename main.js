@@ -25,7 +25,7 @@ const PYTHON_DIR = IS_PACKAGED
 
 const VENV_PYTHON = path.join(PYTHON_DIR, 'venv', 'bin', 'python');
 const MAIN_PY = path.join(PYTHON_DIR, 'main.py');
-const DATA_DIR = path.join(app.getPath('userData'), 'attune-data');
+const DATA_DIR = path.join(app.getPath('userData'), 'lucid-data');
 
 // ============ Crash Reporting ============
 
@@ -67,7 +67,7 @@ process.on('unhandledRejection', (reason) => {
 const API_HOST = '127.0.0.1';
 // Derive unique port per app variant to allow simultaneous operation
 const PKG_NAME = require('./package.json').name;
-const PORT_MAP = { 'attune-dev': 8765, 'attune-health': 8766, 'attune-steel': 8767 };
+const PORT_MAP = { 'lucid-development': 8765, 'lucid-health': 8766, 'lucid': 8767 };
 const API_PORT = PORT_MAP[PKG_NAME] || 8765;
 const API_BASE = `http://${API_HOST}:${API_PORT}`;
 
@@ -158,12 +158,12 @@ function spawnPython() {
 
     const env = {
       ...process.env,
-      ATTUNE_DATA_DIR: DATA_DIR,
-      ATTUNE_API_PORT: String(API_PORT),
+      LUCID_DATA_DIR: DATA_DIR,
+      LUCID_API_PORT: String(API_PORT),
       PYTHONUNBUFFERED: '1',
       // In packaged mode, point Python to bundled models inside the .app
       ...(IS_PACKAGED ? {
-        ATTUNE_BUNDLED_MODELS_DIR: path.join(process.resourcesPath, 'python', 'bundled_models'),
+        LUCID_BUNDLED_MODELS_DIR: path.join(process.resourcesPath, 'python', 'bundled_models'),
       } : {}),
     };
 
@@ -218,8 +218,8 @@ function spawnPython() {
       } else {
         console.error('[Python] Failed to restart after 3 attempts.');
         dialog.showErrorBox(
-          'Attune — Backend Error',
-          'The Attune backend crashed and could not be restarted after 3 attempts.\nPlease restart the application.'
+          'Lucid — Backend Error',
+          'The Lucid backend crashed and could not be restarted after 3 attempts.\nPlease restart the application.'
         );
       }
     });
@@ -441,7 +441,26 @@ if (!gotTheLock) {
     }
   });
 
+  // ============ User Data Migration (Attune → Lucid) ============
+  function migrateUserData() {
+    const newUserData = app.getPath('userData');
+    const PKG_NAME = require('./package.json').name;
+    const oldNameMap = { 'lucid': 'attune-steel', 'lucid-health': 'attune-health', 'lucid-development': 'attune-dev' };
+    const oldName = oldNameMap[PKG_NAME];
+    if (!oldName) return;
+    const oldUserData = path.join(path.dirname(newUserData), oldName);
+    const oldDataDir = path.join(oldUserData, 'attune-data');
+    const newDataDir = path.join(newUserData, 'lucid-data');
+    if (fs.existsSync(oldDataDir) && !fs.existsSync(newDataDir)) {
+      fs.mkdirSync(newUserData, { recursive: true });
+      require('child_process').execSync(`cp -R "${oldDataDir}" "${newDataDir}"`);
+      fs.writeFileSync(path.join(newUserData, '.migrated-from-attune'),
+        JSON.stringify({ date: new Date().toISOString(), source: oldDataDir }));
+    }
+  }
+
   app.whenReady().then(async () => {
+    migrateUserData();
     showSplash();
     ensureDataDir();
     checkVersionAndClearCache();
@@ -484,7 +503,7 @@ if (!gotTheLock) {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Update Available',
-              message: `A new version of Attune (v${info.version}) is available.`,
+              message: `A new version of Lucid (v${info.version}) is available.`,
               detail: 'The update will be downloaded in the background and installed when you restart.',
               buttons: ['Download', 'Later'],
               defaultId: 0,
@@ -502,7 +521,7 @@ if (!gotTheLock) {
             dialog.showMessageBox(mainWindow, {
               type: 'info',
               title: 'Update Ready',
-              message: 'Update has been downloaded. It will be installed when you restart Attune.',
+              message: 'Update has been downloaded. It will be installed when you restart Lucid.',
               buttons: ['Restart Now', 'Later'],
               defaultId: 0,
             }).then(({ response }) => {

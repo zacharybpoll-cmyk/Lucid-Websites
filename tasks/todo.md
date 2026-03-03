@@ -2,7 +2,7 @@
 
 ## Final Status
 - **264 tests passing** (136 previous + 128 new tests across 4 new test files)
-- App built as "Attune Health" distribution build: **2.3GB** (down from 4.1GB — 44% reduction)
+- App built as "Lucid" distribution build: **2.3GB** (down from 4.1GB — 44% reduction)
 - All 10 API endpoints returning 200 with valid JSON
 - Visual verification: dashboard renders correctly with all components
 - `mic_disconnected` field present in `/api/status` response
@@ -64,8 +64,8 @@
 ## Month 1: Foundation (Feb 28 — Mar 31)
 
 ### Social Media Setup
-- [ ] Create TikTok business account (@attune or @attunehealth)
-- [ ] Create Instagram account (@attunehealth)
+- [ ] Create TikTok business account (@lucid or @lucidvoice)
+- [ ] Create Instagram account (@lucidvoice)
 - [ ] Set up profile bios, links, brand assets on both platforms
 - [ ] Link accounts for cross-posting
 
@@ -101,7 +101,7 @@
 
 ### Influencer Outreach
 - [ ] Send personalized outreach to first 30 micro-influencers
-- [ ] Send free Attune access to all who respond positively
+- [ ] Send free Lucid access to all who respond positively
 - [ ] Schedule feedback calls at week 3-4 of their trial
 - [ ] Convert interested creators to formal partnerships
 

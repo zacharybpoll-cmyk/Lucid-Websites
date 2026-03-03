@@ -11,7 +11,7 @@ import queue
 import threading
 import app_config as config
 
-logger = logging.getLogger('attune.audio')
+logger = logging.getLogger('lucid.audio')
 
 class AudioCapture:
     def __init__(self,

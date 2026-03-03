@@ -1,7 +1,7 @@
-# Attune User Referral Program
+# Lucid User Referral Program
 
 ## Overview
-Every active Attune user becomes a distribution channel. Well-designed wellness app referral programs achieve 23-31% participation among active users, generating 17-24% of new customer acquisition.
+Every active Lucid user becomes a distribution channel. Well-designed wellness app referral programs achieve 23-31% participation among active users, generating 17-24% of new customer acquisition.
 
 ---
 
@@ -10,7 +10,7 @@ Every active Attune user becomes a distribution channel. Well-designed wellness 
 ### For the Referrer (Existing User)
 | Benefit | Details |
 |---------|---------|
-| Reward | 1 free month of Attune for each successful referral |
+| Reward | 1 free month of Lucid for each successful referral |
 | Cap | Up to 12 free months per year (1 referral = 1 month) |
 | Stacking | Multiple referrals stack (3 referrals = 3 free months) |
 | When earned | When referred friend completes their trial and pays for first month |
@@ -20,7 +20,7 @@ Every active Attune user becomes a distribution channel. Well-designed wellness 
 |---------|---------|
 | Extended trial | 2 extra weeks free (on top of standard trial) |
 | Discount | 20% off first paid month |
-| Referral link | `attune.health/invite/[USER_CODE]` |
+| Referral link | `lucidvoice.com/invite/[USER_CODE]` |
 
 ---
 
@@ -28,22 +28,22 @@ Every active Attune user becomes a distribution channel. Well-designed wellness 
 
 ### In-App Sharing
 - **Share button** in Settings/Profile screen
-- Generates unique referral link: `attune.health/invite/[6-char-code]`
+- Generates unique referral link: `lucidvoice.com/invite/[6-char-code]`
 - One-tap share to: Messages, WhatsApp, Email, Copy Link
 - Shows referral stats: invites sent, friends joined, free months earned
 
 ### Share Triggers (When to Prompt)
 Prompt sharing at high-engagement moments (not randomly):
-1. After viewing a positive trend ("Your voice resilience improved 15% this month — share Attune with a friend?")
+1. After viewing a positive trend ("Your voice resilience improved 15% this month — share Lucid with a friend?")
 2. After completing 7-day streak ("You've tracked for a full week! Know someone who'd benefit?")
-3. After a milestone ("You've been using Attune for 30 days — invite a friend, get a free month")
+3. After a milestone ("You've been using Lucid for 30 days — invite a friend, get a free month")
 4. Never more than 1 share prompt per week
 5. Never prompt during negative health insights
 
 ### Share Message Templates (User-Editable)
 Default message (user can customize before sending):
 
-> "I've been using Attune to track my vocal health — it's like a fitness tracker for your voice. You get extra free trial time with my link: [LINK]"
+> "I've been using Lucid to track my vocal health — it's like a fitness tracker for your voice. You get extra free trial time with my link: [LINK]"
 
 ---
 

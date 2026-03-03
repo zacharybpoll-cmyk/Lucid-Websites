@@ -1,5 +1,5 @@
 """
-The Pulse — Proactive Notification Engine for Attune
+The Pulse — Proactive Notification Engine for Lucid
 Delivers macOS notifications for zone transitions, threshold alerts,
 milestones, Voice Weather (morning), and Curtain Call (end-of-day).
 """
@@ -10,7 +10,7 @@ import time
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Any, Optional
 
-logger = logging.getLogger('attune.notifications')
+logger = logging.getLogger('lucid.notifications')
 
 
 class NotificationManager:
@@ -124,7 +124,7 @@ class NotificationManager:
             if len(recent) >= 3 and all(r.get('zone') in ('tense', 'stressed') for r in recent):
                 mins = len(recent) * 5  # approximate
                 self.send_notification(
-                    "Attune",
+                    "Lucid",
                     f"You've been in the {zone} zone for ~{mins} min. Your voice shows rising stress.",
                     subtitle="Stress Alert",
                     notif_type="threshold"
@@ -148,14 +148,14 @@ class NotificationManager:
         # Positive transitions
         if prev in ('stressed', 'tense') and current_zone == 'calm':
             self.send_notification(
-                "Attune",
+                "Lucid",
                 f"You shifted from {prev} to calm. Nice recovery.",
                 subtitle="Zone Transition",
                 notif_type="transition"
             )
         elif prev == 'stressed' and current_zone == 'steady':
             self.send_notification(
-                "Attune",
+                "Lucid",
                 "Stress is easing. You moved from stressed to steady.",
                 subtitle="Zone Transition",
                 notif_type="transition"
@@ -170,7 +170,7 @@ class NotificationManager:
         # Truncate to fit notification
         msg = echo_message[:120] if len(echo_message) > 120 else echo_message
         self.send_notification(
-            "Attune",
+            "Lucid",
             msg,
             subtitle="Pattern Discovered",
             notif_type="echo"
@@ -396,8 +396,8 @@ class NotificationManager:
     def _notify_health_score_ready(self):
         """Notify user their Health Score is ready after first reading of the day."""
         self.send_notification(
-            "Attune",
-            "Your first reading is in. Open Attune to reveal your Health Score.",
+            "Lucid",
+            "Your first reading is in. Open Lucid to reveal your Health Score.",
             subtitle="Health Score Ready",
             notif_type="voice_weather"
         )
@@ -412,7 +412,7 @@ class NotificationManager:
         if today.weekday() != 0:  # Monday
             return
         self.send_notification(
-            "Attune",
+            "Lucid",
             "Your Week in Voice is ready. See how last week went.",
             subtitle="Weekly Wrapped",
             notif_type="weekly_wrapped"

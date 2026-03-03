@@ -8,7 +8,7 @@ import numpy as np
 from typing import Tuple
 import app_config as config
 
-logger = logging.getLogger('attune.vad')
+logger = logging.getLogger('lucid.vad')
 
 
 class VADProcessor:

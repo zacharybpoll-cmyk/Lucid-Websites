@@ -1,4 +1,4 @@
-# Content Calendar — Attune Voice Wellness
+# Content Calendar — Lucid Voice Wellness
 
 ## Platform Strategy
 
@@ -36,7 +36,7 @@ Challenge common assumptions. These perform well on TikTok because they create t
 - "You don't need to 'warm up' your voice the way you think"
 
 ### 3. App Demos & Data Stories (20% of content)
-Show Attune in action — real data, real insights.
+Show Lucid in action — real data, real insights.
 
 **Example topics:**
 - "I tracked my voice for 30 days. Here's what I found."
@@ -61,7 +61,7 @@ Only after you have real users. Never fake these.
 **Example topics:**
 - "This singer caught early vocal strain before a major performance"
 - "A teacher's 30-day vocal health transformation"
-- Repost/duet creator content that mentions Attune
+- Repost/duet creator content that mentions Lucid
 
 ---
 
@@ -103,7 +103,7 @@ Only after you have real users. Never fake these.
 | Thu | IG Carousel | Myth-bust | "4 'voice tips' that are actually wrong" | 4-slide carousel | [ ] |
 | Fri | TikTok + IG Reel | Edutainment | "What happens to your voice when you're dehydrated" | 45s explainer | [ ] |
 | Sat | — | — | Rest / plan next week | — | — |
-| Sun | IG Story | BTS | "Sneak peek: new feature coming to Attune" | Story teaser | [ ] |
+| Sun | IG Story | BTS | "Sneak peek: new feature coming to Lucid" | Story teaser | [ ] |
 
 ---
 

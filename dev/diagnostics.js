@@ -1,5 +1,5 @@
 /**
- * Attune Steel Dev — Diagnostics Dashboard Logic
+ * Lucid Dev — Diagnostics Dashboard Logic
  */
 
 const API = 'http://127.0.0.1:8768';
@@ -40,7 +40,7 @@ async function refreshOverview() {
   const [status, health, timings] = await Promise.all([
     fetchJSON('/api/dev/status'),
     fetchJSON('/api/health'),
-    window.attuneDev ? window.attuneDev.getStartupTimings() : null,
+    window.lucidDev ? window.lucidDev.getStartupTimings() : null,
   ]);
 
   const el = document.getElementById('overview-stats');
@@ -165,8 +165,8 @@ async function refreshState() {
 // ============ Python Logs ============
 async function refreshPythonLogs() {
   let logs = null;
-  if (window.attuneDev) {
-    logs = await window.attuneDev.getPythonLogs();
+  if (window.lucidDev) {
+    logs = await window.lucidDev.getPythonLogs();
   }
 
   const viewer = document.getElementById('python-log-viewer');
@@ -196,7 +196,7 @@ async function doAction(action) {
     let data;
     switch (action) {
       case 'restart':
-        if (window.attuneDev) data = await window.attuneDev.restartBackend();
+        if (window.lucidDev) data = await window.lucidDev.restartBackend();
         else data = { error: 'IPC not available' };
         break;
       case 'gc':

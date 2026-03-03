@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Attune - Main Entry Point
+Lucid - Main Entry Point
 Browser-based: starts uvicorn, loads models in background, opens browser automatically.
 Includes The Beacon (dynamic menubar icon) and The Pulse (notification engine).
 """
@@ -36,7 +36,7 @@ import api.dependencies as deps
 import api.routes as routes
 import uvicorn
 
-logger = logging.getLogger('attune.main')
+logger = logging.getLogger('lucid.main')
 
 
 # ============ Crash Reporting ============
@@ -57,14 +57,14 @@ def _sanitize_crash_log(text: str) -> str:
 
 
 def _setup_crash_reporting():
-    crash_log = Path(os.environ.get('ATTUNE_DATA_DIR', '.')) / 'crash_log.txt'
+    crash_log = Path(os.environ.get('LUCID_DATA_DIR', '.')) / 'crash_log.txt'
 
     # Truncate crash log if >1MB (keep last 500KB)
     try:
         if crash_log.exists() and crash_log.stat().st_size > 1_048_576:
             data = crash_log.read_bytes()
             crash_log.write_bytes(data[-512_000:])
-            logging.getLogger('attune.main').info("Truncated crash log (was >1MB)")
+            logging.getLogger('lucid.main').info("Truncated crash log (was >1MB)")
     except Exception as e:
         pass  # Crash log truncation is best-effort
 
@@ -139,7 +139,7 @@ def _wait_for_server_socket(host, port, timeout=10.0):
     return False
 
 
-class Attune:
+class Lucid:
     def __init__(self, electron_mode=False):
         self.electron_mode = electron_mode
         self.db = None
@@ -154,7 +154,7 @@ class Attune:
 
     def run(self):
         logger.info("=" * 60)
-        logger.info("Attune — Attuned to you.")
+        logger.info("Lucid — Clarity through voice.")
         logger.info("=" * 60)
 
         # --- Fast init (< 1s) ---
@@ -333,19 +333,19 @@ def main():
     setup_logging(log_dir=str(config.DATA_DIR))
     _setup_crash_reporting()
 
-    parser = argparse.ArgumentParser(description='Attune — Voice Wellness Monitor')
+    parser = argparse.ArgumentParser(description='Lucid — Voice Wellness Monitor')
     parser.add_argument('--electron', action='store_true', help='Run in Electron mode (no browser open)')
     args = parser.parse_args()
 
-    attune_app = Attune(electron_mode=args.electron)
+    lucid_app = Lucid(electron_mode=args.electron)
 
     # Handle Ctrl+C and SIGTERM gracefully
     def _sig_handler(sig, frame):
-        attune_app._shutdown.set()
+        lucid_app._shutdown.set()
     signal.signal(signal.SIGINT, _sig_handler)
     signal.signal(signal.SIGTERM, _sig_handler)
 
-    attune_app.run()
+    lucid_app.run()
 
 
 if __name__ == '__main__':

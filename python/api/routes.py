@@ -1,5 +1,5 @@
 """
-FastAPI routes for Attune
+FastAPI routes for Lucid
 """
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +31,7 @@ active_runner = None
 _daily_summary_cache = None
 _daily_summary_reading_count = None
 
-app = FastAPI(title="Attune API")
+app = FastAPI(title="Lucid API")
 
 # CORS middleware for local development
 app.add_middleware(
@@ -314,7 +314,7 @@ def test_analysis():
     """
     import traceback as tb
     import logging
-    logger = logging.getLogger('attune.test-analysis')
+    logger = logging.getLogger('lucid.test-analysis')
 
     if orchestrator is None:
         raise HTTPException(status_code=500, detail="Orchestrator not initialized")

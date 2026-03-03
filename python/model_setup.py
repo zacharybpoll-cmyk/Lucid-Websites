@@ -1,9 +1,9 @@
 """
 model_setup.py — Must be imported BEFORE any torch/HuggingFace imports.
-Sets HF_HOME, TORCH_HOME, and ATTUNE_SPEAKER_CACHE_DIR env vars so that
+Sets HF_HOME, TORCH_HOME, and LUCID_SPEAKER_CACHE_DIR env vars so that
 all model loading goes to the app-controlled cache directory.
 
-In dev mode (no ATTUNE_BUNDLED_MODELS_DIR env var), does nothing —
+In dev mode (no LUCID_BUNDLED_MODELS_DIR env var), does nothing —
 the default HF/torch caches are used as normal.
 """
 import os
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 
 def setup_model_cache():
     """Copy bundled models to DATA_DIR on first launch and set env vars."""
-    bundled_dir = os.environ.get('ATTUNE_BUNDLED_MODELS_DIR')
+    bundled_dir = os.environ.get('LUCID_BUNDLED_MODELS_DIR')
     if not bundled_dir:
         return  # Dev mode — use default HF/torch caches normally
 
-    data_dir = Path(os.environ.get('ATTUNE_DATA_DIR', Path.home() / 'attune-data'))
+    data_dir = Path(os.environ.get('LUCID_DATA_DIR', Path.home() / 'lucid-data'))
     cache_dir = data_dir / 'model_cache'
     hf_home = cache_dir / 'hf_home'
     torch_home = cache_dir / 'torch_home'
@@ -47,4 +47,4 @@ def setup_model_cache():
     # Set env vars BEFORE any torch/HF imports in the rest of the app
     os.environ['HF_HOME'] = str(hf_home)
     os.environ['TORCH_HOME'] = str(torch_home)
-    os.environ['ATTUNE_SPEAKER_CACHE_DIR'] = str(speaker_cache)
+    os.environ['LUCID_SPEAKER_CACHE_DIR'] = str(speaker_cache)

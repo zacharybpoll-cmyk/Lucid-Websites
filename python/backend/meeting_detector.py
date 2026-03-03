@@ -9,7 +9,7 @@ import time
 from typing import Optional, Callable
 import app_config as config
 
-logger = logging.getLogger('attune.meeting')
+logger = logging.getLogger('lucid.meeting')
 
 
 class MeetingDetector:

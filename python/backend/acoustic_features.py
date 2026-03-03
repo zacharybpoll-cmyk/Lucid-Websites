@@ -8,7 +8,7 @@ import numpy as np
 import librosa
 from typing import Dict
 
-logger = logging.getLogger('attune.acoustic')
+logger = logging.getLogger('lucid.acoustic')
 
 class AcousticFeatureExtractor:
     def __init__(self, sample_rate: int = 16000):

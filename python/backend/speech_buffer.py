@@ -16,7 +16,7 @@ from collections import deque
 from typing import Optional, Callable, Tuple
 import app_config as config
 
-logger = logging.getLogger('attune.speech_buffer')
+logger = logging.getLogger('lucid.speech_buffer')
 
 
 class SpeechBuffer:

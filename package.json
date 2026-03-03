@@ -1,13 +1,13 @@
 {
-  "name": "attune-steel",
+  "name": "lucid",
   "version": "1.0.0",
-  "description": "Attune — Attuned to you. Voice wellness monitor.",
+  "description": "Lucid — Clarity through voice.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "setup": "cd python && python3 -m venv venv && ./venv/bin/pip install -r requirements.txt && ./venv/bin/pip install -r dam/requirements.txt"
   },
-  "author": "Attune",
+  "author": "Lucid",
   "license": "UNLICENSED",
   "private": true,
   "build": {
@@ -15,7 +15,7 @@
       {
         "provider": "github",
         "owner": "owner",
-        "repo": "attune"
+        "repo": "lucid"
       }
     ]
   },

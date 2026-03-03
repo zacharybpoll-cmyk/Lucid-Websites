@@ -1,14 +1,14 @@
 /**
- * Attune Onboarding — State Machine + Recording Logic
+ * Lucid Onboarding — State Machine + Recording Logic
  */
 
 // ============ Configuration ============
 
 let API_BASE = 'http://127.0.0.1:8765'; // default, overridden by IPC
 const _apiBaseReady = (async () => {
-  if (window.attune && window.attune.getApiBase) {
+  if (window.lucid && window.lucid.getApiBase) {
     try {
-      API_BASE = await window.attune.getApiBase();
+      API_BASE = await window.lucid.getApiBase();
     } catch (e) {
       console.warn('Could not get API base from preload, using default');
     }
@@ -16,7 +16,7 @@ const _apiBaseReady = (async () => {
 })();
 
 const RECORDING_PROMPTS = [
-  { label: 'Sample 1 — Normal Voice',  text: 'Read this aloud: "I\'m setting up my voice profile so that Attune can recognize me and focus on my wellness readings throughout the day. This way it only tracks my voice and no one else\'s."' },
+  { label: 'Sample 1 — Normal Voice',  text: 'Read this aloud: "I\'m setting up my voice profile so that Lucid can recognize me and focus on my wellness readings throughout the day. This way it only tracks my voice and no one else\'s."' },
   { label: 'Sample 2 — Animated Voice', text: 'Read this with energy: "Something really exciting happened today — I discovered a brand new tool that actually understands how I feel just by listening to my voice! I can\'t wait to see what it picks up over the next few days."' },
   { label: 'Sample 3 — Calm Voice',    text: 'Read this slowly and softly: "After a long day, it\'s nice to slow down and take a breath. I\'m grateful for the quiet moments and the chance to recharge before tomorrow starts all over again."' },
   { label: 'Sample 4 — Reading Aloud', text: 'Read this aloud: "The voice carries far more information than we realize. Subtle changes in pitch, rhythm, and tone can reveal how we truly feel beneath the surface — even when we think we\'re hiding it."' },
@@ -352,8 +352,8 @@ async function requestMicPermission() {
 }
 
 function openSystemSettings() {
-  if (window.attune && window.attune.openSystemSettings) {
-    window.attune.openSystemSettings();
+  if (window.lucid && window.lucid.openSystemSettings) {
+    window.lucid.openSystemSettings();
   }
 }
 
@@ -904,8 +904,8 @@ async function completeOnboarding() {
     steps_skipped: _stepsSkipped
   });
 
-  if (window.attune && window.attune.completeOnboarding) {
-    await window.attune.completeOnboarding();
+  if (window.lucid && window.lucid.completeOnboarding) {
+    await window.lucid.completeOnboarding();
   }
 }
 

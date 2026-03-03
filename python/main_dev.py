@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Attune Steel — Dev Entry Point
+Lucid Steel — Dev Entry Point
 Wraps the production main.py to inject dev middleware before startup.
 """
 import os
@@ -8,10 +8,10 @@ import sys
 import logging
 
 # Set dev mode early so other modules can check it
-os.environ['ATTUNE_DEV_MODE'] = '1'
+os.environ['LUCID_DEV_MODE'] = '1'
 
 # Enable DEBUG logging for dev builds
-logging.getLogger('attune').setLevel(logging.DEBUG)
+logging.getLogger('lucid').setLevel(logging.DEBUG)
 
 # Patch the FastAPI app with dev middleware before main() runs
 from api.routes import app as fastapi_app

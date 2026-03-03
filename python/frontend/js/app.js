@@ -420,11 +420,11 @@ async function pollStatus() {
         }
         if (!status.is_analyzing && _ringAnalyzing) {
             finishRingGaugeProgress();
-            console.log('[Attune] Analysis complete, refreshing data...');
+            console.log('[Lucid] Analysis complete, refreshing data...');
             // Small delay to let backend persist reading before fetching
             setTimeout(async () => {
                 await loadTodayData();
-                console.log('[Attune] Data refreshed after analysis');
+                console.log('[Lucid] Data refreshed after analysis');
             }, 500);
         }
         // Show analysis error if present (only once per unique error)
@@ -1806,7 +1806,7 @@ function setupSettings() {
     }
     if (speakerDeleteBtn) {
         speakerDeleteBtn.addEventListener('click', async () => {
-            if (confirm('Delete your voice profile? Attune will analyze all detected speech until you re-enroll.')) {
+            if (confirm('Delete your voice profile? Lucid will analyze all detected speech until you re-enroll.')) {
                 await API.deleteSpeakerProfile();
                 loadSpeakerStatus();
             }
@@ -1848,7 +1848,7 @@ function setupSettings() {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'attune-export.json';
+                a.download = 'lucid-export.json';
                 a.click();
                 URL.revokeObjectURL(url);
             } catch (e) {
@@ -1997,7 +1997,7 @@ function updateBeaconFavicon(zone) {
 
     // Also update the page title with zone indicator
     const zoneEmoji = { calm: '\u{1F7E2}', steady: '\u{1F7E1}', tense: '\u{1F7E0}', stressed: '\u{1F534}', idle: '\u26AA' };
-    document.title = `${zoneEmoji[zone] || ''} Attune`;
+    document.title = `${zoneEmoji[zone] || ''} Lucid`;
 }
 
 // ========== Morning Summary Overlay ==========
@@ -2006,7 +2006,7 @@ function shouldShowMorningSummary() {
     const hour = new Date().getHours();
     if (hour < 5 || hour >= 13) return false; // Only 5AM-1PM
 
-    const todayKey = `attune_morning_seen_${new Date().toISOString().slice(0, 10)}`;
+    const todayKey = `lucid_morning_seen_${new Date().toISOString().slice(0, 10)}`;
     if (localStorage.getItem(todayKey)) return false;
 
     return true;
@@ -2204,7 +2204,7 @@ function dismissMorningSummary() {
     }, 500);
 
     // Set localStorage flag
-    const todayKey = `attune_morning_seen_${new Date().toISOString().slice(0, 10)}`;
+    const todayKey = `lucid_morning_seen_${new Date().toISOString().slice(0, 10)}`;
     localStorage.setItem(todayKey, '1');
 
     // Cleanup old keys (keep last 7 days)
@@ -2212,7 +2212,7 @@ function dismissMorningSummary() {
     for (let i = 8; i < 30; i++) {
         const old = new Date(now);
         old.setDate(old.getDate() - i);
-        const oldKey = `attune_morning_seen_${old.toISOString().slice(0, 10)}`;
+        const oldKey = `lucid_morning_seen_${old.toISOString().slice(0, 10)}`;
         localStorage.removeItem(oldKey);
     }
 }
@@ -2223,7 +2223,7 @@ function shouldShowEveningSummary() {
     const hour = new Date().getHours();
     if (hour < 20) return false; // Only 8 PM or later
 
-    const todayKey = `attune_evening_seen_${new Date().toISOString().slice(0, 10)}`;
+    const todayKey = `lucid_evening_seen_${new Date().toISOString().slice(0, 10)}`;
     if (localStorage.getItem(todayKey)) return false;
 
     return true;
@@ -2327,14 +2327,14 @@ function renderEveningSummary(data) {
     overlay.style.display = 'flex';
 
     // Mark seen
-    const todayKey = `attune_evening_seen_${new Date().toISOString().slice(0, 10)}`;
+    const todayKey = `lucid_evening_seen_${new Date().toISOString().slice(0, 10)}`;
     localStorage.setItem(todayKey, '1');
 
     // Clean up old keys (>7 days)
     for (let i = 8; i <= 30; i++) {
         const old = new Date();
         old.setDate(old.getDate() - i);
-        localStorage.removeItem(`attune_evening_seen_${old.toISOString().slice(0, 10)}`);
+        localStorage.removeItem(`lucid_evening_seen_${old.toISOString().slice(0, 10)}`);
     }
 }
 
