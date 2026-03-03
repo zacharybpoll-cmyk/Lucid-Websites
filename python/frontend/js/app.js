@@ -119,6 +119,9 @@ window.AppState = {
     // Speak Hero state (first-time-ever + daily greeting)
     speakHeroVisible: false,
 
+    // Mental Readiness overlay state
+    readinessShown: false,
+
     // Evening summary state
     eveningSummaryShown: false,
 
@@ -791,6 +794,193 @@ function hideSpeakHero(celebrate) {
     }
 }
 
+// ========== Hero → Readiness Transition ==========
+
+function transitionHeroToDone() {
+    const waiting = document.getElementById('speak-hero-state-waiting');
+    const done = document.getElementById('speak-hero-state-done');
+    if (!waiting || !done) return;
+
+    // Already in done state
+    if (done.style.display !== 'none') return;
+
+    // Fade out waiting state
+    waiting.style.transition = 'opacity 0.4s ease';
+    waiting.style.opacity = '0';
+
+    setTimeout(() => {
+        waiting.style.display = 'none';
+        done.style.display = '';
+        // Trigger reflow then fade in
+        done.offsetHeight;
+        done.classList.add('visible');
+
+        // Attach click handler
+        done.addEventListener('click', onHeroDoneClick, { once: true });
+    }, 400);
+}
+
+function onHeroDoneClick() {
+    const hero = document.getElementById('speak-hero');
+    if (!hero) return;
+
+    // Shrink hero card
+    hero.style.maxHeight = hero.scrollHeight + 'px';
+    hero.offsetHeight;
+    hero.classList.add('shrinking');
+    setTimeout(() => {
+        hero.style.display = 'none';
+        hero.classList.remove('shrinking');
+        AppState.speakHeroVisible = false;
+    }, 500);
+
+    // Show readiness overlay
+    showReadinessOverlay();
+}
+
+async function showReadinessOverlay() {
+    if (AppState.readinessShown) return;
+    AppState.readinessShown = true;
+
+    const overlay = document.getElementById('readiness-overlay');
+    if (!overlay) return;
+
+    // Fetch fresh canopy data
+    let canopyData = null;
+    try {
+        canopyData = await API.getCanopy();
+    } catch (e) {
+        console.error('Readiness: failed to fetch canopy', e);
+    }
+
+    const score = (canopyData && canopyData.has_data) ? canopyData.score : 0;
+    const yesterdayScore = canopyData ? canopyData.yesterday_score : null;
+    const trendDirection = canopyData ? (canopyData.trend_direction || 'stable') : 'stable';
+    const topContributor = canopyData ? (canopyData.top_contributor || 'Voice') : 'Voice';
+
+    // Show overlay
+    overlay.style.display = 'flex';
+    overlay.offsetHeight; // reflow
+    overlay.classList.add('visible');
+
+    // After 300ms: animate ring arc fill
+    setTimeout(() => {
+        const arc = document.getElementById('readiness-ring-arc');
+        if (arc) {
+            const circumference = 691.2;
+            const offset = circumference - (circumference * score / 100);
+            arc.style.strokeDashoffset = offset;
+        }
+    }, 300);
+
+    // Score count-up animation (2.5s)
+    const scoreEl = document.getElementById('readiness-score');
+    if (scoreEl) {
+        const duration = 2500;
+        const start = performance.now();
+        const countUp = (now) => {
+            const elapsed = now - start;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            scoreEl.textContent = Math.round(score * eased);
+            if (progress < 1) requestAnimationFrame(countUp);
+        };
+        requestAnimationFrame(countUp);
+    }
+
+    // After 1.5s: populate and show stat cards
+    setTimeout(() => {
+        // Delta
+        const deltaEl = document.getElementById('readiness-delta');
+        if (deltaEl) {
+            if (yesterdayScore !== null && score !== null) {
+                const delta = score - yesterdayScore;
+                if (delta > 0) {
+                    deltaEl.textContent = `+${delta}`;
+                    deltaEl.className = 'readiness-stat-value positive';
+                } else if (delta < 0) {
+                    deltaEl.textContent = `${delta}`;
+                    deltaEl.className = 'readiness-stat-value negative';
+                } else {
+                    deltaEl.textContent = '0';
+                    deltaEl.className = 'readiness-stat-value neutral';
+                }
+            } else {
+                deltaEl.textContent = '--';
+                deltaEl.className = 'readiness-stat-value neutral';
+            }
+        }
+
+        // Trend
+        const trendEl = document.getElementById('readiness-trend');
+        if (trendEl) {
+            const trendLabels = { improving: 'Improving', declining: 'Declining', stable: 'Stable' };
+            trendEl.textContent = trendLabels[trendDirection] || 'Stable';
+            if (trendDirection === 'improving') trendEl.className = 'readiness-stat-value positive';
+            else if (trendDirection === 'declining') trendEl.className = 'readiness-stat-value negative';
+            else trendEl.className = 'readiness-stat-value neutral';
+        }
+
+        // Top contributor
+        const correlateEl = document.getElementById('readiness-correlate');
+        if (correlateEl) {
+            correlateEl.textContent = topContributor;
+        }
+
+        // Fade in stats
+        const stats = document.getElementById('readiness-stats');
+        if (stats) stats.classList.add('visible');
+    }, 1500);
+
+    // After 2.2s: fade in continue button
+    setTimeout(() => {
+        const btn = document.getElementById('readiness-continue-btn');
+        if (btn) btn.classList.add('visible');
+    }, 2200);
+
+    // Mark as seen today
+    localStorage.setItem(
+        `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`, '1'
+    );
+}
+
+function dismissReadinessOverlay() {
+    const overlay = document.getElementById('readiness-overlay');
+    if (!overlay) return;
+
+    overlay.classList.remove('visible');
+    overlay.classList.add('fade-out');
+
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        overlay.classList.remove('fade-out');
+
+        // Reset animation states for next use
+        const arc = document.getElementById('readiness-ring-arc');
+        if (arc) arc.style.strokeDashoffset = '691.2';
+        const scoreEl = document.getElementById('readiness-score');
+        if (scoreEl) scoreEl.textContent = '0';
+        const stats = document.getElementById('readiness-stats');
+        if (stats) stats.classList.remove('visible');
+        const btn = document.getElementById('readiness-continue-btn');
+        if (btn) btn.classList.remove('visible');
+
+        // Clean up old localStorage keys (>7 days)
+        const now = new Date();
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('lucid_readiness_seen_')) {
+                const dateStr = key.replace('lucid_readiness_seen_', '');
+                const keyDate = new Date(dateStr);
+                if ((now - keyDate) > 7 * 24 * 60 * 60 * 1000) {
+                    localStorage.removeItem(key);
+                }
+            }
+        }
+    }, 500);
+}
+
 function updateDailyGreeting() {
     const greetingText = document.getElementById('daily-greeting-text');
     if (!greetingText) return;
@@ -820,16 +1010,25 @@ async function loadTodayData() {
             el.dataset.loaded = 'true';
         });
 
-        // --- Speak Hero / Daily Greeting Logic ---
+        // --- Speak Hero / Daily Greeting / Readiness Logic ---
         const totalReadings = data.total_readings || 0;
         const todayReadings = data.readings ? data.readings.length : 0;
+        const readinessSeenToday = localStorage.getItem(
+            `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`
+        );
 
         if (totalReadings === 0 && todayReadings === 0) {
             // First-time-ever: show hero card
             if (!AppState.speakHeroVisible) showSpeakHero();
+        } else if (todayReadings === 0 && !readinessSeenToday && !AppState.speakHeroVisible) {
+            // Returning user, first open today, no readings yet
+            showSpeakHero();
         } else if (AppState.speakHeroVisible && todayReadings >= 1) {
-            // First reading just arrived — celebrate and dismiss hero
-            hideSpeakHero(true);
+            // First reading arrived — transition to "done" state
+            transitionHeroToDone();
+        } else if (todayReadings >= 1 && !readinessSeenToday && !AppState.readinessShown) {
+            // User closed app during analysis, reopened after reading completed
+            showReadinessOverlay();
         }
 
         // Fetch canopy data first so ring gauge has the score
@@ -2003,13 +2202,8 @@ function updateBeaconFavicon(zone) {
 // ========== Morning Summary Overlay ==========
 
 function shouldShowMorningSummary() {
-    const hour = new Date().getHours();
-    if (hour < 5 || hour >= 13) return false; // Only 5AM-1PM
-
-    const todayKey = `lucid_morning_seen_${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(todayKey)) return false;
-
-    return true;
+    // Disabled — replaced by Mental Readiness flow via speak-hero
+    return false;
 }
 
 async function loadMorningSummary() {
@@ -3048,6 +3242,13 @@ function closeScienceModal() {
 // Close overlays on Escape (priority-ordered: only one closes per keypress)
 document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
+
+    // Readiness overlay (highest priority)
+    const readiness = document.getElementById('readiness-overlay');
+    if (readiness && readiness.style.display !== 'none' && readiness.style.display !== '') {
+        dismissReadinessOverlay();
+        return;
+    }
 
     // Settings panel
     const settings = document.getElementById('settings-panel');

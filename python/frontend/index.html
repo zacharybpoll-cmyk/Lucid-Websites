@@ -162,6 +162,38 @@
         </div>
     </div>
 
+    <!-- Mental Readiness Overlay -->
+    <div id="readiness-overlay" class="readiness-overlay" style="display: none;">
+        <div class="readiness-content">
+            <div class="readiness-ring-area">
+                <svg viewBox="0 0 260 260" width="260" height="260">
+                    <circle cx="130" cy="130" r="110" class="readiness-ring-track"/>
+                    <circle cx="130" cy="130" r="110" class="readiness-ring-progress" id="readiness-ring-arc"
+                        stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
+                    <text x="130" y="148" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
+                    <text x="130" y="172" text-anchor="middle" class="readiness-label-text">MENTAL READINESS</text>
+                </svg>
+            </div>
+            <div class="readiness-stats" id="readiness-stats">
+                <div class="readiness-stat-card">
+                    <span class="readiness-stat-value" id="readiness-delta">--</span>
+                    <span class="readiness-stat-label">From yesterday</span>
+                </div>
+                <div class="readiness-stat-card">
+                    <span class="readiness-stat-value" id="readiness-trend">--</span>
+                    <span class="readiness-stat-label">7-day trend</span>
+                </div>
+                <div class="readiness-stat-card">
+                    <span class="readiness-stat-value" id="readiness-correlate">--</span>
+                    <span class="readiness-stat-label">Top contributor</span>
+                </div>
+            </div>
+            <button class="readiness-continue-btn" id="readiness-continue-btn" onclick="dismissReadinessOverlay()">
+                Continue with your day
+            </button>
+        </div>
+    </div>
+
     <!-- Evening Summary Overlay -->
     <div id="evening-summary-overlay" class="evening-summary-overlay" style="display: none;">
         <div class="evening-summary-card">
@@ -347,34 +379,50 @@
                 <!-- TODAY VIEW -->
                 <div id="today-view" class="view active">
 
-                    <!-- Speak Hero Card (first-time-ever experience) -->
+                    <!-- Speak Hero Card (first-open-of-day experience) -->
                     <div id="speak-hero" class="speak-hero" style="display: none;">
-                        <div class="speak-hero-content">
-                            <h2 class="speak-hero-headline">Your first reading starts here</h2>
-                            <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. No questionnaires. No self-reporting. Just your voice.</p>
-                            <div class="speak-hero-quote">
-                                <span class="speak-hero-quote-text">"Good morning. I'm starting my day and feeling..."</span>
-                            </div>
-                            <div class="speak-hero-ring-wrap">
-                                <svg viewBox="0 0 120 120" width="120" height="120">
-                                    <defs>
-                                        <linearGradient id="hero-gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" stop-color="#c4d8e8"/>
-                                            <stop offset="100%" stop-color="#a8c0d0"/>
-                                        </linearGradient>
-                                    </defs>
-                                    <circle cx="60" cy="60" r="54" class="hero-ring-track"/>
-                                    <circle cx="60" cy="60" r="54" class="hero-ring-fill" id="hero-ring-fill"
-                                        transform="rotate(-90 60 60)"/>
-                                </svg>
-                                <div class="hero-ring-seconds" id="hero-ring-seconds">
-                                    <span id="hero-seconds-value">0</span>
-                                    <span class="hero-ring-unit">sec</span>
+                        <!-- State 1: Awaiting first reading -->
+                        <div id="speak-hero-state-waiting">
+                            <div class="speak-hero-content">
+                                <h2 class="speak-hero-headline">Your first reading starts here</h2>
+                                <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. No questionnaires. No self-reporting. Just your voice.</p>
+                                <div class="speak-hero-quote">
+                                    <span class="speak-hero-quote-text">"Good morning. I'm starting my day and feeling..."</span>
                                 </div>
+                                <div class="speak-hero-ring-wrap">
+                                    <svg viewBox="0 0 120 120" width="120" height="120">
+                                        <defs>
+                                            <linearGradient id="hero-gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" stop-color="#c4d8e8"/>
+                                                <stop offset="100%" stop-color="#a8c0d0"/>
+                                            </linearGradient>
+                                        </defs>
+                                        <circle cx="60" cy="60" r="54" class="hero-ring-track"/>
+                                        <circle cx="60" cy="60" r="54" class="hero-ring-fill" id="hero-ring-fill"
+                                            transform="rotate(-90 60 60)"/>
+                                    </svg>
+                                    <div class="hero-ring-seconds" id="hero-ring-seconds">
+                                        <span id="hero-seconds-value">0</span>
+                                        <span class="hero-ring-unit">sec</span>
+                                    </div>
+                                </div>
+                                <div class="speak-hero-mic-dot" id="speak-hero-mic-dot"></div>
                             </div>
-                            <div class="speak-hero-mic-dot" id="speak-hero-mic-dot"></div>
+                            <p class="speak-hero-footnote">The involuntary signals in your voice do the rest. Lucid listens passively during calls and conversations.</p>
                         </div>
-                        <p class="speak-hero-footnote">The involuntary signals in your voice do the rest. Lucid listens passively during calls and conversations.</p>
+
+                        <!-- State 2: Analysis complete -->
+                        <div id="speak-hero-state-done" class="speak-hero-content speak-hero-done" style="display: none;">
+                            <div class="speak-hero-done-checkmark">
+                                <svg viewBox="0 0 52 52" width="52" height="52">
+                                    <circle cx="26" cy="26" r="25" fill="none" stroke="rgba(91, 141, 184, 0.3)" stroke-width="2"/>
+                                    <path class="speak-hero-checkmark-path" fill="none" stroke="#5B8DB8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"
+                                        d="M14 27 L22 35 L38 19" stroke-dasharray="50" stroke-dashoffset="50"/>
+                                </svg>
+                            </div>
+                            <h2 class="speak-hero-headline">Your analysis is done</h2>
+                            <p class="speak-hero-body speak-hero-done-cta">Tap here for your mental readiness score</p>
+                        </div>
                     </div>
 
                     <!-- Daily greeting (returning user, no readings today) -->

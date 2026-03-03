@@ -687,10 +687,30 @@ async def get_evening_summary():
 
 @app.get("/api/canopy")
 async def get_canopy_score():
-    """Get today's intraday Canopy Score (requires 3+ readings today)"""
+    """Get today's intraday Canopy Score with delta, trend, and top contributor"""
     if db is None or insight_engine is None:
         raise HTTPException(status_code=500, detail="Not initialized")
-    return insight_engine.compute_intraday_canopy_score(db)
+
+    result = insight_engine.compute_intraday_canopy_score(db)
+
+    # Yesterday's score for delta
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+    yesterday_canopy = db.get_canopy_score(yesterday)
+    result['yesterday_score'] = yesterday_canopy['score'] if yesterday_canopy else None
+
+    # 7-day trend direction
+    try:
+        bc = BurnoutCalculator(db)
+        risk_data = bc.calculate_burnout_risk()
+        result['trend_direction'] = risk_data.get('trend_direction', 'stable')
+    except Exception:
+        result['trend_direction'] = 'stable'
+
+    # Top contributor to canopy score
+    if result.get('has_data'):
+        result['top_contributor'] = insight_engine.get_top_canopy_contributor(db)
+
+    return result
 
 # ============ Grove (Feature #2) ============
 

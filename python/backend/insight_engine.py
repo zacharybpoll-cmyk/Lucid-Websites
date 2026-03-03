@@ -450,6 +450,59 @@ class InsightEngine:
             'date': date.today().isoformat(),
         }
 
+    def get_top_canopy_contributor(self, db) -> str:
+        """Find which component contributes most to today's canopy score."""
+        today_summary = db.compute_daily_summary()
+        if not today_summary:
+            return "Voice"
+
+        components = [
+            ('stress',              0.15, True),
+            ('wellbeing',           0.13, False),
+            ('depression_risk',     0.13, True),
+            ('activation',          0.13, False),
+            ('calm',                0.12, False),
+            ('anxiety_risk',        0.12, True),
+            ('emotional_stability', 0.12, False),
+        ]
+
+        raw = {}
+        raw['stress'] = today_summary.get('avg_stress')
+        raw['wellbeing'] = today_summary.get('avg_wellbeing') or today_summary.get('avg_mood')
+        raw['activation'] = today_summary.get('avg_activation') or today_summary.get('avg_energy')
+        raw['calm'] = today_summary.get('avg_calm')
+        raw['depression_risk'] = today_summary.get('avg_depression_risk')
+        raw['anxiety_risk'] = today_summary.get('avg_anxiety_risk')
+        raw['emotional_stability'] = today_summary.get('avg_emotional_stability')
+
+        labels = {
+            'stress': 'low stress',
+            'wellbeing': 'wellbeing',
+            'depression_risk': 'low depression risk',
+            'activation': 'energy',
+            'calm': 'calm',
+            'anxiety_risk': 'low anxiety',
+            'emotional_stability': 'stability',
+        }
+
+        best_key = None
+        best_contribution = -1
+        for key, weight, inverted in components:
+            val = raw.get(key)
+            if val is None:
+                continue
+            val = min(100, max(0, val))
+            if inverted:
+                val = 100 - val
+            contribution = weight * val
+            if contribution > best_contribution:
+                best_contribution = contribution
+                best_key = key
+
+        if best_key:
+            return f"Driven by {labels[best_key]}"
+        return "Voice"
+
     # ============ Compass (Feature #7) ============
 
     def compute_compass(self, db) -> Dict[str, Any]:

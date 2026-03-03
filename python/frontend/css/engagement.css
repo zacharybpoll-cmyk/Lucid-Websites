@@ -1410,7 +1410,7 @@
     font-family: var(--font-heading);
     font-size: 24px;
     font-weight: 500;
-    color: var(--cream);
+    color: rgba(224, 234, 240, 0.85);
     margin-bottom: 4px;
 }
 
@@ -1554,4 +1554,192 @@
 @keyframes hero-leaf-burst {
     0% { opacity: 1; transform: scale(0.5) translateY(0); }
     100% { opacity: 0; transform: scale(1) translateY(-40px); }
+}
+
+/* ========== Speak Hero — Done State ========== */
+
+.speak-hero-done {
+    cursor: pointer;
+    padding: 32px 20px;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.speak-hero-done.visible {
+    opacity: 1;
+}
+
+.speak-hero-done:hover {
+    background: rgba(91, 141, 184, 0.05);
+    border-radius: 16px;
+}
+
+.speak-hero-done-checkmark {
+    margin: 0 auto 16px;
+    width: 52px;
+    height: 52px;
+}
+
+.speak-hero-done-checkmark svg circle {
+    animation: checkmark-circle-draw 0.6s ease forwards;
+}
+
+@keyframes checkmark-circle-draw {
+    from { stroke-dasharray: 157; stroke-dashoffset: 157; }
+    to { stroke-dasharray: 157; stroke-dashoffset: 0; }
+}
+
+.speak-hero-checkmark-path {
+    animation: checkmark-tick 0.4s 0.4s ease forwards;
+}
+
+@keyframes checkmark-tick {
+    to { stroke-dashoffset: 0; }
+}
+
+.speak-hero-done-cta {
+    color: rgba(91, 141, 184, 0.9) !important;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* ========== Mental Readiness Overlay ========== */
+
+.readiness-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(6, 10, 14, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.readiness-overlay.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.readiness-overlay.fade-out {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.readiness-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 400px;
+    width: 100%;
+    padding: 40px 20px;
+}
+
+.readiness-ring-area {
+    margin-bottom: 32px;
+}
+
+.readiness-ring-track {
+    fill: none;
+    stroke: rgba(91, 141, 184, 0.12);
+    stroke-width: 10;
+}
+
+.readiness-ring-progress {
+    fill: none;
+    stroke: #5B8DB8;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.readiness-score-text {
+    font-family: var(--font-heading);
+    font-size: 56px;
+    font-weight: 700;
+    fill: rgba(224, 234, 240, 0.95);
+}
+
+.readiness-label-text {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    fill: rgba(91, 141, 184, 0.7);
+}
+
+/* Stat cards row */
+.readiness-stats {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 32px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+.readiness-stats.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.readiness-stat-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px 8px;
+    border: 1px solid rgba(91, 141, 184, 0.15);
+    border-radius: 12px;
+    background: rgba(91, 141, 184, 0.05);
+}
+
+.readiness-stat-value {
+    font-family: var(--font-heading);
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(224, 234, 240, 0.9);
+}
+
+.readiness-stat-value.positive { color: #4ade80; }
+.readiness-stat-value.negative { color: #f87171; }
+.readiness-stat-value.neutral { color: rgba(224, 234, 240, 0.5); }
+
+.readiness-stat-label {
+    font-size: 11px;
+    color: rgba(224, 234, 240, 0.45);
+    text-align: center;
+}
+
+/* Continue button */
+.readiness-continue-btn {
+    padding: 14px 40px;
+    border: none;
+    border-radius: 28px;
+    background: #5B8DB8;
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.4s ease, transform 0.4s ease, background 0.2s ease;
+}
+
+.readiness-continue-btn.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.readiness-continue-btn:hover {
+    background: #4a7da8;
 }
