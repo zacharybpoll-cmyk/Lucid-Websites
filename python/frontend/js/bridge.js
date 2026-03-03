@@ -193,6 +193,32 @@ const API = {
         return await apiCall('/speaker/profile', { method: 'DELETE' });
     },
 
+    // Self-Assessment (ground truth for zone calibration)
+    async getSelfAssessmentStatus() { return await apiCall('/self-assessment/status'); },
+    async submitSelfAssessment(zone, readingId = null) {
+        return await apiCall('/self-assessment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ zone, reading_id: readingId })
+        });
+    },
+
+    // Phase 1/2/3 insight endpoints
+    async getMeetingVsNonMeeting() { return await apiCall('/insights/meeting-vs-nonmeeting'); },
+    async getTopicStress() { return await apiCall('/insights/topic-stress'); },
+    async getVocabularyTrend() { return await apiCall('/insights/vocabulary-trend'); },
+    async getTherapistSummary(days = 30) { return await apiCall(`/export/therapist-summary?days=${days}`); },
+
+    // Linguistic analysis setting
+    async getLinguisticAnalysisSetting() { return await apiCall('/settings/linguistic-analysis'); },
+    async setLinguisticAnalysisSetting(enabled) {
+        return await apiCall('/settings/linguistic-analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+    },
+
     // Analytics — fire-and-forget (never blocks UI)
     track(eventType, payload = {}) {
         fetch(`${API_BASE}/track`, {

@@ -43,6 +43,7 @@ class Reading(BaseModel):
     vad_confidence: Optional[float] = None
     low_confidence: Optional[int] = None
     meeting_detected: Optional[int] = None
+    zone_confidence: Optional[str] = None
 
     @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
                      'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',
@@ -129,6 +130,28 @@ class ReadingInsert(BaseModel):
     pause_mean: Optional[float] = None
     pause_sd: Optional[float] = None
     pause_rate: Optional[float] = None
+    # Phase 1: Formants + spectral flux
+    f1_mean: Optional[float] = None
+    f2_mean: Optional[float] = None
+    spectral_flux: Optional[float] = None
+    # Linguistic features (Whisper-derived)
+    filler_rate: Optional[float] = None
+    hedging_score: Optional[float] = None
+    negative_sentiment: Optional[float] = None
+    disfluency_rate: Optional[float] = None
+    lexical_diversity: Optional[float] = None
+    # Phase 2: Enhanced linguistic features
+    topic_work_score: Optional[float] = None
+    topic_relationships_score: Optional[float] = None
+    topic_health_score: Optional[float] = None
+    pronoun_i_ratio: Optional[float] = None
+    absolutist_ratio: Optional[float] = None
+    sentiment_valence: Optional[float] = None
+    sentiment_arousal: Optional[float] = None
+    # Phase 3: Semantic coherence
+    semantic_coherence: Optional[float] = None
+    # Zone confidence
+    zone_confidence: Optional[str] = None
 
     @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
                      'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',
@@ -232,6 +255,16 @@ class TagResponse(BaseModel):
 
 class MeetingToggleRequest(BaseModel):
     active: bool
+
+class SelfAssessmentRequest(BaseModel):
+    zone: str  # 'calm', 'steady', 'tense', 'stressed'
+    reading_id: Optional[int] = None  # Link to nearest reading if available
+
+class SelfAssessmentResponse(BaseModel):
+    id: int
+    timestamp: str
+    zone: str
+    reading_id: Optional[int] = None
 
 class EnrollSampleRequest(BaseModel):
     mood_label: str  # 'neutral', 'animated', 'calm'

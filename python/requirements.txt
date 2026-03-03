@@ -31,5 +31,12 @@ accelerate==1.12.0
 # Speaker verification
 speechbrain==1.0.3
 
+# Linguistic feature extraction (local Whisper transcription)
+openai-whisper==20240930
+
+# Enhanced NLP (Phase 2 linguistic expansion)
+spacy>=3.7.0
+sentence-transformers==3.3.1
+
 # Analytics
 httpx>=0.27.0

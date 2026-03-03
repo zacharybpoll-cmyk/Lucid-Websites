@@ -1133,6 +1133,8 @@ async function loadFeatures() {
         updateGrove(),
         loadWeeklyWrapped(),
         pollBeacon(),
+        loadTopicCorrelations(),
+        loadMeetingImpact(),
     ]);
 }
 
@@ -2057,6 +2059,54 @@ function setupSettings() {
                 exportJsonBtn.disabled = false;
             }
         });
+    }
+
+    const exportTherapistBtn = document.getElementById('export-therapist-btn');
+    if (exportTherapistBtn) {
+        exportTherapistBtn.addEventListener('click', async () => {
+            const origText = exportTherapistBtn.textContent;
+            exportTherapistBtn.textContent = 'Generating...';
+            exportTherapistBtn.disabled = true;
+            try {
+                const data = await API.getTherapistSummary(30);
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'lucid-therapist-summary.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error('Therapist export failed:', e);
+            } finally {
+                exportTherapistBtn.textContent = origText;
+                exportTherapistBtn.disabled = false;
+            }
+        });
+    }
+
+    // Enhanced linguistic analysis toggle
+    loadLinguisticAnalysisSetting();
+    const lingToggle = document.getElementById('linguistic-enhanced-toggle');
+    if (lingToggle) {
+        lingToggle.addEventListener('change', async () => {
+            try {
+                await API.setLinguisticAnalysisSetting(lingToggle.checked);
+            } catch (e) {
+                console.error('Failed to save linguistic setting:', e);
+            }
+        });
+    }
+}
+
+async function loadLinguisticAnalysisSetting() {
+    try {
+        const data = await API.getLinguisticAnalysisSetting();
+        const toggle = document.getElementById('linguistic-enhanced-toggle');
+        if (toggle) toggle.checked = data.enabled !== false;
+    } catch (e) {
+        const toggle = document.getElementById('linguistic-enhanced-toggle');
+        if (toggle) toggle.checked = true; // default ON
     }
 }
 
@@ -3418,4 +3468,195 @@ function setupAnalyticsTracking() {
         };
     }
 }
+
+// ======================================================================
+// Self-Assessment Prompt (Ground Truth Collection)
+// ======================================================================
+// Periodically asks "How are you feeling?" and stores the response
+// for zone calibration. At most every 6 hours. Non-intrusive modal.
+
+let _selfAssessmentDismissed = false;
+
+async function checkSelfAssessmentPrompt() {
+    if (_selfAssessmentDismissed) return;
+    try {
+        const status = await API.getSelfAssessmentStatus();
+        if (status && status.should_prompt) {
+            showSelfAssessmentModal(status.nearest_reading_id);
+        }
+    } catch (e) {
+        // Silently ignore — this is optional
+    }
+}
+
+function showSelfAssessmentModal(readingId) {
+    // Don't show if already visible
+    if (document.getElementById('self-assessment-modal')) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'self-assessment-modal';
+    modal.style.cssText = `
+        position: fixed; bottom: 20px; right: 20px; z-index: 10000;
+        background: #1a1d21; border: 1px solid #2a2d31; border-radius: 12px;
+        padding: 20px; width: 280px; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        font-family: 'Inter', -apple-system, sans-serif; color: #e4e8ec;
+        animation: slideInUp 0.3s ease-out;
+    `;
+
+    modal.innerHTML = `
+        <style>
+            @keyframes slideInUp {
+                from { transform: translateY(20px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            .sa-btn {
+                display: block; width: 100%; padding: 10px; margin: 4px 0;
+                border: 1px solid #2a2d31; border-radius: 8px; background: transparent;
+                color: #e4e8ec; font-size: 13px; cursor: pointer; text-align: left;
+                transition: background 0.15s, border-color 0.15s;
+            }
+            .sa-btn:hover { background: rgba(91,141,184,0.15); border-color: #5B8DB8; }
+        </style>
+        <div style="font-size: 14px; font-weight: 600; margin-bottom: 12px; color: #fff;">
+            How are you feeling right now?
+        </div>
+        <div style="font-size: 12px; color: #5a6270; margin-bottom: 12px;">
+            This helps calibrate your zone accuracy.
+        </div>
+        <button class="sa-btn" data-zone="calm">Calm — relaxed, at ease</button>
+        <button class="sa-btn" data-zone="steady">Steady — neutral, fine</button>
+        <button class="sa-btn" data-zone="tense">Tense — some pressure</button>
+        <button class="sa-btn" data-zone="stressed">Stressed — overwhelmed</button>
+        <div style="text-align: right; margin-top: 8px;">
+            <button id="sa-dismiss" style="background: none; border: none; color: #5a6270;
+                font-size: 11px; cursor: pointer; padding: 4px 8px;">Not now</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle zone selection
+    modal.querySelectorAll('.sa-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const zone = btn.dataset.zone;
+            try {
+                await API.submitSelfAssessment(zone, readingId);
+                API.track('self_assessment', { zone });
+            } catch (e) {
+                // Silently ignore
+            }
+            modal.remove();
+            _selfAssessmentDismissed = true;
+        });
+    });
+
+    // Dismiss button
+    document.getElementById('sa-dismiss').addEventListener('click', () => {
+        modal.remove();
+        _selfAssessmentDismissed = true;
+        // Reset after 2 hours so it can prompt again
+        setTimeout(() => { _selfAssessmentDismissed = false; }, 2 * 60 * 60 * 1000);
+    });
+}
+
+// Check for self-assessment prompt every 30 minutes
+setInterval(checkSelfAssessmentPrompt, 30 * 60 * 1000);
+// Also check 60 seconds after startup
+setTimeout(checkSelfAssessmentPrompt, 60 * 1000);
+
+// ========== Topic Correlations (Phase 2) ==========
+
+async function loadTopicCorrelations() {
+    const container = document.getElementById('topic-correlations-container');
+    if (!container) return;
+
+    try {
+        const data = await API.getTopicStress();
+
+        if (!data.has_data || !data.topics || Object.keys(data.topics).length === 0) {
+            container.innerHTML = '<div class="echoes-empty">Topic correlations appear after 7+ days of readings. Lucid will show how stress relates to work, relationships, and health topics in your speech.</div>';
+            return;
+        }
+
+        const baseline = data.baseline_stress || 50;
+        const topicLabels = { work: 'Work', relationships: 'Relationships', health: 'Health' };
+
+        let html = '<div class="topic-correlations">';
+        html += `<div class="topic-baseline" style="font-size: 11px; color: var(--secondary-text); margin-bottom: 8px;">Baseline stress: ${baseline}</div>`;
+
+        for (const [topic, info] of Object.entries(data.topics)) {
+            const delta = info.delta;
+            const isHigher = delta > 0;
+            const color = isHigher ? 'var(--tense-color, #DD8452)' : 'var(--calm-color, #5B8DB8)';
+            const sign = isHigher ? '+' : '';
+            const label = topicLabels[topic] || topic;
+            const barPct = Math.min(100, Math.abs(delta) / 30 * 100);
+
+            html += `
+                <div class="topic-row" style="margin-bottom: 8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px;">
+                        <span style="font-size: 13px; font-weight: 500;">${sanitizeHTML(label)}</span>
+                        <span style="font-size: 12px; color: ${color}; font-weight: 600;">${sign}${delta} stress</span>
+                    </div>
+                    <div style="background: var(--detail-gray, #e4e8ec); border-radius: 4px; height: 5px;">
+                        <div style="background: ${color}; width: ${barPct}%; height: 100%; border-radius: 4px; transition: width 0.5s;"></div>
+                    </div>
+                    <div style="font-size: 10px; color: var(--secondary-text); margin-top: 2px;">${info.reading_count} readings</div>
+                </div>`;
+        }
+        html += '</div>';
+
+        // Absolutist language insight (if data available)
+        container.innerHTML = html;
+    } catch (e) {
+        console.error('Failed to load topic correlations:', e);
+    }
+}
+
+// ========== Meeting Impact (Phase 1) ==========
+
+async function loadMeetingImpact() {
+    const container = document.getElementById('meeting-impact-container');
+    if (!container) return;
+
+    try {
+        const data = await API.getMeetingVsNonMeeting();
+
+        if (!data.has_data || !data.meeting || data.meeting.reading_count < 3) {
+            container.innerHTML = '<div class="echoes-empty" style="font-size: 12px;">Meeting impact analysis appears once you have 3+ meeting readings. Make sure the meeting detector is active.</div>';
+            return;
+        }
+
+        const delta = data.delta;
+        const stressDelta = delta.stress;
+        const color = stressDelta > 5 ? 'var(--stressed-color, #C44E52)' :
+                      stressDelta > 2 ? 'var(--tense-color, #DD8452)' :
+                      stressDelta < -2 ? 'var(--calm-color, #5B8DB8)' : 'var(--secondary-text, #5a6270)';
+        const sign = stressDelta > 0 ? '+' : '';
+
+        container.innerHTML = `
+            <div class="meeting-impact">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--tense-color, #DD8452);">${data.meeting.avg_stress || '—'}</div>
+                        <div style="font-size: 11px; color: var(--secondary-text);">During meetings</div>
+                        <div style="font-size: 10px; color: var(--secondary-text);">${data.meeting.reading_count} readings</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 22px; font-weight: 700; color: ${color};">${sign}${stressDelta}</div>
+                        <div style="font-size: 11px; color: var(--secondary-text);">vs. non-meeting</div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 22px; font-weight: 700; color: var(--calm-color, #5B8DB8);">${data.non_meeting.avg_stress || '—'}</div>
+                        <div style="font-size: 11px; color: var(--secondary-text);">Non-meeting</div>
+                        <div style="font-size: 10px; color: var(--secondary-text);">${data.non_meeting.reading_count} readings</div>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: var(--secondary-text); text-align: center; font-style: italic;">${sanitizeHTML(delta.interpretation || '')}</div>
+            </div>`;
+    } catch (e) {
+        console.error('Failed to load meeting impact:', e);
+    }
+}
+
 

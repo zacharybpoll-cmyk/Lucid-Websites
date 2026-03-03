@@ -1,0 +1,19 @@
+{
+  "_source": "Adapted from Al-Mosaiwi & Johnstone 2018 absolutist lexicon",
+  "_description": "Words indicating all-or-nothing / black-and-white thinking patterns",
+  "words": [
+    "always", "never", "nothing", "everything", "everyone", "no one", "nobody",
+    "somebody", "anyone", "everyone", "completely", "totally", "entirely",
+    "absolutely", "utterly", "perfectly", "definitely", "certainly",
+    "impossible", "inevitable", "certain", "must", "need", "needs", "have to",
+    "has to", "worst", "best", "only", "just", "merely", "simply",
+    "all", "none", "every", "any", "either", "neither",
+    "forever", "ever", "whatever", "whenever", "wherever", "whoever",
+    "horrible", "terrible", "awful", "devastating", "catastrophic",
+    "perfect", "flawless", "ruined", "destroyed", "hopeless", "useless",
+    "pointless", "worthless", "meaningless", "endless", "constant",
+    "without fail", "without exception", "no matter what",
+    "unacceptable", "unbearable", "intolerable", "insufferable",
+    "nothing works", "nothing helps", "no one cares", "no one understands"
+  ]
+}

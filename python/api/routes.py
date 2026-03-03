@@ -12,7 +12,8 @@ import numpy as np
 from pydantic import BaseModel
 from api.schemas import (
     Reading, DailySummary, TodayResponse, StatusResponse,
-    TagRequest, TagResponse, MeetingToggleRequest
+    TagRequest, TagResponse, MeetingToggleRequest,
+    SelfAssessmentRequest, SelfAssessmentResponse,
 )
 from backend.burnout_calculator import BurnoutCalculator
 from backend.engagement import EngagementTracker
@@ -269,6 +270,71 @@ async def get_tags():
 
     tags = db.get_tags()
     return tags
+
+@app.post("/api/self-assessment", response_model=SelfAssessmentResponse)
+async def submit_self_assessment(request: SelfAssessmentRequest):
+    """Submit a self-assessment of current zone (ground truth for calibration).
+
+    Called when user responds to "How are you feeling?" prompt.
+    Links to the nearest reading for comparison.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    valid_zones = {'calm', 'steady', 'tense', 'stressed'}
+    if request.zone not in valid_zones:
+        raise HTTPException(status_code=400, detail=f"Zone must be one of: {valid_zones}")
+
+    # Link to nearest reading if not explicitly provided
+    reading_id = request.reading_id
+    if reading_id is None:
+        reading_id = db.get_nearest_reading_id()
+
+    assessment_id = db.insert_self_assessment(request.zone, reading_id)
+
+    return {
+        'id': assessment_id,
+        'timestamp': datetime.now().isoformat(),
+        'zone': request.zone,
+        'reading_id': reading_id,
+    }
+
+@app.get("/api/self-assessment/status")
+async def self_assessment_status():
+    """Check if a self-assessment prompt should be shown.
+
+    Returns whether enough time has passed since last assessment (>6 hours)
+    and whether there are recent readings to compare against.
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    last_time = db.get_last_self_assessment_time()
+    should_prompt = True
+
+    if last_time:
+        try:
+            last_dt = datetime.fromisoformat(last_time)
+            hours_since = (datetime.now() - last_dt).total_seconds() / 3600
+            should_prompt = hours_since >= 6  # Prompt at most every 6 hours
+        except (ValueError, TypeError):
+            should_prompt = True
+
+    nearest_reading_id = db.get_nearest_reading_id()
+
+    return {
+        'should_prompt': should_prompt,
+        'last_assessment': last_time,
+        'nearest_reading_id': nearest_reading_id,
+    }
+
+@app.get("/api/self-assessments")
+async def get_self_assessments():
+    """Get recent self-assessments for review/calibration."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    return db.get_self_assessments(limit=100)
 
 @app.post("/api/meeting/toggle")
 async def toggle_meeting(request: MeetingToggleRequest):
@@ -1121,6 +1187,257 @@ async def export_json(days: int = 30):
         'total_readings': len(readings),
         'total_days': len(summaries),
     }
+
+
+# ============ Phase 1/2/3 Insight Endpoints ============
+
+@app.get("/api/insights/meeting-vs-nonmeeting")
+async def get_meeting_vs_nonmeeting():
+    """Compare average stress/mood during meetings vs. non-meeting time (last 30 days)."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+
+    start_date = date.today() - timedelta(days=30)
+    start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+    readings = db.get_readings(start_time=start_time, limit=5000)
+
+    if not readings:
+        return {'has_data': False, 'meeting': {}, 'non_meeting': {}, 'delta': {}}
+
+    meeting_stress, meeting_mood, non_stress, non_mood = [], [], [], []
+    for r in readings:
+        is_mtg = r.get('meeting_detected', 0) == 1
+        s = r.get('stress_score')
+        m = r.get('mood_score')
+        if s is not None:
+            (meeting_stress if is_mtg else non_stress).append(s)
+        if m is not None:
+            (meeting_mood if is_mtg else non_mood).append(m)
+
+    def safe_avg(lst):
+        return round(sum(lst) / len(lst), 1) if lst else None
+
+    mtg_s = safe_avg(meeting_stress)
+    mtg_m = safe_avg(meeting_mood)
+    non_s = safe_avg(non_stress)
+    non_m = safe_avg(non_mood)
+    delta_s = round(mtg_s - non_s, 1) if (mtg_s and non_s) else None
+
+    return {
+        'has_data': True,
+        'meeting': {'avg_stress': mtg_s, 'avg_mood': mtg_m, 'reading_count': len(meeting_stress)},
+        'non_meeting': {'avg_stress': non_s, 'avg_mood': non_m, 'reading_count': len(non_stress)},
+        'delta': {
+            'stress': delta_s,
+            'mood': round(mtg_m - non_m, 1) if (mtg_m and non_m) else None,
+            'interpretation': (
+                f"Meetings raise stress by {abs(delta_s):.0f} points" if delta_s and delta_s > 3
+                else "Meetings have minimal stress impact" if delta_s is not None
+                else "Not enough data"
+            ),
+        },
+        'period_days': 30,
+    }
+
+
+@app.get("/api/insights/topic-stress")
+async def get_topic_stress():
+    """Per-topic stress delta vs. baseline over last 90 days."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+
+    start_date = date.today() - timedelta(days=90)
+    start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+    readings = db.get_readings(start_time=start_time, limit=10000)
+
+    if not readings:
+        return {'has_data': False, 'topics': {}, 'baseline_stress': None}
+
+    all_stress = [r['stress_score'] for r in readings if r.get('stress_score') is not None]
+    if not all_stress:
+        return {'has_data': False, 'topics': {}, 'baseline_stress': None}
+
+    baseline = sum(all_stress) / len(all_stress)
+    threshold = 0.3
+    topic_stress = {'work': [], 'relationships': [], 'health': []}
+
+    for r in readings:
+        s = r.get('stress_score')
+        if s is None:
+            continue
+        if (r.get('topic_work_score') or 0) > threshold:
+            topic_stress['work'].append(s)
+        if (r.get('topic_relationships_score') or 0) > threshold:
+            topic_stress['relationships'].append(s)
+        if (r.get('topic_health_score') or 0) > threshold:
+            topic_stress['health'].append(s)
+
+    topic_deltas = {}
+    for topic, scores in topic_stress.items():
+        if len(scores) >= 3:
+            avg = sum(scores) / len(scores)
+            topic_deltas[topic] = {
+                'delta': round(avg - baseline, 1),
+                'avg_stress': round(avg, 1),
+                'reading_count': len(scores),
+            }
+
+    return {
+        'has_data': bool(topic_deltas),
+        'topics': topic_deltas,
+        'baseline_stress': round(baseline, 1),
+        'period_days': 90,
+    }
+
+
+@app.get("/api/insights/vocabulary-trend")
+async def get_vocabulary_trend():
+    """Rolling lexical diversity trend with alogia flag."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+
+    start_date = date.today() - timedelta(days=60)
+    start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+    readings = db.get_readings(start_time=start_time, limit=5000)
+
+    lex_readings = [r for r in readings if (r.get('lexical_diversity') or 0) > 0]
+    if len(lex_readings) < 7:
+        return {'has_data': False, 'trend': [], 'baseline': None, 'alogia_flag': False}
+
+    all_lex = [r['lexical_diversity'] for r in lex_readings]
+    baseline = sum(all_lex) / len(all_lex)
+    variance = sum((x - baseline) ** 2 for x in all_lex) / len(all_lex)
+    std = variance ** 0.5 if variance > 0 else 0.01
+
+    from collections import defaultdict
+    daily = defaultdict(list)
+    for r in lex_readings:
+        try:
+            daily[r['timestamp'][:10]].append(r['lexical_diversity'])
+        except (KeyError, TypeError):
+            continue
+
+    trend = []
+    for day in sorted(daily.keys())[-14:]:
+        day_avg = sum(daily[day]) / len(daily[day])
+        z = (day_avg - baseline) / std if std > 0 else 0
+        trend.append({'date': day, 'avg': round(day_avg, 3), 'z_score': round(z, 2)})
+
+    alogia_flag = (len(trend) >= 5 and all(d['z_score'] < -2.0 for d in trend[-5:]))
+
+    return {
+        'has_data': True,
+        'trend': trend,
+        'baseline': round(baseline, 3),
+        'std': round(std, 3),
+        'alogia_flag': alogia_flag,
+    }
+
+
+@app.get("/api/export/therapist-summary")
+async def export_therapist_summary(days: int = 30):
+    """Structured therapist-ready summary of acoustic + linguistic patterns."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+
+    start_date = date.today() - timedelta(days=days)
+    start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+    readings = db.get_readings(start_time=start_time, limit=10000)
+
+    if not readings:
+        return {'period': f'{start_date.isoformat()} to {date.today().isoformat()}', 'has_data': False, 'reading_count': 0}
+
+    def avg(lst):
+        filtered = [x for x in lst if x is not None]
+        return round(sum(filtered) / len(filtered), 1) if filtered else None
+
+    acoustic_summary = {
+        'avg_stress': avg([r.get('stress_score') for r in readings]),
+        'avg_mood': avg([r.get('mood_score') for r in readings]),
+        'avg_energy': avg([r.get('energy_score') for r in readings]),
+        'avg_calm': avg([r.get('calm_score') for r in readings]),
+        'avg_f0': avg([r.get('f0_mean') for r in readings]),
+        'avg_hnr': avg([r.get('hnr') for r in readings]),
+        'avg_shimmer': avg([r.get('shimmer') for r in readings]),
+    }
+
+    ling_readings = [r for r in readings if r.get('filler_rate') is not None]
+    dominant_topic = None
+    if ling_readings:
+        topic_avgs = {
+            'work': avg([r.get('topic_work_score', 0) for r in ling_readings]) or 0,
+            'relationships': avg([r.get('topic_relationships_score', 0) for r in ling_readings]) or 0,
+            'health': avg([r.get('topic_health_score', 0) for r in ling_readings]) or 0,
+        }
+        dominant_topic = max(topic_avgs, key=lambda k: topic_avgs[k])
+
+    linguistic_summary = {
+        'avg_filler_rate': avg([r.get('filler_rate') for r in ling_readings]),
+        'avg_hedging_score': avg([r.get('hedging_score') for r in ling_readings]),
+        'avg_negative_sentiment': avg([r.get('negative_sentiment') for r in ling_readings]),
+        'avg_lexical_diversity': avg([r.get('lexical_diversity') for r in ling_readings]),
+        'avg_pronoun_i_ratio': avg([r.get('pronoun_i_ratio') for r in ling_readings]),
+        'avg_absolutist_ratio': avg([r.get('absolutist_ratio') for r in ling_readings]),
+        'avg_sentiment_valence': avg([r.get('sentiment_valence') for r in ling_readings]),
+        'avg_sentiment_arousal': avg([r.get('sentiment_arousal') for r in ling_readings]),
+        'dominant_topic': dominant_topic,
+        'linguistic_reading_count': len(ling_readings),
+    }
+
+    zone_counts = {}
+    for r in readings:
+        z = r.get('zone', 'unknown')
+        zone_counts[z] = zone_counts.get(z, 0) + 1
+    total = max(1, len(readings))
+    zone_distribution = {z: round(c / total, 3) for z, c in zone_counts.items()}
+
+    flags = []
+    lex_vals = [r['lexical_diversity'] for r in readings if r.get('lexical_diversity')]
+    if len(lex_vals) >= 10:
+        bl = sum(lex_vals) / len(lex_vals)
+        sd = (sum((x - bl) ** 2 for x in lex_vals) / len(lex_vals)) ** 0.5 or 0.01
+        if all((x - bl) / sd < -2.0 for x in lex_vals[:5]):
+            flags.append('vocabulary_decline_sustained')
+    stress_vals = [r['stress_score'] for r in readings if r.get('stress_score') is not None]
+    if stress_vals:
+        s_avg = sum(stress_vals) / len(stress_vals)
+        if s_avg > 65:
+            flags.append('sustained_elevated_stress')
+        elif s_avg > 55:
+            flags.append('moderately_elevated_stress')
+    abs_vals = [r.get('absolutist_ratio', 0) for r in ling_readings if r.get('absolutist_ratio') is not None]
+    if abs_vals and sum(abs_vals) / len(abs_vals) > 0.06:
+        flags.append('elevated_absolutist_language')
+
+    return {
+        'period': f'{start_date.isoformat()} to {date.today().isoformat()}',
+        'has_data': True,
+        'reading_count': len(readings),
+        'acoustic_summary': acoustic_summary,
+        'linguistic_summary': linguistic_summary,
+        'zone_distribution': zone_distribution,
+        'longitudinal_flags': flags,
+    }
+
+
+@app.get("/api/settings/linguistic-analysis")
+async def get_linguistic_analysis_setting():
+    """Get the enhanced linguistic analysis preference."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+    value = db.get_user_state('linguistic_analysis_enhanced', 'true')
+    return {'enabled': value.lower() == 'true'}
+
+
+@app.post("/api/settings/linguistic-analysis")
+async def set_linguistic_analysis_setting(request: Request):
+    """Set the enhanced linguistic analysis preference."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+    body = await request.json()
+    enabled = bool(body.get('enabled', True))
+    db.set_user_state('linguistic_analysis_enhanced', 'true' if enabled else 'false')
+    return {'success': True, 'enabled': enabled}
 
 
 class WebhookRequest(BaseModel):

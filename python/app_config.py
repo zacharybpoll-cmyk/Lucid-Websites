@@ -43,9 +43,16 @@ class AppConfig:
     analysis_interval_sec: int = 5      # How often frontend polls for new data
     calibration_days: int = 3           # Days to collect baseline data
 
-    # Score Thresholds (zone classification)
-    stress_threshold_high: int = 70     # Above this = "Stressed"
+    # Score Thresholds (zone classification — v2 audit AND-logic)
+    stress_threshold_high: int = 70     # Above this = "Stressed" (with AND gate)
     stress_threshold_med: int = 40      # Above this = "Tense"
+
+    # Whisper Linguistic Features
+    whisper_model: str = "base"          # Whisper model size (base ~140MB, small ~460MB)
+    whisper_enabled: bool = True         # Enable/disable linguistic feature extraction
+
+    # Self-Assessment
+    self_assessment_interval_hours: float = 6.0  # Minimum hours between prompts
 
     # Meeting Detection
     meeting_poll_interval_sec: int = 30 # How often to check for Zoom/Teams

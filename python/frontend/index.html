@@ -679,6 +679,32 @@
                         </div>
                     </div>
 
+                    <!-- Topic Correlations (Phase 2) -->
+                    <div class="dashboard-card" data-card-id="topic-correlations">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">TOPIC CORRELATIONS
+                                <button class="info-btn" data-info="topic-correlations">i</button>
+                                <div class="info-popover" id="info-topic-correlations">Shows how stress varies when you're talking about work, relationships, or health. Based on language patterns detected in your speech.</div>
+                            </h3>
+                            <div id="topic-correlations-container" class="echoes-list">
+                                <div class="echoes-empty">Topic patterns appear after 7+ days of readings</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Impact (Phase 1) -->
+                    <div class="dashboard-card" data-card-id="meeting-impact">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">MEETING IMPACT
+                                <button class="info-btn" data-info="meeting-impact">i</button>
+                                <div class="info-popover" id="info-meeting-impact">Compares your average stress during meetings vs. non-meeting time over the last 30 days.</div>
+                            </h3>
+                            <div id="meeting-impact-container" class="echoes-list">
+                                <div class="echoes-empty" style="font-size: 12px;">Appears after 3+ meeting readings</div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Time Capsule (Feature #9) -->
                     <div class="dashboard-card" data-card-id="capsules">
                         <div class="capsules-section glass-card" id="capsules-section" style="display: none;">
@@ -992,11 +1018,21 @@
                 <div id="notification-settings" class="notification-settings"></div>
             </div>
             <div class="settings-section">
+                <h3>Analysis</h3>
+                <p class="settings-desc">Enhanced Insight Analysis identifies topics and language patterns to give context to your scores.</p>
+                <label class="settings-toggle-row" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="linguistic-enhanced-toggle" style="width: 18px; height: 18px;">
+                    <span>Enhanced Insight Analysis</span>
+                </label>
+                <p class="settings-desc" style="margin-top: 6px; font-size: 11px; color: var(--secondary-text);">Includes topic detection, pronoun analysis, and language pattern signals. All processing is local — no data leaves your device.</p>
+            </div>
+            <div class="settings-section">
                 <h3>Export Data</h3>
                 <p class="settings-desc">Download your data for analysis or backup.</p>
                 <button id="export-readings-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Readings (CSV)</button>
                 <button id="export-summaries-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Summaries (CSV)</button>
-                <button id="export-json-btn" class="btn btn-secondary" style="width: 100%;">Export All Data (JSON)</button>
+                <button id="export-json-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export All Data (JSON)</button>
+                <button id="export-therapist-btn" class="btn btn-secondary" style="width: 100%;">Export Therapist Summary (JSON)</button>
             </div>
             <div class="settings-section">
                 <h3>API Access</h3>

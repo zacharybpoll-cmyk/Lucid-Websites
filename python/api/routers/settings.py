@@ -149,6 +149,30 @@ async def api_v1_readings(request: Request, limit: int = 50):
     return {'readings': readings, 'count': len(readings)}
 
 
+@router.get("/api/settings/linguistic-analysis")
+async def get_linguistic_analysis_setting():
+    """Get the enhanced linguistic analysis preference.
+
+    When enabled (default), runs spaCy NER + pronoun/absolutist analysis + semantic coherence.
+    User can disable for privacy or performance reasons.
+    """
+    if deps.db is None:
+        raise DatabaseNotReady()
+    value = deps.db.get_user_state('linguistic_analysis_enhanced', 'true')
+    return {'enabled': value.lower() == 'true'}
+
+
+@router.post("/api/settings/linguistic-analysis")
+async def set_linguistic_analysis_setting(request: Request):
+    """Set the enhanced linguistic analysis preference."""
+    if deps.db is None:
+        raise DatabaseNotReady()
+    body = await request.json()
+    enabled = bool(body.get('enabled', True))
+    deps.db.set_user_state('linguistic_analysis_enhanced', 'true' if enabled else 'false')
+    return {'success': True, 'enabled': enabled}
+
+
 @router.get("/api/v1/token")
 async def get_api_token(request: Request):
     """Get or generate the API token (for settings display)"""

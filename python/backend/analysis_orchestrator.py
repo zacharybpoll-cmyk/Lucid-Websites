@@ -18,6 +18,7 @@ from typing import Optional
 from backend.audio_capture import AudioCapture
 from backend.speech_buffer import SpeechBuffer
 from backend.acoustic_features import AcousticFeatureExtractor
+from backend.linguistic_features import extract_linguistic_features
 from backend.score_engine import ScoreEngine
 from backend.baseline_calibrator import BaselineCalibrator
 from backend.database import Database
@@ -385,8 +386,14 @@ class AnalysisOrchestrator:
                 logger.warning("DAM analysis returned None, skipping segment")
                 return
 
-            # Extract acoustic features (includes shimmer + voice_breaks)
+            # Extract acoustic features (includes shimmer + voice_breaks + alpha_ratio + mfcc3 + hnr)
             acoustic_features = self.feature_extractor.extract(speech_audio)
+
+            # Extract linguistic features via Whisper (parallel path)
+            # Privacy: transcript is extracted and discarded within the function
+            enhanced_ling = self.db.get_user_state('linguistic_analysis_enhanced', 'true').lower() == 'true'
+            linguistic_features = extract_linguistic_features(speech_audio, config.SAMPLE_RATE, enhanced=enhanced_ling)
+            acoustic_features.update(linguistic_features)
 
             # Compute derived scores (includes EMA smoothing)
             scores = self.score_engine.compute_scores(dam_output, acoustic_features)

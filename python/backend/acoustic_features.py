@@ -83,6 +83,23 @@ class AcousticFeatureExtractor:
             # Voice breaks (unvoiced gaps within speech)
             features['voice_breaks'] = self._extract_voice_breaks(audio, f0=f0)
 
+            # Alpha ratio (energy ratio 0-1kHz vs 1-5kHz) — most reliable stress marker (Menne et al. 2025)
+            features['alpha_ratio'] = self._extract_alpha_ratio(audio)
+
+            # MFCC3 (3rd mel-frequency cepstral coefficient) — cortisol association (beta=-0.606, p=0.014)
+            features['mfcc3'] = self._extract_mfcc3(audio)
+
+            # HNR (harmonic-to-noise ratio) — voice quality, decreases under stress
+            features['hnr'] = self._extract_hnr(audio, f0=f0)
+
+            # F1/F2 formants via LPC — vowel space, vocal tract tension
+            f1, f2 = self._extract_formants(audio)
+            features['f1_mean'] = f1
+            features['f2_mean'] = f2
+
+            # Spectral flux — frame-to-frame spectral change, arousal/dynamism
+            features['spectral_flux'] = self._extract_spectral_flux(audio)
+
             # Log results
             duration = len(audio) / self.sample_rate
             logger.info(f"Extracted features from {duration:.1f}s: "
@@ -329,6 +346,213 @@ class AcousticFeatureExtractor:
             logger.error(f"Error in voice breaks extraction: {e}")
             return 0
 
+    def _extract_alpha_ratio(self, audio: np.ndarray) -> float:
+        """Extract alpha ratio: energy ratio of 0-1kHz vs 1-5kHz.
+
+        Most reliable speech stress marker per Menne et al. 2025.
+        Higher alpha ratio (more low-frequency energy) indicates relaxed phonation;
+        lower ratio (more high-frequency energy) indicates tense phonation.
+        """
+        try:
+            S = np.abs(librosa.stft(audio, n_fft=2048, hop_length=512)) ** 2
+            freqs = librosa.fft_frequencies(sr=self.sample_rate, n_fft=2048)
+
+            # Low band: 0-1000 Hz
+            low_mask = freqs <= 1000
+            # High band: 1000-5000 Hz
+            high_mask = (freqs > 1000) & (freqs <= 5000)
+
+            low_energy = np.sum(S[low_mask, :])
+            high_energy = np.sum(S[high_mask, :])
+
+            if high_energy < 1e-10:
+                return 0.0
+
+            # Alpha ratio in dB
+            ratio = 10.0 * np.log10(low_energy / high_energy + 1e-10)
+            return float(ratio)
+
+        except Exception as e:
+            logger.error(f"Error in alpha ratio extraction: {e}")
+            return 0.0
+
+    def _extract_mfcc3(self, audio: np.ndarray) -> float:
+        """Extract 3rd MFCC coefficient (spectral envelope shape).
+
+        Significant cortisol association (beta=-0.606, p=0.014).
+        Lower MFCC3 associated with higher cortisol (stress).
+        """
+        try:
+            mfccs = librosa.feature.mfcc(y=audio, sr=self.sample_rate, n_mfcc=4)
+            # Index 2 = 3rd coefficient (0-indexed), averaged across frames
+            return float(np.mean(mfccs[2, :]))
+
+        except Exception as e:
+            logger.error(f"Error in MFCC3 extraction: {e}")
+            return 0.0
+
+    def _extract_hnr(self, audio: np.ndarray, f0=None) -> float:
+        """Extract Harmonic-to-Noise Ratio via autocorrelation method.
+
+        Better validated than jitter for voice quality assessment.
+        Higher HNR = clearer voice (less noise) = more relaxed.
+        Lower HNR = breathier/noisier voice = more tension/stress.
+        """
+        try:
+            if f0 is None:
+                f0, _, _ = self._extract_pitch(audio)
+                if f0 is None:
+                    return 0.0
+
+            f0_voiced = f0[~np.isnan(f0)]
+            if len(f0_voiced) < 2:
+                return 0.0
+
+            median_f0 = np.median(f0_voiced)
+            if median_f0 < 50:
+                return 0.0
+
+            # Compute autocorrelation at the pitch period
+            period_samples = int(self.sample_rate / median_f0)
+            if period_samples < 2 or period_samples >= len(audio):
+                return 0.0
+
+            # Frame-based HNR estimation
+            frame_length = period_samples * 4  # 4 pitch periods per frame
+            hop = frame_length // 2
+            hnr_values = []
+
+            for start in range(0, len(audio) - frame_length, hop):
+                frame = audio[start:start + frame_length].astype(np.float64)
+                # Autocorrelation
+                ac = np.correlate(frame, frame, mode='full')
+                ac = ac[len(ac) // 2:]  # Take positive lags
+                ac_norm = ac / (ac[0] + 1e-10)  # Normalize
+
+                if period_samples < len(ac_norm):
+                    # Peak at pitch period lag
+                    r_t0 = ac_norm[period_samples]
+                    if r_t0 > 0 and r_t0 < 1.0:
+                        hnr_db = 10.0 * np.log10(r_t0 / (1.0 - r_t0 + 1e-10))
+                        hnr_values.append(hnr_db)
+
+            if len(hnr_values) == 0:
+                return 0.0
+
+            return float(np.median(hnr_values))
+
+        except Exception as e:
+            logger.error(f"Error in HNR extraction: {e}")
+            return 0.0
+
+    def _extract_formants(self, audio: np.ndarray) -> tuple:
+        """Estimate F1/F2 formant frequencies via LPC analysis.
+
+        Uses librosa.lpc to compute linear predictive coding coefficients,
+        then finds polynomial roots to extract formant frequencies.
+        F1 and F2 correspond to the first two resonant frequencies of the vocal tract.
+        F1 correlates with tongue height; F2 with tongue backness.
+        Elevated F1 under stress (Protopapas & Lieberman 1997).
+
+        Returns:
+            Tuple of (f1_mean, f2_mean) in Hz, or (0.0, 0.0) on error.
+        """
+        try:
+            if len(audio) < self.sample_rate * 0.1:  # Need at least 100ms
+                return 0.0, 0.0
+
+            # Use 25ms frames with 10ms hop for formant analysis
+            frame_len = int(0.025 * self.sample_rate)  # 400 samples at 16kHz
+            hop_len = int(0.010 * self.sample_rate)     # 160 samples
+
+            # LPC order: 2 + sample_rate/1000 (standard heuristic)
+            lpc_order = 2 + int(self.sample_rate / 1000)  # 18 for 16kHz
+
+            f1_vals = []
+            f2_vals = []
+
+            for start in range(0, len(audio) - frame_len, hop_len):
+                frame = audio[start:start + frame_len].astype(np.float64)
+
+                # Apply Hanning window
+                frame = frame * np.hanning(len(frame))
+
+                # Skip low-energy frames (silence/noise)
+                if np.std(frame) < 1e-5:
+                    continue
+
+                try:
+                    # Compute LPC coefficients
+                    lpc_coeffs = librosa.lpc(frame, order=lpc_order)
+
+                    # Find roots of LPC polynomial
+                    roots = np.roots(lpc_coeffs)
+
+                    # Keep roots inside unit circle (stable) with positive imaginary part
+                    roots = roots[np.abs(roots) < 1.0]
+                    roots = roots[np.imag(roots) > 0]
+
+                    if len(roots) < 2:
+                        continue
+
+                    # Convert roots to frequencies
+                    angles = np.angle(roots)
+                    freqs = angles * (self.sample_rate / (2 * np.pi))
+                    freqs = np.sort(freqs)
+
+                    # Filter to speech formant range (200-3500 Hz)
+                    speech_freqs = freqs[(freqs >= 200) & (freqs <= 3500)]
+
+                    if len(speech_freqs) >= 2:
+                        f1_vals.append(speech_freqs[0])
+                        f2_vals.append(speech_freqs[1])
+                    elif len(speech_freqs) == 1:
+                        f1_vals.append(speech_freqs[0])
+
+                except Exception:
+                    continue
+
+            f1 = float(np.median(f1_vals)) if f1_vals else 0.0
+            f2 = float(np.median(f2_vals)) if f2_vals else 0.0
+
+            return f1, f2
+
+        except Exception as e:
+            logger.error(f"Error in formant extraction: {e}")
+            return 0.0, 0.0
+
+    def _extract_spectral_flux(self, audio: np.ndarray) -> float:
+        """Compute spectral flux: mean frame-to-frame spectral change.
+
+        Spectral flux measures how quickly the power spectrum changes over time.
+        High flux = more dynamic/expressive speech (arousal).
+        Low flux = more monotone/flat delivery.
+
+        Uses L2 norm of magnitude spectrum difference between consecutive frames.
+        """
+        try:
+            if len(audio) < 512:
+                return 0.0
+
+            # Compute magnitude spectrogram
+            S = np.abs(librosa.stft(audio, n_fft=2048, hop_length=512))
+
+            if S.shape[1] < 2:
+                return 0.0
+
+            # Normalize each frame to unit sum (focus on shape change, not energy)
+            S_norm = S / (np.sum(S, axis=0, keepdims=True) + 1e-10)
+
+            # Compute frame-to-frame L2 difference
+            diff = np.diff(S_norm, axis=1)
+            flux_per_frame = np.sqrt(np.sum(diff ** 2, axis=0))
+
+            return float(np.mean(flux_per_frame))
+
+        except Exception as e:
+            logger.error(f"Error in spectral flux extraction: {e}")
+            return 0.0
+
     def _get_zero_features(self) -> Dict[str, float]:
         """Return dict of zero features (for error cases)"""
         return {
@@ -342,4 +566,10 @@ class AcousticFeatureExtractor:
             'jitter': 0.0,
             'shimmer': 0.0,
             'voice_breaks': 0,
+            'alpha_ratio': 0.0,
+            'mfcc3': 0.0,
+            'hnr': 0.0,
+            'f1_mean': 0.0,
+            'f2_mean': 0.0,
+            'spectral_flux': 0.0,
         }

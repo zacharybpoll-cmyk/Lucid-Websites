@@ -341,6 +341,30 @@ class Database:
             ("readings", "pause_mean", "REAL"),
             ("readings", "pause_sd", "REAL"),
             ("readings", "pause_rate", "REAL"),
+            # Linguistic features (Whisper-derived, v2 audit)
+            ("readings", "filler_rate", "REAL"),
+            ("readings", "hedging_score", "REAL"),
+            ("readings", "negative_sentiment", "REAL"),
+            ("readings", "disfluency_rate", "REAL"),
+            ("readings", "lexical_diversity", "REAL"),
+            # Zone confidence (v2 audit)
+            ("readings", "zone_confidence", "TEXT"),
+            # Self-assessment ground truth (v2 audit)
+            ("readings", "self_reported_zone", "TEXT"),
+            # Phase 1: Formants + spectral flux (acoustic expansion)
+            ("readings", "f1_mean", "REAL"),
+            ("readings", "f2_mean", "REAL"),
+            ("readings", "spectral_flux", "REAL"),
+            # Phase 2: Enhanced linguistic features
+            ("readings", "topic_work_score", "REAL DEFAULT 0"),
+            ("readings", "topic_relationships_score", "REAL DEFAULT 0"),
+            ("readings", "topic_health_score", "REAL DEFAULT 0"),
+            ("readings", "pronoun_i_ratio", "REAL DEFAULT 0"),
+            ("readings", "absolutist_ratio", "REAL DEFAULT 0"),
+            ("readings", "sentiment_valence", "REAL DEFAULT 0"),
+            ("readings", "sentiment_arousal", "REAL DEFAULT 0"),
+            # Phase 3: Semantic coherence
+            ("readings", "semantic_coherence", "REAL"),
             # Next-gen daily summary columns
             ("daily_summaries", "avg_wellbeing", "REAL"),
             ("daily_summaries", "avg_activation", "REAL"),
@@ -386,6 +410,17 @@ class Database:
                 zone TEXT,
                 prompt_text TEXT,
                 notes TEXT
+            )
+        """)
+
+        # Self-assessments (ground truth for zone calibration)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS self_assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                zone TEXT NOT NULL,
+                reading_id INTEGER,
+                FOREIGN KEY (reading_id) REFERENCES readings(id)
             )
         """)
 
@@ -553,8 +588,14 @@ class Database:
                     anxiety_risk_score, anxiety_risk_score_raw,
                     emotional_stability_score, emotional_stability_score_raw,
                     alpha_ratio, mfcc3, pitch_range, rms_sd, phonation_ratio,
-                    h1_h2, hnr, voice_tremor_index, pause_mean, pause_sd, pause_rate
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    h1_h2, hnr, voice_tremor_index, pause_mean, pause_sd, pause_rate,
+                    filler_rate, hedging_score, negative_sentiment, disfluency_rate,
+                    lexical_diversity,
+                    f1_mean, f2_mean, spectral_flux,
+                    topic_work_score, topic_relationships_score, topic_health_score,
+                    pronoun_i_ratio, absolutist_ratio, sentiment_valence, sentiment_arousal,
+                    semantic_coherence, zone_confidence
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 r['timestamp'],
                 r['depression_raw'],
@@ -615,6 +656,23 @@ class Database:
                 r['pause_mean'],
                 r['pause_sd'],
                 r['pause_rate'],
+                r.get('filler_rate'),
+                r.get('hedging_score'),
+                r.get('negative_sentiment'),
+                r.get('disfluency_rate'),
+                r.get('lexical_diversity'),
+                r.get('f1_mean'),
+                r.get('f2_mean'),
+                r.get('spectral_flux'),
+                r.get('topic_work_score'),
+                r.get('topic_relationships_score'),
+                r.get('topic_health_score'),
+                r.get('pronoun_i_ratio'),
+                r.get('absolutist_ratio'),
+                r.get('sentiment_valence'),
+                r.get('sentiment_arousal'),
+                r.get('semantic_coherence'),
+                r.get('zone_confidence'),
             ))
             self.conn.commit()
             return cursor.lastrowid
@@ -829,6 +887,51 @@ class Database:
                 cursor.execute("SELECT * FROM tags ORDER BY timestamp DESC LIMIT 50")
 
             return [dict(row) for row in cursor.fetchall()]
+
+    def insert_self_assessment(self, zone: str, reading_id: Optional[int] = None) -> int:
+        """Insert a self-assessment (ground truth for zone calibration)."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            timestamp = datetime.now().isoformat()
+            cursor.execute("""
+                INSERT INTO self_assessments (timestamp, zone, reading_id)
+                VALUES (?, ?, ?)
+            """, (timestamp, zone, reading_id))
+
+            # Also update the nearest reading's self_reported_zone if reading_id given
+            if reading_id is not None:
+                cursor.execute("""
+                    UPDATE readings SET self_reported_zone = ? WHERE id = ?
+                """, (zone, reading_id))
+
+            self.conn.commit()
+            return cursor.lastrowid
+
+    def get_self_assessments(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Get recent self-assessments."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM self_assessments
+                ORDER BY timestamp DESC LIMIT ?
+            """, (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_last_self_assessment_time(self) -> Optional[str]:
+        """Get timestamp of most recent self-assessment (for prompt scheduling)."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT timestamp FROM self_assessments ORDER BY timestamp DESC LIMIT 1")
+            row = cursor.fetchone()
+            return row['timestamp'] if row else None
+
+    def get_nearest_reading_id(self) -> Optional[int]:
+        """Get the ID of the most recent reading (to link self-assessment)."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT id FROM readings ORDER BY timestamp DESC LIMIT 1")
+            row = cursor.fetchone()
+            return row['id'] if row else None
 
     def insert_briefing(self, date: str, type: str, content: str) -> int:
         """Insert or replace daily briefing"""
