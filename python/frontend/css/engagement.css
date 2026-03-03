@@ -1361,7 +1361,7 @@
     font-size: 13px;
     font-family: var(--font-body);
     background: var(--cream);
-    color: var(--text-primary);
+    color: var(--void-dark);
     cursor: pointer;
     appearance: auto;
 }

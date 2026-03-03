@@ -1571,7 +1571,7 @@ body {
 
 .btn-secondary {
     background: var(--cream);
-    color: var(--text-secondary);
+    color: var(--void-dark);
     border: 1px solid var(--cream-dark);
 }
 
