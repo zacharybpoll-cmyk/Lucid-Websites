@@ -336,7 +336,7 @@
             <!-- Science Banner -->
             <div class="science-banner" id="science-banner" onclick="openScienceModal()">
                 <span class="science-banner-text">
-                    <em>Powered by Kintsugi DAM</em> — validated on 14,898 participants (<em>Annals of Family Medicine</em>, 2025) | 35,000 training voices | 100% on-device
+                    <em>Clinically validated</em> on 14,898 participants (<em>Annals of Family Medicine</em>, 2025) | 35,000 training voices | 100% on-device | Powered by Kintsugi DAM
                 </span>
                 <span class="science-banner-link">Learn more</span>
             </div>
@@ -350,8 +350,8 @@
                     <!-- Speak Hero Card (first-time-ever experience) -->
                     <div id="speak-hero" class="speak-hero" style="display: none;">
                         <div class="speak-hero-content">
-                            <h2 class="speak-hero-headline">Your voice tells a story</h2>
-                            <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. It takes about 10 seconds after you stop speaking for analysis to begin, so we can verify you've finished.</p>
+                            <h2 class="speak-hero-headline">Your first reading starts here</h2>
+                            <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. No questionnaires. No self-reporting. Just your voice.</p>
                             <div class="speak-hero-quote">
                                 <span class="speak-hero-quote-text">"Good morning. I'm starting my day and feeling..."</span>
                             </div>
@@ -374,7 +374,7 @@
                             </div>
                             <div class="speak-hero-mic-dot" id="speak-hero-mic-dot"></div>
                         </div>
-                        <p class="speak-hero-footnote">Lucid listens passively during calls and conversations. This first reading helps calibrate your baseline.</p>
+                        <p class="speak-hero-footnote">The involuntary signals in your voice do the rest. Lucid listens passively during calls and conversations.</p>
                     </div>
 
                     <!-- Daily greeting (returning user, no readings today) -->
@@ -412,7 +412,7 @@
                         <div class="ring-gauge-header">
                             <span class="canopy-label" id="canopy-label" style="position: relative;">HEALTH SCORE
                                 <button class="info-btn" data-info="canopy">i</button>
-                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), built from today's voice readings. Combines seven voice dimensions — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and stability — plus your calm-time recovery. Higher-validity signals carry more weight.</div>
+                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), derived from involuntary vocal biomarkers — signals your autonomic nervous system produces that you can't control or fake. Combines seven voice dimensions weighted by clinical validation strength, plus your calm-time recovery ratio. Updated every time you speak.</div>
                             </span>
                             <span class="ring-gauge-tagline">Clarity through voice.</span>
                         </div>
@@ -782,6 +782,36 @@
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>Does this replace my therapist?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>No. Lucid is a monitoring tool, not a treatment. Think of it like a heart rate monitor for your mental wellness — it tracks the signal continuously so you can spot trends early. It complements the care you already receive, whether that's therapy, medication, or self-care practices.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>Is this FDA-approved?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>Lucid is a general wellness tool, not a medical device — similar to how Oura tracks HRV for wellness without being FDA-cleared as a diagnostic. The underlying voice biomarker model was clinically validated in a 14,898-participant study published in <em>Annals of Family Medicine</em>.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+                                <span>71.3% accuracy — is that good enough?</span>
+                                <span class="faq-chevron">&#9660;</span>
+                            </div>
+                            <div class="faq-answer">
+                                <p>The PHQ-9 — the gold-standard depression screening questionnaire used by clinicians — has comparable sensitivity for a single administration. The difference: the PHQ-9 is given once a year and relies on self-report. Lucid measures continuously, from involuntary signals, every time you speak. Continuous monitoring at 71% catches far more than annual screening at similar accuracy.</p>
+                            </div>
+                        </div>
+
+                        <div class="faq-item">
+                            <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
                                 <span>Why doesn't the speech timer exactly match how long I talk?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
@@ -807,17 +837,19 @@
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>Your daily wellness score from 0-100, calculated each morning from yesterday's voice data. It combines seven voice-based scores — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and emotional stability — weighted by validation strength, plus your calm-time recovery ratio. Think of it as your vocal wellness GPA.</p>
+                                <p>A real-time wellness score from 0-100, derived from involuntary vocal biomarkers — signals your autonomic nervous system produces that you can't control or fake. Updated every time you speak. No questionnaires. No self-reporting.</p>
+                                <p>It combines seven voice dimensions — stress, wellbeing, calmness, activation, depression risk, anxiety risk, and emotional stability — weighted by validation strength, plus your calm-time recovery ratio.</p>
                             </div>
                         </div>
 
                         <div class="faq-item">
                             <div class="faq-question" onclick="this.parentElement.classList.toggle('open')">
-                                <span>How does Lucid protect my privacy?</span>
+                                <span>Where does my voice data go?</span>
                                 <span class="faq-chevron">&#9660;</span>
                             </div>
                             <div class="faq-answer">
-                                <p>100% on-device. Zero bytes leave your Mac. There are no cloud servers, no data collection, and no third parties. The full 244M-parameter AI model runs locally. Your raw voice audio is never stored — only the derived wellness scores are kept in a local database.</p>
+                                <p>Nowhere. Literally. The full 244M-parameter model runs 100% on your Mac. Your voice is processed locally and never uploaded to any server. Lucid works with your internet disconnected — that's how you know.</p>
+                                <p>There are no cloud servers, no data collection, and no third parties. Your raw voice audio is never stored — only the derived wellness scores are kept in a local database.</p>
                             </div>
                         </div>
 
@@ -1076,8 +1108,13 @@
             <h2 class="science-modal-title">About the Science</h2>
 
             <div class="science-section">
+                <p>Voice biomarker technology — clinically validated, peer-reviewed, and backed by $30M in R&D — has existed for years. But it was only available through hospital integrations. Apple Silicon changed that.</p>
+            </div>
+
+            <div class="science-section">
                 <h3>Clinical Validation</h3>
                 <p>14,898 participants in a double-blind study published in <em>Annals of Family Medicine</em> (January 2025). 71.3% sensitivity and 73.5% specificity from just 25 seconds of natural speech.</p>
+                <p>For context: the PHQ-9 — the standard depression screening questionnaire — has comparable sensitivity for a single administration, but it's given once a year and relies entirely on self-report.</p>
             </div>
 
             <div class="science-section">
@@ -1128,6 +1165,7 @@
             <div class="science-section">
                 <h3>Your Privacy</h3>
                 <p>Zero bytes leave your device. All voice analysis runs locally on your Mac using the full 244M-parameter model. No cloud. No servers. No third parties. Your voice data is never stored — only the derived wellness scores are kept.</p>
+                <p>Lucid works with your internet disconnected — that's how you know.</p>
             </div>
         </div>
     </div>
