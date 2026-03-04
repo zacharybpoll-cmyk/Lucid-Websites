@@ -318,6 +318,10 @@ function switchView(view) {
         loadWaypoints();
     } else if (view === 'voicescan' && typeof ActiveAssessment !== 'undefined') {
         ActiveAssessment.loadHistory();
+    } else if (view === 'lab' && typeof labView !== 'undefined') {
+        labView.load();
+    } else if (view === 'studio' && typeof studioView !== 'undefined') {
+        studioView.load();
     }
 
     AppState.previousView = view;

@@ -61,9 +61,13 @@ async def _lucid_error_handler(request, exc: _LucidError):
 from api.routers import health as _health_mod
 from api.routers import readings as _readings_mod
 from api.routers import settings as _settings_mod
+from api.routers import lab as _lab_mod
+from api.routers import studio as _studio_mod
 app.include_router(_health_mod.router)
 app.include_router(_readings_mod.router)
 app.include_router(_settings_mod.router)
+app.include_router(_lab_mod.router)
+app.include_router(_studio_mod.router)
 
 @app.get("/")
 async def root():

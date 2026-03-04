@@ -1,0 +1,630 @@
+/* ============================================================
+   lab.css — Biomarker Lab styles
+   "Nerd mode for your voice" — full biomarker explorer
+   Palette: #f8f9fa bg, #5B8DB8 steel, #1a1d21 dark text
+   ============================================================ */
+
+/* ── View header ─────────────────────────────────────────── */
+
+.lab-header {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+}
+
+.lab-title {
+    font-family: 'Playfair Display', var(--font-heading), Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1d21;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+}
+
+.lab-subtitle {
+    font-size: 13px;
+    color: #5a6270;
+    margin-top: 5px;
+    line-height: 1.5;
+    font-style: italic;
+}
+
+/* ── Fingerprint summary card ────────────────────────────── */
+
+.lab-fingerprint-card {
+    background: white;
+    border: 1px solid #e4e8ec;
+    border-radius: 16px;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(91, 141, 184, 0.06);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle top-left accent stripe */
+.lab-fingerprint-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #5B8DB8 0%, rgba(91, 141, 184, 0.15) 100%);
+    border-radius: 16px 16px 0 0;
+}
+
+.lab-fingerprint-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.lab-fingerprint-right {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Radar / canvas ─────────────────────────────────────── */
+
+.lab-radar-canvas {
+    width: 180px;
+    height: 180px;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* ── Unique markers list ─────────────────────────────────── */
+
+.lab-unique-markers {
+    flex: 1;
+}
+
+.lab-unique-marker-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f2f4;
+}
+
+.lab-unique-marker-item:last-child {
+    border-bottom: none;
+}
+
+.lab-unique-marker-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1a1d21;
+    line-height: 1.3;
+}
+
+.lab-unique-marker-desc {
+    font-size: 11px;
+    color: #5a6270;
+    margin-top: 2px;
+    line-height: 1.4;
+}
+
+/* Fingerprint meta row */
+.lab-fingerprint-meta {
+    font-size: 11px;
+    color: #8C96A0;
+    margin-top: 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.lab-fingerprint-meta-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: #c8cfd8;
+    display: inline-block;
+}
+
+/* ── Category tabs ──────────────────────────────────────── */
+
+.lab-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.lab-tab {
+    padding: 8px 16px;
+    border: 1px solid #e4e8ec;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: white;
+    color: #5a6270;
+    transition: all 0.2s ease;
+    line-height: 1;
+    outline: none;
+    font-family: var(--font-body, 'Inter', sans-serif);
+    letter-spacing: 0.01em;
+}
+
+.lab-tab:hover {
+    background: #f0f2f4;
+    color: #1a1d21;
+    border-color: #c8cfd8;
+}
+
+.lab-tab.active {
+    background: #5B8DB8;
+    color: white;
+    border-color: #5B8DB8;
+    box-shadow: 0 2px 8px rgba(91, 141, 184, 0.25);
+}
+
+.lab-tab:focus-visible {
+    outline: 2px solid rgba(91, 141, 184, 0.4);
+    outline-offset: 2px;
+}
+
+/* ── Cards grid ─────────────────────────────────────────── */
+
+.lab-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+/* ── Individual biomarker card ───────────────────────────── */
+
+.lab-card {
+    background: white;
+    border: 1px solid #e4e8ec;
+    border-radius: 12px;
+    padding: 16px;
+    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.lab-card:hover {
+    box-shadow: 0 4px 16px rgba(91, 141, 184, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Status accent: left border stripe */
+.lab-card.within-normal {
+    border-left: 3px solid #e4e8ec;
+}
+
+.lab-card.elevated {
+    border-left: 3px solid #f0a742;
+}
+
+.lab-card.low {
+    border-left: 3px solid #7BA7C9;
+}
+
+/* ── Card header: name + evidence badge ─────────────────── */
+
+.lab-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+.lab-card-name-block {
+    flex: 1;
+    min-width: 0;
+}
+
+.lab-card-display-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1d21;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.lab-card-technical-name {
+    font-size: 11px;
+    color: #8C96A0;
+    margin-top: 2px;
+    font-style: italic;
+    line-height: 1.2;
+}
+
+/* ── Evidence badges ─────────────────────────────────────── */
+
+.lab-evidence-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.lab-evidence-badge.STRONG {
+    background: rgba(91, 141, 184, 0.12);
+    color: #5B8DB8;
+}
+
+.lab-evidence-badge.MODERATE {
+    background: rgba(140, 150, 160, 0.12);
+    color: #8C96A0;
+}
+
+.lab-evidence-badge.RESEARCH-ONLY {
+    background: rgba(240, 167, 66, 0.12);
+    color: #b08020;
+}
+
+/* ── One-line description ────────────────────────────────── */
+
+.lab-card-description {
+    font-size: 12px;
+    color: #5a6270;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+/* ── Score range bar ─────────────────────────────────────── */
+
+.lab-range-bar-wrap {
+    margin-bottom: 12px;
+}
+
+.lab-range-label {
+    font-size: 11px;
+    color: #8C96A0;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.lab-range-bar-bg {
+    background: #f0f2f4;
+    border-radius: 4px;
+    height: 6px;
+    position: relative;
+    overflow: visible;
+}
+
+.lab-range-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(91, 141, 184, 0.4) 0%, #5B8DB8 100%);
+    width: 0%;  /* animated via JS */
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+}
+
+/* Tinted fill when elevated */
+.lab-card.elevated .lab-range-bar-fill {
+    background: linear-gradient(90deg, rgba(240, 167, 66, 0.3) 0%, #f0a742 100%);
+}
+
+.lab-card.low .lab-range-bar-fill {
+    background: linear-gradient(90deg, rgba(123, 167, 201, 0.3) 0%, #7BA7C9 100%);
+}
+
+.lab-range-marker {
+    position: absolute;
+    top: -3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #5B8DB8;
+    transform: translateX(-50%);
+    border: 2px solid white;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition: left 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    z-index: 2;
+}
+
+.lab-card.elevated .lab-range-marker {
+    background: #f0a742;
+}
+
+.lab-card.low .lab-range-marker {
+    background: #7BA7C9;
+}
+
+/* Normal-range zone indicator on the bar */
+.lab-range-normal-zone {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background: rgba(91, 141, 184, 0.08);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* ── Sparkline ───────────────────────────────────────────── */
+
+.lab-sparkline-wrap {
+    margin-bottom: 12px;
+}
+
+.lab-sparkline-label {
+    font-size: 10px;
+    color: #8C96A0;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+}
+
+.lab-sparkline {
+    width: 100%;
+    height: 32px;
+    display: block;
+    overflow: visible;
+}
+
+/* ── "The Science" expandable section ───────────────────── */
+
+.lab-science-toggle {
+    font-size: 11px;
+    color: #5B8DB8;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    user-select: none;
+    padding: 2px 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    transition: color 0.15s;
+}
+
+.lab-science-toggle:hover {
+    color: #4a7a9e;
+}
+
+.lab-science-toggle svg {
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.lab-science-toggle.open svg {
+    transform: rotate(180deg);
+}
+
+.lab-science-body {
+    font-size: 11px;
+    color: #5a6270;
+    line-height: 1.6;
+    padding-top: 10px;
+    border-top: 1px solid #f0f2f4;
+    margin-top: 8px;
+    display: none;
+    animation: labScienceFadeIn 0.2s ease;
+}
+
+.lab-science-body.open {
+    display: block;
+}
+
+.lab-science-citation {
+    font-size: 10px;
+    color: #8C96A0;
+    margin-top: 6px;
+    font-style: italic;
+    line-height: 1.4;
+}
+
+@keyframes labScienceFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Fingerprint section labels ──────────────────────────── */
+
+.lab-fingerprint-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8C96A0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+}
+
+/* ── Empty and loading states ────────────────────────────── */
+
+.lab-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8C96A0;
+    font-size: 14px;
+    line-height: 1.6;
+    grid-column: 1 / -1;
+}
+
+.lab-empty p {
+    margin: 0;
+}
+
+.lab-empty p + p {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #a8b4bf;
+}
+
+.lab-loading {
+    text-align: center;
+    padding: 48px 20px;
+    color: #8C96A0;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+/* Animated loading dots */
+.lab-loading::after {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #e4e8ec;
+    border-top-color: #5B8DB8;
+    border-radius: 50%;
+    animation: labSpin 0.7s linear infinite;
+}
+
+@keyframes labSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Night theme overrides ────────────────────────────────── */
+
+[data-theme="night"] .lab-title {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="night"] .lab-subtitle {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="night"] .lab-header {
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="night"] .lab-fingerprint-card {
+    background: rgba(12, 20, 28, 0.88);
+    border-color: rgba(168, 192, 208, 0.12);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="night"] .lab-tab {
+    background: rgba(12, 20, 28, 0.6);
+    border-color: rgba(168, 192, 208, 0.12);
+    color: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="night"] .lab-tab:hover {
+    background: rgba(168, 192, 208, 0.08);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="night"] .lab-tab.active {
+    background: #5B8DB8;
+    color: white;
+    border-color: #5B8DB8;
+}
+
+[data-theme="night"] .lab-card {
+    background: rgba(12, 20, 28, 0.82);
+    border-color: rgba(168, 192, 208, 0.1);
+}
+
+[data-theme="night"] .lab-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="night"] .lab-card.within-normal {
+    border-left-color: rgba(168, 192, 208, 0.15);
+}
+
+[data-theme="night"] .lab-card-display-name {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme="night"] .lab-card-technical-name,
+[data-theme="night"] .lab-card-description,
+[data-theme="night"] .lab-unique-marker-desc,
+[data-theme="night"] .lab-science-body,
+[data-theme="night"] .lab-range-label,
+[data-theme="night"] .lab-sparkline-label {
+    color: rgba(255, 255, 255, 0.45);
+}
+
+[data-theme="night"] .lab-unique-marker-name {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="night"] .lab-unique-marker-item {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="night"] .lab-range-bar-bg {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="night"] .lab-range-marker {
+    border-color: rgba(12, 20, 28, 0.9);
+}
+
+[data-theme="night"] .lab-science-toggle {
+    color: #7BA7C9;
+}
+
+[data-theme="night"] .lab-science-body {
+    border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="night"] .lab-science-citation {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="night"] .lab-empty,
+[data-theme="night"] .lab-loading {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="night"] .lab-fingerprint-section-label {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="night"] .lab-fingerprint-meta {
+    color: rgba(255, 255, 255, 0.28);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+
+@media (max-width: 700px) {
+    .lab-fingerprint-card {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .lab-fingerprint-left {
+        align-items: flex-start;
+        flex-direction: row;
+        gap: 16px;
+    }
+
+    .lab-radar-canvas {
+        width: 120px;
+        height: 120px;
+    }
+
+    .lab-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lab-tabs {
+        gap: 6px;
+    }
+
+    .lab-tab {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+}
