@@ -96,9 +96,9 @@ window.AppState = {
     // Previous zone for transition detection
     previousZone: null,
 
-    // Canopy score reveal state
-    canopyRevealed: false,
-    prevCanopyScore: 0,
+    // Wellness score reveal state
+    wellnessRevealed: false,
+    prevWellnessScore: 0,
 
     // Intraday trend baseline
     morningBaselineScore: null,
@@ -121,6 +121,7 @@ window.AppState = {
 
     // Mental Readiness overlay state
     readinessShown: false,
+    readinessWellnessData: null,
 
     // Evening summary state
     eveningSummaryShown: false,
@@ -139,11 +140,11 @@ window.AppState = {
     heroAnalyzeRAF: null,
     heroAnalyzeStart: 0,
 
-    // Canopy progress circle state
-    canopyIsAnalyzing: false,
-    canopyProgressRAF: null,
-    canopyProgressStart: 0,
-    canopyProgressSafetyTimer: null,
+    // Wellness progress circle state
+    wellnessIsAnalyzing: false,
+    wellnessProgressRAF: null,
+    wellnessProgressStart: 0,
+    wellnessProgressSafetyTimer: null,
 };
 
 // ========== Startup Sequencing ==========
@@ -410,12 +411,12 @@ async function pollStatus() {
         updateMicIndicator(status);
         updateSpeakerDebug(status);
         // Start progress circle when backend begins analyzing
-        if (status.is_analyzing && !AppState.canopyIsAnalyzing) {
-            startCanopyProgress();
+        if (status.is_analyzing && !AppState.wellnessIsAnalyzing) {
+            startWellnessProgress();
         }
         // Finish progress circle when backend stops analyzing
-        if (!status.is_analyzing && AppState.canopyIsAnalyzing) {
-            finishCanopyProgress();
+        if (!status.is_analyzing && AppState.wellnessIsAnalyzing) {
+            finishWellnessProgress();
         }
         // Ring gauge progress indicator
         if (status.is_analyzing && !_ringAnalyzing) {
@@ -797,152 +798,152 @@ function hideSpeakHero(celebrate) {
 // ========== Hero → Readiness Transition ==========
 
 function transitionHeroToDone() {
-    const waiting = document.getElementById('speak-hero-state-waiting');
-    const done = document.getElementById('speak-hero-state-done');
-    if (!waiting || !done) return;
-
-    // Already in done state
-    if (done.style.display !== 'none') return;
-
-    // Fade out waiting state
-    waiting.style.transition = 'opacity 0.4s ease';
-    waiting.style.opacity = '0';
-
-    setTimeout(() => {
-        waiting.style.display = 'none';
-        done.style.display = '';
-        // Trigger reflow then fade in
-        done.offsetHeight;
-        done.classList.add('visible');
-
-        // Attach click handler
-        done.addEventListener('click', onHeroDoneClick, { once: true });
-    }, 400);
+    // New flow: skip the "done" tap state — hide hero immediately, show readiness overlay
+    hideSpeakHero(true);
+    showReadinessOverlayAnalyzing();
 }
 
-function onHeroDoneClick() {
-    const hero = document.getElementById('speak-hero');
-    if (!hero) return;
+// Kept as stub (no longer triggered, but harmless if called)
+function onHeroDoneClick() {}
 
-    // Shrink hero card
-    hero.style.maxHeight = hero.scrollHeight + 'px';
-    hero.offsetHeight;
-    hero.classList.add('shrinking');
-    setTimeout(() => {
-        hero.style.display = 'none';
-        hero.classList.remove('shrinking');
-        AppState.speakHeroVisible = false;
-    }, 500);
+// ---- Readiness overlay phase helpers ----
 
-    // Show readiness overlay
-    showReadinessOverlay();
+function _setReadinessPhase(phase) {
+    document.getElementById('readiness-state-analyzing').style.display = phase === 'analyzing' ? 'flex' : 'none';
+    document.getElementById('readiness-state-reveal').style.display   = phase === 'reveal'    ? 'flex' : 'none';
+    document.getElementById('readiness-state-score').style.display    = phase === 'score'     ? 'flex' : 'none';
 }
 
-async function showReadinessOverlay() {
+function _computeReadinessScore(scores) {
+    if (!scores) return null;
+    const s  = scores.stress             != null ? scores.stress             : 50;
+    const w  = scores.wellbeing          != null ? scores.wellbeing          : 50;
+    const a  = scores.activation         != null ? scores.activation         : 50;
+    const c  = scores.calm               != null ? scores.calm               : 50;
+    const e  = scores.emotional_stability!= null ? scores.emotional_stability: 50;
+    const dr = scores.depression_risk    != null ? scores.depression_risk    : 50;
+    const ar = scores.anxiety_risk       != null ? scores.anxiety_risk       : 50;
+    const avg = ((100 - s) + w + a + c + e + (100 - dr) + (100 - ar)) / 7;
+    return Math.round(Math.min(100, Math.max(0, avg)));
+}
+
+function _readinessScoreLabel(score) {
+    if (score >= 80) return 'Excellent';
+    if (score >= 65) return 'Good';
+    if (score >= 50) return 'Steady';
+    if (score >= 35) return 'Low';
+    return 'Very Low';
+}
+
+function _readinessTopFactor(scores) {
+    if (!scores) return '--';
+    const components = [
+        { label: 'Calm',       val: scores.calm },
+        { label: 'Energy',     val: scores.activation },
+        { label: 'Wellbeing',  val: scores.wellbeing },
+        { label: 'Stability',  val: scores.emotional_stability },
+        { label: 'Low Stress', val: scores.stress != null ? 100 - scores.stress : null },
+    ].filter(c => c.val != null);
+    if (!components.length) return '--';
+    components.sort((a, b) => b.val - a.val);
+    return components[0].label;
+}
+
+async function showReadinessOverlayAnalyzing() {
     if (AppState.readinessShown) return;
     AppState.readinessShown = true;
 
     const overlay = document.getElementById('readiness-overlay');
     if (!overlay) return;
 
-    // Fetch fresh canopy data
-    let canopyData = null;
-    try {
-        canopyData = await API.getCanopy();
-    } catch (e) {
-        console.error('Readiness: failed to fetch canopy', e);
-    }
+    // Prefetch wellness data in the background
+    API.getWellness().then(d => { AppState.readinessWellnessData = d; }).catch(() => {});
 
-    const score = (canopyData && canopyData.has_data) ? canopyData.score : 0;
-    const yesterdayScore = canopyData ? canopyData.yesterday_score : null;
-    const trendDirection = canopyData ? (canopyData.trend_direction || 'stable') : 'stable';
-    const topContributor = canopyData ? (canopyData.top_contributor || 'Voice') : 'Voice';
-
-    // Show overlay
+    _setReadinessPhase('analyzing');
     overlay.style.display = 'flex';
-    overlay.offsetHeight; // reflow
+    overlay.offsetHeight;
     overlay.classList.add('visible');
 
-    // After 300ms: animate ring arc fill
-    setTimeout(() => {
-        const arc = document.getElementById('readiness-ring-arc');
-        if (arc) {
-            const circumference = 691.2;
-            const offset = circumference - (circumference * score / 100);
-            arc.style.strokeDashoffset = offset;
-        }
-    }, 300);
+    // Mark as seen today
+    localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0,10)}`, '1');
 
-    // Score count-up animation (2.5s)
+    // After 2.5s: transition to reveal prompt
+    setTimeout(() => _setReadinessPhase('reveal'), 2500);
+}
+
+// Alias — handles the "reopened after reading completed" path
+async function showReadinessOverlay() {
+    return showReadinessOverlayAnalyzing();
+}
+
+function revealReadinessScore() {
+    _setReadinessPhase('score');
+
+    const scores = AppState.todayData && AppState.todayData.current_scores;
+    const readinessScore = _computeReadinessScore(scores);
+    const label = _readinessScoreLabel(readinessScore != null ? readinessScore : 0);
+    const topFactor = _readinessTopFactor(scores);
+    const target = readinessScore != null ? readinessScore : 0;
+
+    // Stats
+    const countEl      = document.getElementById('readiness-count');
+    const topEl        = document.getElementById('readiness-top-factor');
+    const deltaEl      = document.getElementById('readiness-delta');
+    const wellnessData = AppState.readinessWellnessData;
+
+    if (countEl) countEl.textContent = wellnessData && wellnessData.reading_count != null
+        ? wellnessData.reading_count
+        : (AppState.todayData && AppState.todayData.readings ? AppState.todayData.readings.length : '1');
+    if (topEl) topEl.textContent = topFactor;
+    if (deltaEl) {
+        const prevScore = AppState.morningBaselineScore;
+        if (readinessScore != null && prevScore != null && prevScore !== readinessScore) {
+            const delta = Math.round(readinessScore - prevScore);
+            deltaEl.textContent = (delta > 0 ? '+' : '') + delta;
+            deltaEl.className = 'readiness-stat-value ' + (delta > 0 ? 'positive' : 'negative');
+        } else {
+            deltaEl.textContent = '—';
+            deltaEl.className = 'readiness-stat-value neutral';
+        }
+    }
+
+    // Animate arc (300ms)
+    const arc = document.getElementById('readiness-ring-arc');
+    if (arc) {
+        setTimeout(() => { arc.style.strokeDashoffset = 691.2 - (691.2 * target / 100); }, 300);
+    }
+
+    // Count-up (2.5s)
     const scoreEl = document.getElementById('readiness-score');
     if (scoreEl) {
         const duration = 2500;
         const start = performance.now();
-        const countUp = (now) => {
+        const tick = (now) => {
             const elapsed = now - start;
             const progress = Math.min(elapsed / duration, 1);
-            // Ease-out cubic
             const eased = 1 - Math.pow(1 - progress, 3);
-            scoreEl.textContent = Math.round(score * eased);
-            if (progress < 1) requestAnimationFrame(countUp);
+            scoreEl.textContent = Math.round(target * eased);
+            if (progress < 1) requestAnimationFrame(tick);
+            else scoreEl.textContent = target;
         };
-        requestAnimationFrame(countUp);
+        requestAnimationFrame(tick);
     }
 
-    // After 1.5s: populate and show stat cards
+    // Set label
+    const labelEl = document.getElementById('readiness-label-text');
+    if (labelEl) labelEl.textContent = label;
+
+    // Fade in stats after 1.5s
     setTimeout(() => {
-        // Delta
-        const deltaEl = document.getElementById('readiness-delta');
-        if (deltaEl) {
-            if (yesterdayScore !== null && score !== null) {
-                const delta = score - yesterdayScore;
-                if (delta > 0) {
-                    deltaEl.textContent = `+${delta}`;
-                    deltaEl.className = 'readiness-stat-value positive';
-                } else if (delta < 0) {
-                    deltaEl.textContent = `${delta}`;
-                    deltaEl.className = 'readiness-stat-value negative';
-                } else {
-                    deltaEl.textContent = '0';
-                    deltaEl.className = 'readiness-stat-value neutral';
-                }
-            } else {
-                deltaEl.textContent = '--';
-                deltaEl.className = 'readiness-stat-value neutral';
-            }
-        }
-
-        // Trend
-        const trendEl = document.getElementById('readiness-trend');
-        if (trendEl) {
-            const trendLabels = { improving: 'Improving', declining: 'Declining', stable: 'Stable' };
-            trendEl.textContent = trendLabels[trendDirection] || 'Stable';
-            if (trendDirection === 'improving') trendEl.className = 'readiness-stat-value positive';
-            else if (trendDirection === 'declining') trendEl.className = 'readiness-stat-value negative';
-            else trendEl.className = 'readiness-stat-value neutral';
-        }
-
-        // Top contributor
-        const correlateEl = document.getElementById('readiness-correlate');
-        if (correlateEl) {
-            correlateEl.textContent = topContributor;
-        }
-
-        // Fade in stats
         const stats = document.getElementById('readiness-stats');
         if (stats) stats.classList.add('visible');
     }, 1500);
 
-    // After 2.2s: fade in continue button
+    // Fade in action buttons after 2.2s
     setTimeout(() => {
-        const btn = document.getElementById('readiness-continue-btn');
-        if (btn) btn.classList.add('visible');
+        const buttons = document.getElementById('readiness-buttons');
+        if (buttons) { buttons.style.opacity = '1'; buttons.style.pointerEvents = ''; }
     }, 2200);
-
-    // Mark as seen today
-    localStorage.setItem(
-        `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`, '1'
-    );
 }
 
 function dismissReadinessOverlay() {
@@ -956,29 +957,85 @@ function dismissReadinessOverlay() {
         overlay.style.display = 'none';
         overlay.classList.remove('fade-out');
 
-        // Reset animation states for next use
+        // Reset for next use
+        _setReadinessPhase('analyzing');
         const arc = document.getElementById('readiness-ring-arc');
         if (arc) arc.style.strokeDashoffset = '691.2';
         const scoreEl = document.getElementById('readiness-score');
         if (scoreEl) scoreEl.textContent = '0';
         const stats = document.getElementById('readiness-stats');
         if (stats) stats.classList.remove('visible');
-        const btn = document.getElementById('readiness-continue-btn');
-        if (btn) btn.classList.remove('visible');
+        const buttons = document.getElementById('readiness-buttons');
+        if (buttons) { buttons.style.opacity = '0'; buttons.style.pointerEvents = 'none'; }
 
         // Clean up old localStorage keys (>7 days)
         const now = new Date();
-        for (let i = 0; i < localStorage.length; i++) {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
             const key = localStorage.key(i);
             if (key && key.startsWith('lucid_readiness_seen_')) {
-                const dateStr = key.replace('lucid_readiness_seen_', '');
-                const keyDate = new Date(dateStr);
-                if ((now - keyDate) > 7 * 24 * 60 * 60 * 1000) {
-                    localStorage.removeItem(key);
-                }
+                const keyDate = new Date(key.replace('lucid_readiness_seen_', ''));
+                if ((now - keyDate) > 7 * 24 * 60 * 60 * 1000) localStorage.removeItem(key);
             }
         }
     }, 500);
+}
+
+function showDeeperInsights() {
+    const overlay = document.getElementById('dive-deeper-overlay');
+    const barsContainer = document.getElementById('dive-deeper-bars');
+    if (!overlay || !barsContainer) return;
+
+    const scores = AppState.todayData && AppState.todayData.current_scores;
+
+    const COMPONENTS = [
+        { key: 'stress',              label: 'STRESS LEVEL',         invert: true,  desc: 'Lower is better. Measured from vocal tension and pace.' },
+        { key: 'wellbeing',           label: 'MOOD & WELLBEING',      invert: false, desc: 'Overall emotional quality of your voice patterns.' },
+        { key: 'activation',          label: 'ENERGY LEVEL',          invert: false, desc: 'Vocal energy and engagement detected in your voice.' },
+        { key: 'calm',                label: 'CALMNESS',              invert: false, desc: 'Physiological composure reflected in your speech.' },
+        { key: 'emotional_stability', label: 'EMOTIONAL STABILITY',   invert: false, desc: 'Consistency of emotional tone across your readings.' },
+        { key: 'depression_risk',     label: 'EMOTIONAL RESILIENCE',  invert: true,  desc: 'Inverted depression risk — higher = more resilient.' },
+        { key: 'anxiety_risk',        label: 'ANXIETY EASE',          invert: true,  desc: 'Inverted anxiety risk — higher = calmer baseline.' },
+    ];
+
+    barsContainer.innerHTML = '';
+    COMPONENTS.forEach(comp => {
+        const rawVal = scores && scores[comp.key] != null ? scores[comp.key] : null;
+        const displayVal = rawVal != null ? (comp.invert ? Math.round(100 - rawVal) : Math.round(rawVal)) : '--';
+        const pct = rawVal != null ? Math.min(100, Math.max(0, comp.invert ? 100 - rawVal : rawVal)) : 0;
+
+        const item = document.createElement('div');
+        item.className = 'dd-bar-item';
+        item.innerHTML = `
+            <div class="dd-bar-header">
+                <span class="dd-bar-label">${sanitizeHTML(comp.label)}</span>
+                <span class="dd-bar-value">${displayVal}</span>
+            </div>
+            <div class="dd-bar-track">
+                <div class="dd-bar-fill" data-pct="${pct}"></div>
+            </div>
+            <p class="dd-bar-desc">${sanitizeHTML(comp.desc)}</p>
+        `;
+        barsContainer.appendChild(item);
+    });
+
+    overlay.style.display = 'flex';
+    overlay.offsetHeight;
+    overlay.classList.add('visible');
+
+    barsContainer.querySelectorAll('.dd-bar-item').forEach((item, i) => {
+        setTimeout(() => {
+            item.classList.add('visible');
+            const fill = item.querySelector('.dd-bar-fill');
+            if (fill) requestAnimationFrame(() => { fill.style.width = fill.dataset.pct + '%'; });
+        }, i * 55);
+    });
+}
+
+function hideDeeperInsights() {
+    const overlay = document.getElementById('dive-deeper-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('visible');
+    setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
 function updateDailyGreeting() {
@@ -1031,11 +1088,11 @@ async function loadTodayData() {
             showReadinessOverlay();
         }
 
-        // Fetch canopy data first so ring gauge has the score
-        const canopyData = await API.getCanopy().catch(() => null);
-        const canopyScore = (canopyData && canopyData.has_data) ? canopyData.score : null;
+        // Fetch wellness data first so ring gauge has the score
+        const wellnessData = await API.getWellness().catch(() => null);
+        const wellnessScore = (wellnessData && wellnessData.has_data) ? wellnessData.score : null;
         // Track reading count for reveal overlay logic
-        if (canopyData) AppState.currentReadingCount = canopyData.reading_count || 0;
+        if (wellnessData) AppState.currentReadingCount = wellnessData.reading_count || 0;
 
         // Intraday trend: reset baseline if day changed
         if (AppState.morningBaselineTime) {
@@ -1047,29 +1104,29 @@ async function loadTodayData() {
             }
         }
 
-        // Track morning baseline (first canopy score of the day)
-        if (canopyScore !== null && AppState.morningBaselineScore === null) {
-            AppState.morningBaselineScore = canopyScore;
+        // Track morning baseline (first wellness score of the day)
+        if (wellnessScore !== null && AppState.morningBaselineScore === null) {
+            AppState.morningBaselineScore = wellnessScore;
             AppState.morningBaselineTime = new Date();
         }
 
         // Compute intraday delta (only after 2+ readings so delta is meaningful)
-        let canopyDelta = null;
-        if (canopyScore !== null && AppState.morningBaselineScore !== null
-            && canopyScore !== AppState.morningBaselineScore) {
-            canopyDelta = Math.round(canopyScore - AppState.morningBaselineScore);
+        let wellnessDelta = null;
+        if (wellnessScore !== null && AppState.morningBaselineScore !== null
+            && wellnessScore !== AppState.morningBaselineScore) {
+            wellnessDelta = Math.round(wellnessScore - AppState.morningBaselineScore);
         }
 
         updateCurrentScores(data.current_scores, data.readings);
-        updateScoreCircles(data.current_scores, canopyScore, canopyDelta);
+        updateScoreCircles(data.current_scores, wellnessScore, wellnessDelta);
         updateZoneBar(data.readings);
         updateAnxietyTimeline(data.readings);
         updateZoneSummary(data.summary);
         updateMeetings(data.readings);
         updateCalibrationBanner(data.calibration_status);
 
-        // Update canopy UI elements (progress state, score display, profile)
-        _updateCanopyUI(canopyData);
+        // Update wellness UI elements (progress state, score display, profile)
+        _updateWellnessUI(wellnessData);
 
         // Detect zone transitions for Sanctuary Moments
         if (data.readings && data.readings.length > 0) {
@@ -1082,7 +1139,7 @@ async function loadTodayData() {
             AppState.previousZone = currentZone;
 
             // First reading of the day
-            if (data.readings.length === 1 && !AppState.canopyRevealed) {
+            if (data.readings.length === 1 && !AppState.wellnessRevealed) {
                 triggerSanctuary('first_reading', 'Your voice has been heard');
             }
         }
@@ -1138,16 +1195,16 @@ async function loadFeatures() {
     ]);
 }
 
-// ========== Canopy Score (Feature #1) ==========
+// ========== Wellness Score (Feature #1) ==========
 
-async function loadCanopyScore() {
+async function loadWellnessScore() {
     try {
-        const data = await API.getCanopy();
-        const scoreEl = document.getElementById('canopy-score');
-        const profileEl = document.getElementById('canopy-profile');
-        const progressState = document.getElementById('canopy-progress-state');
-        const progressBar = document.getElementById('canopy-progress-bar');
-        const readingCountEl = document.getElementById('canopy-reading-count');
+        const data = await API.getWellness();
+        const scoreEl = document.getElementById('wellness-score');
+        const profileEl = document.getElementById('wellness-profile');
+        const progressState = document.getElementById('wellness-progress-state');
+        const progressBar = document.getElementById('wellness-progress-bar');
+        const readingCountEl = document.getElementById('wellness-reading-count');
 
         AppState.currentReadingCount = data.reading_count || 0;
         if (!data.has_data) {
@@ -1158,31 +1215,31 @@ async function loadCanopyScore() {
             if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
             if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
             if (profileEl) profileEl.textContent = '';
-            AppState.canopyRevealed = false; // Reset so animation fires on score unlock
+            AppState.wellnessRevealed = false; // Reset so animation fires on score unlock
         } else {
             // Show score (but not while progress circle is active)
             if (progressState) progressState.style.display = 'none';
-            if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
+            if (!AppState.wellnessIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
             // Legacy score element is hidden — just update its text
-            // The ring gauge reveal card controls canopyRevealed
+            // The ring gauge reveal card controls wellnessRevealed
             if (scoreEl) scoreEl.textContent = Math.round(data.score);
-            AppState.prevCanopyScore = data.score;
+            AppState.prevWellnessScore = data.score;
             if (profileEl) profileEl.textContent = data.profile || '';
         }
     } catch (e) {
-        console.error('Failed to load canopy score:', e);
+        console.error('Failed to load wellness score:', e);
     }
 }
 
-// Update canopy UI elements from pre-fetched data (avoids duplicate API call)
-function _updateCanopyUI(data) {
+// Update wellness UI elements from pre-fetched data (avoids duplicate API call)
+function _updateWellnessUI(data) {
     if (!data) return;
-    const scoreEl = document.getElementById('canopy-score');
-    const profileEl = document.getElementById('canopy-profile');
-    const progressState = document.getElementById('canopy-progress-state');
-    const progressBar = document.getElementById('canopy-progress-bar');
-    const readingCountEl = document.getElementById('canopy-reading-count');
+    const scoreEl = document.getElementById('wellness-score');
+    const profileEl = document.getElementById('wellness-profile');
+    const progressState = document.getElementById('wellness-progress-state');
+    const progressBar = document.getElementById('wellness-progress-bar');
+    const readingCountEl = document.getElementById('wellness-reading-count');
 
     AppState.currentReadingCount = data.reading_count || 0;
     if (!data.has_data) {
@@ -1192,15 +1249,15 @@ function _updateCanopyUI(data) {
         if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
         if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
         if (profileEl) profileEl.textContent = '';
-        AppState.canopyRevealed = false;
+        AppState.wellnessRevealed = false;
     } else {
         if (progressState) progressState.style.display = 'none';
-        if (!AppState.canopyIsAnalyzing && scoreEl) scoreEl.style.display = '';
+        if (!AppState.wellnessIsAnalyzing && scoreEl) scoreEl.style.display = '';
 
         // Legacy score element is hidden — just update its text
-        // The ring gauge reveal card controls canopyRevealed
+        // The ring gauge reveal card controls wellnessRevealed
         if (scoreEl) scoreEl.textContent = Math.round(data.score);
-        AppState.prevCanopyScore = data.score;
+        AppState.prevWellnessScore = data.score;
         if (profileEl) profileEl.textContent = data.profile || '';
     }
 }
@@ -1241,34 +1298,34 @@ function addLeafParticles(container) {
     }
 }
 
-// ========== Canopy Progress Circle ==========
+// ========== Wellness Progress Circle ==========
 
-// canopyIsAnalyzing, canopyProgressRAF, canopyProgressStart, canopyProgressSafetyTimer are in AppState
+// wellnessIsAnalyzing, wellnessProgressRAF, wellnessProgressStart, wellnessProgressSafetyTimer are in AppState
 
-function startCanopyProgress() {
-    const circle = document.getElementById('canopy-progress-circle');
-    const arc = document.getElementById('canopy-progress-arc');
-    const scoreEl = document.getElementById('canopy-score');
+function startWellnessProgress() {
+    const circle = document.getElementById('wellness-progress-circle');
+    const arc = document.getElementById('wellness-progress-arc');
+    const scoreEl = document.getElementById('wellness-score');
     if (!circle || !arc) return;
 
-    AppState.canopyIsAnalyzing = true;
+    AppState.wellnessIsAnalyzing = true;
     circle.style.display = 'flex';
     if (scoreEl) scoreEl.style.display = 'none';
 
     arc.style.transition = 'none';
     arc.style.strokeDashoffset = '326.7';
 
-    AppState.canopyProgressStart = performance.now();
-    if (AppState.canopyProgressRAF) cancelAnimationFrame(AppState.canopyProgressRAF);
+    AppState.wellnessProgressStart = performance.now();
+    if (AppState.wellnessProgressRAF) cancelAnimationFrame(AppState.wellnessProgressRAF);
 
     // Safety timeout: auto-dismiss after 25s no matter what
-    if (AppState.canopyProgressSafetyTimer) clearTimeout(AppState.canopyProgressSafetyTimer);
-    AppState.canopyProgressSafetyTimer = setTimeout(() => {
-        if (AppState.canopyIsAnalyzing) finishCanopyProgress();
+    if (AppState.wellnessProgressSafetyTimer) clearTimeout(AppState.wellnessProgressSafetyTimer);
+    AppState.wellnessProgressSafetyTimer = setTimeout(() => {
+        if (AppState.wellnessIsAnalyzing) finishWellnessProgress();
     }, 25000);
 
     function tick(now) {
-        const elapsed = now - AppState.canopyProgressStart;
+        const elapsed = now - AppState.wellnessProgressStart;
         // Phase 1: Linear to 80% over 8s
         // Phase 2: Slow crawl from 80% to 95% over next 17s
         let progress;
@@ -1282,42 +1339,42 @@ function startCanopyProgress() {
         arc.style.transition = 'none';
         arc.style.strokeDashoffset = offset;
 
-        if (AppState.canopyIsAnalyzing) {
-            AppState.canopyProgressRAF = requestAnimationFrame(tick);
+        if (AppState.wellnessIsAnalyzing) {
+            AppState.wellnessProgressRAF = requestAnimationFrame(tick);
         }
     }
 
-    AppState.canopyProgressRAF = requestAnimationFrame(tick);
+    AppState.wellnessProgressRAF = requestAnimationFrame(tick);
 }
 
-function finishCanopyProgress() {
-    const circle = document.getElementById('canopy-progress-circle');
-    const arc = document.getElementById('canopy-progress-arc');
-    const scoreEl = document.getElementById('canopy-score');
+function finishWellnessProgress() {
+    const circle = document.getElementById('wellness-progress-circle');
+    const arc = document.getElementById('wellness-progress-arc');
+    const scoreEl = document.getElementById('wellness-score');
     if (!arc) return;
 
-    // Keep canopyIsAnalyzing true during the 500ms close transition
-    // so loadCanopyScore() won't prematurely show the score element
-    if (AppState.canopyProgressRAF) {
-        cancelAnimationFrame(AppState.canopyProgressRAF);
-        AppState.canopyProgressRAF = null;
+    // Keep wellnessIsAnalyzing true during the 500ms close transition
+    // so loadWellnessScore() won't prematurely show the score element
+    if (AppState.wellnessProgressRAF) {
+        cancelAnimationFrame(AppState.wellnessProgressRAF);
+        AppState.wellnessProgressRAF = null;
     }
-    if (AppState.canopyProgressSafetyTimer) {
-        clearTimeout(AppState.canopyProgressSafetyTimer);
-        AppState.canopyProgressSafetyTimer = null;
+    if (AppState.wellnessProgressSafetyTimer) {
+        clearTimeout(AppState.wellnessProgressSafetyTimer);
+        AppState.wellnessProgressSafetyTimer = null;
     }
 
     // Snap to 100%
     arc.style.transition = 'stroke-dashoffset 0.4s ease-out';
     arc.style.strokeDashoffset = '0';
 
-    // After transition: hide circle, show score, refresh canopy data
+    // After transition: hide circle, show score, refresh wellness data
     setTimeout(() => {
-        AppState.canopyIsAnalyzing = false;
+        AppState.wellnessIsAnalyzing = false;
         if (circle) circle.style.display = 'none';
         if (scoreEl) scoreEl.style.display = '';
-        // Force a fresh canopy score fetch so count-up fires immediately
-        loadCanopyScore();
+        // Force a fresh wellness score fetch so count-up fires immediately
+        loadWellnessScore();
     }, 500);
 }
 
@@ -2134,15 +2191,15 @@ async function loadWeeklyWrapped() {
         const content = card.querySelector('.wrapped-content');
         if (!content) return;
 
-        const trendIcon = data.canopy.trend > 0 ? '\u2191' : data.canopy.trend < 0 ? '\u2193' : '\u2192';
-        const trendColor = data.canopy.trend > 0 ? 'var(--calm-color)' : data.canopy.trend < 0 ? 'var(--stressed-color)' : 'var(--gold)';
+        const trendIcon = data.wellness.trend > 0 ? '\u2191' : data.wellness.trend < 0 ? '\u2193' : '\u2192';
+        const trendColor = data.wellness.trend > 0 ? 'var(--calm-color)' : data.wellness.trend < 0 ? 'var(--stressed-color)' : 'var(--gold)';
 
         let html = `
             <div class="wrapped-summary-line">${sanitizeHTML(data.summary_line)}</div>
-            <div class="wrapped-canopy">
-                <span class="wrapped-canopy-score">${data.canopy.avg}</span>
-                <span class="wrapped-canopy-label">Avg Health Score</span>
-                <span class="wrapped-canopy-trend" style="color: ${trendColor}">${trendIcon} ${data.canopy.trend > 0 ? '+' : ''}${data.canopy.trend}</span>
+            <div class="wrapped-wellness">
+                <span class="wrapped-wellness-score">${data.wellness.avg}</span>
+                <span class="wrapped-wellness-label">Avg Health Score</span>
+                <span class="wrapped-wellness-trend" style="color: ${trendColor}">${trendIcon} ${data.wellness.trend > 0 ? '+' : ''}${data.wellness.trend}</span>
             </div>
             <div class="wrapped-days">
                 <div class="wrapped-day-stat wrapped-best">
@@ -2289,17 +2346,17 @@ function renderMorningSummary(data) {
             'Yesterday \u2014 ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
     }
 
-    // Canopy Score (center of rings)
-    const canopy = data.canopy;
+    // Wellness Score (center of rings)
+    const wellness = data.wellness;
     const scoreEl = document.getElementById('morning-ring-score');
     const verdictEl = document.getElementById('morning-ring-verdict');
 
-    if (canopy && canopy.has_data) {
-        animateMorningScore(scoreEl, canopy.score, 2500);
+    if (wellness && wellness.has_data) {
+        animateMorningScore(scoreEl, wellness.score, 2500);
         let verdict = 'Needs Attention';
-        if (canopy.score >= 80) verdict = 'Excellent';
-        else if (canopy.score >= 65) verdict = 'Good';
-        else if (canopy.score >= 50) verdict = 'Fair';
+        if (wellness.score >= 80) verdict = 'Excellent';
+        else if (wellness.score >= 65) verdict = 'Good';
+        else if (wellness.score >= 50) verdict = 'Fair';
         verdictEl.textContent = verdict;
     } else {
         scoreEl.textContent = '--';
@@ -2495,15 +2552,15 @@ function renderEveningSummary(data) {
     document.getElementById('evening-date').textContent =
         now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
 
-    // Canopy ring + score
-    const canopy = data.canopy;
-    const scoreEl = document.getElementById('evening-canopy-score');
-    const verdictEl = document.getElementById('evening-canopy-verdict');
+    // Wellness ring + score
+    const wellness = data.wellness;
+    const scoreEl = document.getElementById('evening-wellness-score');
+    const verdictEl = document.getElementById('evening-wellness-verdict');
     const arcEl = document.getElementById('evening-ring-arc');
-    const deltaEl = document.getElementById('evening-canopy-delta');
+    const deltaEl = document.getElementById('evening-wellness-delta');
 
-    if (canopy && canopy.has_data) {
-        const score = Math.round(canopy.score);
+    if (wellness && wellness.has_data) {
+        const score = Math.round(wellness.score);
         animateEveningScore(scoreEl, score, 2000);
         // Animate arc (circumference = 2π × 110 ≈ 691.2)
         const offset = 691.2 * (1 - score / 100);
@@ -2515,12 +2572,12 @@ function renderEveningSummary(data) {
         else if (score >= 50) verdict = 'Fair';
         verdictEl.textContent = verdict;
         // Delta vs yesterday
-        if (data.canopy_delta != null) {
+        if (data.wellness_delta != null) {
             deltaEl.style.display = 'block';
-            const sign = data.canopy_delta >= 0 ? '+' : '';
-            deltaEl.textContent = `${sign}${data.canopy_delta} pts vs yesterday`;
-            deltaEl.className = 'evening-canopy-delta ' +
-                (data.canopy_delta > 0 ? 'positive' : data.canopy_delta < 0 ? 'negative' : 'neutral');
+            const sign = data.wellness_delta >= 0 ? '+' : '';
+            deltaEl.textContent = `${sign}${data.wellness_delta} pts vs yesterday`;
+            deltaEl.className = 'evening-wellness-delta ' +
+                (data.wellness_delta > 0 ? 'positive' : data.wellness_delta < 0 ? 'negative' : 'neutral');
         }
     } else {
         scoreEl.textContent = '--';

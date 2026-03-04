@@ -165,32 +165,82 @@
     <!-- Mental Readiness Overlay -->
     <div id="readiness-overlay" class="readiness-overlay" style="display: none;">
         <div class="readiness-content">
-            <div class="readiness-ring-area">
-                <svg viewBox="0 0 260 260" width="260" height="260">
-                    <circle cx="130" cy="130" r="110" class="readiness-ring-track"/>
-                    <circle cx="130" cy="130" r="110" class="readiness-ring-progress" id="readiness-ring-arc"
-                        stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
-                    <text x="130" y="148" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
-                    <text x="130" y="172" text-anchor="middle" class="readiness-label-text">MENTAL READINESS</text>
-                </svg>
+
+            <!-- State A: Analyzing -->
+            <div id="readiness-state-analyzing" class="readiness-phase">
+                <div class="readiness-spinner-ring"></div>
+                <p class="readiness-analyzing-text">Analyzing your voice...</p>
+                <p class="readiness-analyzing-sub">Measuring 7 dimensions of mental wellness</p>
             </div>
-            <div class="readiness-stats" id="readiness-stats">
-                <div class="readiness-stat-card">
-                    <span class="readiness-stat-value" id="readiness-delta">--</span>
-                    <span class="readiness-stat-label">From yesterday</span>
+
+            <!-- State B: Reveal prompt (hidden initially) -->
+            <div id="readiness-state-reveal" class="readiness-phase" style="display:none;">
+                <div class="readiness-reveal-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <circle cx="24" cy="24" r="22" stroke="#5B8DB8" stroke-width="2" opacity="0.3"/>
+                        <circle cx="24" cy="24" r="14" stroke="#5B8DB8" stroke-width="1.5" opacity="0.5"/>
+                        <circle cx="24" cy="24" r="6" fill="#5B8DB8" opacity="0.7"/>
+                    </svg>
                 </div>
-                <div class="readiness-stat-card">
-                    <span class="readiness-stat-value" id="readiness-trend">--</span>
-                    <span class="readiness-stat-label">7-day trend</span>
+                <h2 class="readiness-reveal-heading">Your score is ready</h2>
+                <p class="readiness-reveal-sub">Click to reveal your mental readiness score</p>
+                <button class="readiness-reveal-btn" onclick="revealReadinessScore()">
+                    Reveal Score
+                </button>
+            </div>
+
+            <!-- State C: Score (hidden initially) -->
+            <div id="readiness-state-score" class="readiness-phase" style="display:none;">
+                <div class="readiness-ring-area">
+                    <svg viewBox="0 0 260 260" width="260" height="260">
+                        <circle cx="130" cy="130" r="110" class="readiness-ring-track"/>
+                        <circle cx="130" cy="130" r="110" class="readiness-ring-progress" id="readiness-ring-arc"
+                            stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
+                        <text x="130" y="148" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
+                        <text x="130" y="172" text-anchor="middle" class="readiness-label-text" id="readiness-label-text">MENTAL READINESS</text>
+                    </svg>
                 </div>
-                <div class="readiness-stat-card">
-                    <span class="readiness-stat-value" id="readiness-correlate">--</span>
-                    <span class="readiness-stat-label">Top contributor</span>
+                <div class="readiness-stats" id="readiness-stats">
+                    <div class="readiness-stat-card">
+                        <span class="readiness-stat-value neutral" id="readiness-delta">--</span>
+                        <span class="readiness-stat-label">VS YESTERDAY</span>
+                    </div>
+                    <div class="readiness-stat-card">
+                        <span class="readiness-stat-value neutral" id="readiness-top-factor">--</span>
+                        <span class="readiness-stat-label">TOP FACTOR</span>
+                    </div>
+                    <div class="readiness-stat-card">
+                        <span class="readiness-stat-value neutral" id="readiness-count">1</span>
+                        <span class="readiness-stat-label">READINGS</span>
+                    </div>
                 </div>
             </div>
-            <button class="readiness-continue-btn" id="readiness-continue-btn" onclick="dismissReadinessOverlay()">
-                Continue with your day
-            </button>
+
+            <!-- Action buttons (hidden until score revealed) -->
+            <div id="readiness-buttons" class="readiness-action-buttons" style="opacity:0; pointer-events:none;">
+                <button class="readiness-continue-btn" onclick="dismissReadinessOverlay()">Continue with your day</button>
+                <button class="readiness-dive-btn" onclick="showDeeperInsights()">Dive deeper to learn more about yourself</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Dive Deeper Overlay (7 sub-factor breakdown) -->
+    <div id="dive-deeper-overlay" class="dive-deeper-overlay" style="display: none;">
+        <div class="dive-deeper-content">
+            <div class="dive-deeper-header">
+                <button class="dive-deeper-back-btn" onclick="hideDeeperInsights()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                        <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+                    </svg>
+                    Back to your score
+                </button>
+            </div>
+            <h2 class="dive-deeper-title">What's behind your score</h2>
+            <p class="dive-deeper-subtitle">Your voice reveals these 7 dimensions of mental wellness</p>
+            <div class="dive-deeper-bars" id="dive-deeper-bars">
+                <!-- Populated by JS -->
+            </div>
         </div>
     </div>
 
@@ -208,17 +258,17 @@
                 </button>
             </div>
 
-            <!-- Canopy Ring Hero -->
-            <div class="evening-canopy-hero">
-                <svg class="evening-canopy-ring" viewBox="0 0 260 260" width="260" height="260">
+            <!-- Wellness Ring Hero -->
+            <div class="evening-wellness-hero">
+                <svg class="evening-wellness-ring" viewBox="0 0 260 260" width="260" height="260">
                     <circle cx="130" cy="130" r="110" class="evening-ring-track"/>
                     <circle cx="130" cy="130" r="110" class="evening-ring-progress" id="evening-ring-arc"
                         stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
-                    <text x="130" y="110" text-anchor="middle" class="evening-canopy-label">AVG HEALTH SCORE</text>
-                    <text x="130" y="160" text-anchor="middle" class="evening-canopy-score" id="evening-canopy-score">--</text>
-                    <text x="130" y="185" text-anchor="middle" class="evening-canopy-verdict" id="evening-canopy-verdict"></text>
+                    <text x="130" y="110" text-anchor="middle" class="evening-wellness-label">AVG HEALTH SCORE</text>
+                    <text x="130" y="160" text-anchor="middle" class="evening-wellness-score" id="evening-wellness-score">--</text>
+                    <text x="130" y="185" text-anchor="middle" class="evening-wellness-verdict" id="evening-wellness-verdict"></text>
                 </svg>
-                <div class="evening-canopy-delta" id="evening-canopy-delta" style="display:none;"></div>
+                <div class="evening-wellness-delta" id="evening-wellness-delta" style="display:none;"></div>
             </div>
 
             <!-- Mini Stress Timeline -->
@@ -455,12 +505,12 @@
                         <span id="calibration-progress"></span>
                     </div>
 
-                    <!-- Ring Gauge Hero (Canopy + 6 metric bars) -->
+                    <!-- Ring Gauge Hero (Wellness + 6 metric bars) -->
                     <div class="dashboard-card ring-gauge-card" data-card-id="rings-hero">
                         <div class="ring-gauge-header">
-                            <span class="canopy-label" id="canopy-label" style="position: relative;">HEALTH SCORE
-                                <button class="info-btn" data-info="canopy">i</button>
-                                <div class="info-popover" id="info-canopy">Your real-time wellness score (0-100), derived from involuntary vocal biomarkers — signals your autonomic nervous system produces that you can't control or fake. Combines seven voice dimensions weighted by clinical validation strength, plus your calm-time recovery ratio. Updated every time you speak.</div>
+                            <span class="wellness-label" id="wellness-label" style="position: relative;">HEALTH SCORE
+                                <button class="info-btn" data-info="wellness">i</button>
+                                <div class="info-popover" id="info-wellness">Your real-time wellness score (0-100), derived from involuntary vocal biomarkers — signals your autonomic nervous system produces that you can't control or fake. Combines seven voice dimensions weighted by clinical validation strength, plus your calm-time recovery ratio. Updated every time you speak.</div>
                             </span>
                             <span class="ring-gauge-tagline">Clarity through voice.</span>
                         </div>
@@ -468,26 +518,26 @@
                         <!-- Ring gauge SVG — JS fills this -->
                         <svg id="ring-gauge-svg" viewBox="0 0 300 300" class="ring-gauge-svg"></svg>
 
-                        <!-- Hidden legacy elements (still updated by existing JS for canopy logic) -->
-                        <span class="canopy-number" id="canopy-score" style="display:none;">--</span>
-                        <div class="canopy-progress-circle" id="canopy-progress-circle" style="display:none;">
+                        <!-- Hidden legacy elements (still updated by existing JS for wellness logic) -->
+                        <span class="wellness-number" id="wellness-score" style="display:none;">--</span>
+                        <div class="wellness-progress-circle" id="wellness-progress-circle" style="display:none;">
                             <svg viewBox="0 0 120 120" width="90" height="90">
                                 <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5" fill="none" opacity="0.15"/>
                                 <circle cx="60" cy="60" r="52" stroke="var(--forest)" stroke-width="5"
                                         fill="none" stroke-dasharray="326.7" stroke-dashoffset="326.7"
-                                        stroke-linecap="round" id="canopy-progress-arc"
+                                        stroke-linecap="round" id="wellness-progress-arc"
                                         transform="rotate(-90 60 60)"/>
                             </svg>
                         </div>
-                        <span class="canopy-profile" id="canopy-profile" style="display:none;"></span>
+                        <span class="wellness-profile" id="wellness-profile" style="display:none;"></span>
 
                         <!-- Calibration state (shown before 3 readings) -->
-                        <div class="ring-gauge-calibrating" id="canopy-progress-state">
-                            <div class="canopy-reading-count" id="canopy-reading-count">0 of 1 reading</div>
-                            <div class="canopy-progress-bar-wrap">
-                                <div class="canopy-progress-bar" id="canopy-progress-bar"></div>
+                        <div class="ring-gauge-calibrating" id="wellness-progress-state">
+                            <div class="wellness-reading-count" id="wellness-reading-count">0 of 1 reading</div>
+                            <div class="wellness-progress-bar-wrap">
+                                <div class="wellness-progress-bar" id="wellness-progress-bar"></div>
                             </div>
-                            <div class="canopy-progress-msg">Get 1 reading to unlock your Health Score</div>
+                            <div class="wellness-progress-msg">Get 1 reading to unlock your Health Score</div>
                         </div>
 
                         <!-- 6 Metric Bars (3-column grid) -->
