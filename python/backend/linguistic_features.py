@@ -205,14 +205,18 @@ def extract_linguistic_features(audio: np.ndarray, sample_rate: int = 16000,
     """
     model = _load_whisper()
     if model is None:
-        return _get_zero_features()
+        features = _get_zero_features()
+        features['_linguistic_status'] = 'whisper_unavailable'
+        return features
 
     try:
         audio = audio.astype(np.float32)
         duration_min = len(audio) / sample_rate / 60.0
 
         if duration_min < 0.1:  # Less than 6 seconds
-            return _get_zero_features()
+            features = _get_zero_features()
+            features['_linguistic_status'] = 'too_short'
+            return features
 
         # Transcribe (Whisper handles resampling internally if needed)
         result = model.transcribe(
@@ -223,7 +227,9 @@ def extract_linguistic_features(audio: np.ndarray, sample_rate: int = 16000,
         transcript = result.get('text', '').strip()
 
         if not transcript:
-            return _get_zero_features()
+            features = _get_zero_features()
+            features['_linguistic_status'] = 'no_transcript'
+            return features
 
         # Phase 1: base features
         features = {
@@ -270,11 +276,14 @@ def extract_linguistic_features(audio: np.ndarray, sample_rate: int = 16000,
         # PRIVACY: transcript is discarded here — only numerical features returned
         del transcript, result
 
+        features['_linguistic_status'] = 'ok'
         return features
 
     except Exception as e:
         logger.error(f"Linguistic feature extraction failed: {e}")
-        return _get_zero_features()
+        features = _get_zero_features()
+        features['_linguistic_status'] = 'error'
+        return features
 
 
 # ─────────────────────────────────────────────────────────────────────────────

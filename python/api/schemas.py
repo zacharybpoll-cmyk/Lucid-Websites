@@ -152,6 +152,8 @@ class ReadingInsert(BaseModel):
     semantic_coherence: Optional[float] = None
     # Zone confidence
     zone_confidence: Optional[str] = None
+    # Linguistic analysis status
+    linguistic_status: Optional[str] = None
 
     @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
                      'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',

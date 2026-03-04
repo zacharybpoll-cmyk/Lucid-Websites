@@ -370,6 +370,8 @@ class Database:
             ("readings", "sentiment_arousal", "REAL DEFAULT 0"),
             # Phase 3: Semantic coherence
             ("readings", "semantic_coherence", "REAL"),
+            # Linguistic analysis status tracking
+            ("readings", "linguistic_status", "TEXT"),
             # Next-gen daily summary columns
             ("daily_summaries", "avg_wellbeing", "REAL"),
             ("daily_summaries", "avg_activation", "REAL"),
@@ -599,8 +601,8 @@ class Database:
                     f1_mean, f2_mean, spectral_flux,
                     topic_work_score, topic_relationships_score, topic_health_score,
                     pronoun_i_ratio, absolutist_ratio, sentiment_valence, sentiment_arousal,
-                    semantic_coherence, zone_confidence
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    semantic_coherence, zone_confidence, linguistic_status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 r['timestamp'],
                 r['depression_raw'],
@@ -678,6 +680,7 @@ class Database:
                 r.get('sentiment_arousal'),
                 r.get('semantic_coherence'),
                 r.get('zone_confidence'),
+                r.get('linguistic_status'),
             ))
             self.conn.commit()
             return cursor.lastrowid

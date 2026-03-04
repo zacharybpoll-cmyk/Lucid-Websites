@@ -393,6 +393,11 @@ class AnalysisOrchestrator:
             # Privacy: transcript is extracted and discarded within the function
             enhanced_ling = self.db.get_user_state('linguistic_analysis_enhanced', 'true').lower() == 'true'
             linguistic_features = extract_linguistic_features(speech_audio, config.SAMPLE_RATE, enhanced=enhanced_ling)
+            linguistic_status = linguistic_features.pop('_linguistic_status', 'unknown')
+            if linguistic_status != 'ok':
+                logger.warning(f"Linguistic analysis status: {linguistic_status}")
+            else:
+                logger.info(f"Linguistic analysis OK — filler_rate={linguistic_features.get('filler_rate', 0):.1f}")
             acoustic_features.update(linguistic_features)
 
             # Compute derived scores (includes EMA smoothing)
@@ -431,6 +436,7 @@ class AnalysisOrchestrator:
                 'low_confidence': low_confidence,
                 'speaker_verified': speaker_verified,
                 'speaker_similarity': speaker_similarity,
+                'linguistic_status': linguistic_status,
             }
 
             # Insert into database
