@@ -175,6 +175,7 @@ async def studio_websocket(websocket: WebSocket):
 
     # Simulate gradual biomarker evolution for demo/testing
     sim_state = {'relaxed': False, 'step': 0}
+    last_audio_ts = 0.0  # tracks when real audio was last received
 
     try:
         while True:
@@ -196,6 +197,7 @@ async def studio_websocket(websocket: WebSocket):
                     if session_id and session_id in _active_sessions:
                         _active_sessions[session_id]['readings'].append(features)
 
+                    last_audio_ts = time.time()
                     await websocket.send_text(json.dumps({
                         'ts': int(time.time() * 1000),
                         **{k: round(v, 3) for k, v in features.items()},
@@ -207,33 +209,22 @@ async def studio_websocket(websocket: WebSocket):
             except WebSocketDisconnect:
                 break
 
-            # Send simulated/estimated features at 2Hz
-            sim_state['step'] += 1
-            t = sim_state['step'] * 0.5
-
-            if sim_state['relaxed']:
-                # Gradually improve toward calm values
-                base = 0.72
-                noise = math.sin(t * 0.3) * 0.04
-            else:
-                # Stressed state with variability
-                base = 0.38
-                noise = math.sin(t * 1.2) * 0.08
-
-            features = {
-                'ts': int(time.time() * 1000),
-                'vocal_steadiness': round(max(0, min(1, base + noise * 0.8)), 3),
-                'voice_clarity': round(max(0, min(1, base + noise * 0.6 + 0.05)), 3),
-                'tone_stability': round(max(0, min(1, base + noise * 0.9 - 0.03)), 3),
-                'f0_mean': round(140 + math.sin(t * 0.5) * 15, 1),
-                'rms_energy': round(max(0, min(1, 0.4 + noise * 0.3)), 3),
-                'simulated': True,
-            }
-
-            try:
-                await websocket.send_text(json.dumps(features))
-            except Exception:
-                break
+            # Only send simulated fallback if no real audio has arrived recently
+            if time.time() - last_audio_ts > 2.0:
+                features = {
+                    'ts': int(time.time() * 1000),
+                    'f0_mean': None,          # null = silent, not fake data
+                    'vocal_steadiness': 0.5,
+                    'voice_clarity': 0.5,
+                    'tone_stability': 0.5,
+                    'rms_energy': 0.0,
+                    'simulated': True,
+                }
+                try:
+                    await websocket.send_text(json.dumps(features))
+                except Exception:
+                    break
+            # else: real audio is flowing — responses already sent above; skip simulated noise
 
             await asyncio.sleep(0.5)  # 2Hz
 

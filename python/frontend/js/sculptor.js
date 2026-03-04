@@ -23,8 +23,8 @@ const sculptorView = (() => {
 
     const NUM_POINTS   = 128;  // blob polygon resolution
     const FFT_SIZE     = 2048; // AnalyserNode FFT size
-    const SMOOTH_TAU   = 1.5;  // EMA time constant (seconds)
-    const NOISE_BASE   = 0.6;  // base noise speed (radians/sec)
+    const SMOOTH_TAU   = 0.35; // EMA time constant (seconds) — 4x faster response
+    const NOISE_BASE   = 1.4;  // base noise speed (radians/sec)
 
     // ── State ──────────────────────────────────────────────────────
 
@@ -230,7 +230,7 @@ const sculptorView = (() => {
         state.dPresence  = state.dPresence  + alpha * (state.presence  - state.dPresence);
 
         // Noise offset drifts faster when tense OR incoherent
-        state.noiseOffset += dt * (NOISE_BASE + state.dTension * 2.0 + (1 - state.dCoherence) * 1.5);
+        state.noiseOffset += dt * (NOISE_BASE + state.dTension * 3.5 + (1 - state.dCoherence) * 2.5);
 
         _drawBlob();
         _updateUI();
@@ -262,13 +262,15 @@ const sculptorView = (() => {
         const cx = css / 2;
         const cy = css / 2;
 
-        // Base radius: scales with presence (grows when speaking)
-        const baseR    = 68 + state.dPresence * 38;
-        const spikiness = 6 + state.dTension * 44;
+        // Base radius: collapses to tiny dot in silence, blooms with voice
+        const baseR = state.dPresence > 0.05
+            ? 55 + state.dPresence * 90    // range 55–145px when speaking
+            : 15 + state.dPresence * 800;  // collapses to ~15–56px dot in silence
+        const spikiness = 8 + state.dTension * 88;  // range 8–96
 
         // Coherence → smoothness: high coherence = few, regular bumps; low = chaotic
-        // chaos ranges 0.2 (very coherent) → 1.1 (incoherent)
-        const chaos = 0.2 + (1 - state.dCoherence) * 0.9;
+        // chaos ranges 0.1 (very coherent) → 1.5 (incoherent)
+        const chaos = 0.1 + (1 - state.dCoherence) * 1.4;
 
         // Noise drift: faster when tense OR when incoherent
         // (this is already applied to state.noiseOffset in _animate, but we
@@ -287,7 +289,7 @@ const sculptorView = (() => {
             const chaoticN = _noise(angle * 6.0 + hiOffset, i * 1.3);
 
             // Blend: smooth dominates when coherent; chaos dominates when incoherent
-            const n = smoothN * (1 - chaos * 0.5) + chaoticN * chaos * 0.6;
+            const n = smoothN * Math.max(0, 1 - chaos * 0.7) + chaoticN * chaos * 0.9;
             const r = baseR + n * spikiness;
             points.push({
                 x: cx + Math.cos(angle) * r,

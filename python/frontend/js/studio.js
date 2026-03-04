@@ -653,7 +653,8 @@ const studioView = (() => {
 
     function _handleIncomingFrame(data) {
         _updateGauges(data);
-        _pushWaveformSample(data.f0_mean);
+        // Skip waveform update for simulated frames — avoids fake 140Hz wiggle
+        _pushWaveformSample(data.simulated ? null : data.f0_mean);
     }
 
     // ── Gauge updates ──────────────────────────────────────────────────────────
