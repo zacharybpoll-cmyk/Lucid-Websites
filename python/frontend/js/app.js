@@ -327,8 +327,6 @@ function switchView(view) {
         ActiveAssessment.loadHistory();
     } else if (view === 'lab' && typeof labView !== 'undefined') {
         labView.load();
-    } else if (view === 'studio' && typeof studioView !== 'undefined') {
-        studioView.load();
     } else if (view === 'sculptor' && typeof sculptorView !== 'undefined') {
         sculptorView.load();
     }

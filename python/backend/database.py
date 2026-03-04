@@ -289,23 +289,6 @@ class Database:
             )
         """)
 
-        # Studio sessions — Live Voice Studio session summaries
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS studio_sessions (
-                session_id TEXT PRIMARY KEY,
-                started_at TEXT NOT NULL,
-                ended_at TEXT,
-                duration_sec REAL,
-                baseline_steadiness REAL,
-                baseline_clarity REAL,
-                baseline_stability REAL,
-                end_steadiness REAL,
-                end_clarity REAL,
-                end_stability REAL,
-                relaxation_pct REAL
-            )
-        """)
-
         # Webhooks — external integrations
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS webhooks (
