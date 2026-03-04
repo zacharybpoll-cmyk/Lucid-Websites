@@ -7,7 +7,7 @@
 
 #sculptor-view {
     background: #1a1d21;
-    display: flex;
+    /* display is managed by .view / .view.active in main.css */
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
@@ -16,6 +16,11 @@
     box-sizing: border-box;
     color: #e4e8ec;
     font-family: 'Inter', sans-serif;
+}
+
+/* Override main.css .view.active { display: block } to use flex layout */
+#sculptor-view.active {
+    display: flex;
 }
 
 /* ── Header ─────────────────────────────────────────────────────── */
