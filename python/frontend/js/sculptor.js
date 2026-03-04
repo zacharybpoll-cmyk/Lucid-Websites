@@ -26,6 +26,18 @@ const sculptorView = (() => {
     const SMOOTH_TAU   = 0.35; // EMA time constant (seconds) — 4x faster response
     const NOISE_BASE   = 1.4;  // base noise speed (radians/sec)
 
+    // ── Arc ring constants ────────────────────────────────────────
+    const ARC_RADIUS    = 165;  // px from center
+    const ARC_STROKE    = 2;    // px
+    const ARC_GAP_DEG   = 4;    // degrees between segments
+    const ARC_DOT_R     = 3;    // endpoint dot radius
+
+    const BENEFIT_SEGMENTS = [
+        { name: 'HRV Sync',     startDeg: -86, spanDeg: 116, threshLo: 0.85, threshHi: 1.0  },
+        { name: 'Vagal Tone',   startDeg:  34, spanDeg: 116, threshLo: 0.65, threshHi: 0.85 },
+        { name: 'Vasodilation', startDeg: 154, spanDeg: 116, threshLo: 0.40, threshHi: 0.65 },
+    ];
+
     // ── State ──────────────────────────────────────────────────────
 
     const state = {
@@ -233,6 +245,7 @@ const sculptorView = (() => {
         state.noiseOffset += dt * (NOISE_BASE + state.dTension * 3.5 + (1 - state.dCoherence) * 2.5);
 
         _drawBlob();
+        _drawArcRing();
         _updateUI();
 
         state.animFrame = requestAnimationFrame(_animate);
@@ -256,7 +269,7 @@ const sculptorView = (() => {
         const ctx    = state.ctx;
         if (!canvas || !ctx) return;
 
-        const css = 300;
+        const css = 400;
         ctx.clearRect(0, 0, css, css);
 
         const cx = css / 2;
@@ -322,6 +335,104 @@ const sculptorView = (() => {
         ctx.strokeStyle = `rgb(${r},${g},${b})`;
         ctx.lineWidth   = 1.5;
         ctx.stroke();
+    }
+
+    // ── Arc ring drawing ──────────────────────────────────────────
+
+    function _drawArcRing() {
+        const ctx = state.ctx;
+        if (!ctx) return;
+
+        const css = 400;
+        const cx  = css / 2;
+        const cy  = css / 2;
+        const coh = state.dCoherence;
+        const deg2rad = Math.PI / 180;
+
+        for (let s = 0; s < BENEFIT_SEGMENTS.length; s++) {
+            const seg = BENEFIT_SEGMENTS[s];
+            const startRad = seg.startDeg * deg2rad;
+            const endRad   = (seg.startDeg + seg.spanDeg) * deg2rad;
+
+            // 1. Draw background track
+            ctx.beginPath();
+            ctx.arc(cx, cy, ARC_RADIUS, startRad, endRad);
+            ctx.strokeStyle = 'rgba(91, 141, 184, 0.15)';
+            ctx.lineWidth   = ARC_STROKE;
+            ctx.lineCap     = 'round';
+            ctx.stroke();
+
+            // 2. Calculate fill based on coherence thresholds
+            let fill = 0;
+            if (coh >= seg.threshHi) {
+                fill = 1;
+            } else if (coh > seg.threshLo) {
+                fill = (coh - seg.threshLo) / (seg.threshHi - seg.threshLo);
+            }
+
+            // 3. Draw filled arc
+            if (fill > 0) {
+                const fillEndRad = startRad + (endRad - startRad) * fill;
+                ctx.beginPath();
+                ctx.arc(cx, cy, ARC_RADIUS, startRad, fillEndRad);
+                ctx.strokeStyle = 'rgba(91, 141, 184, 0.8)';
+                ctx.lineWidth   = ARC_STROKE;
+                ctx.lineCap     = 'round';
+                ctx.stroke();
+            }
+
+            // 4. Draw endpoint dots
+            const dotAlpha = fill > 0 ? 0.8 : 0.2;
+            const dotColor = `rgba(91, 141, 184, ${dotAlpha})`;
+
+            // Start dot
+            ctx.beginPath();
+            ctx.arc(
+                cx + Math.cos(startRad) * ARC_RADIUS,
+                cy + Math.sin(startRad) * ARC_RADIUS,
+                ARC_DOT_R, 0, Math.PI * 2
+            );
+            ctx.fillStyle = dotColor;
+            ctx.fill();
+
+            // End dot
+            ctx.beginPath();
+            ctx.arc(
+                cx + Math.cos(endRad) * ARC_RADIUS,
+                cy + Math.sin(endRad) * ARC_RADIUS,
+                ARC_DOT_R, 0, Math.PI * 2
+            );
+            ctx.fillStyle = `rgba(91, 141, 184, ${fill > 0.99 ? 0.8 : 0.2})`;
+            ctx.fill();
+
+            // 5. Labels — positioned at segment midpoint, offset outward
+            const midRad    = (startRad + endRad) / 2;
+            const labelR    = ARC_RADIUS + 22;
+            const labelX    = cx + Math.cos(midRad) * labelR;
+            const labelY    = cy + Math.sin(midRad) * labelR;
+            const pct       = Math.round(fill * 100);
+            const litAlpha  = fill > 0 ? 0.9 : 0.4;
+
+            // Segment number
+            const numR = ARC_RADIUS - 14;
+            const numX = cx + Math.cos(midRad) * numR;
+            const numY = cy + Math.sin(midRad) * numR;
+            ctx.font      = '11px Inter, sans-serif';
+            ctx.fillStyle = `rgba(91, 141, 184, ${litAlpha})`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String(s + 1), numX, numY);
+
+            // Percentage
+            ctx.font      = '10px Inter, sans-serif';
+            ctx.fillStyle = `rgba(91, 141, 184, ${litAlpha})`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(pct + '%', labelX, labelY - 6);
+
+            // Benefit name
+            ctx.fillText(seg.name, labelX, labelY + 6);
+        }
     }
 
     // ── UI updates ─────────────────────────────────────────────────
@@ -421,7 +532,7 @@ const sculptorView = (() => {
         if (!canvas) return;
 
         const dpr = window.devicePixelRatio || 1;
-        const css = 300;
+        const css = 400;
         canvas.style.width  = css + 'px';
         canvas.style.height = css + 'px';
         canvas.width  = css * dpr;
