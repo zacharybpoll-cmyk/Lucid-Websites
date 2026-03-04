@@ -107,10 +107,10 @@
 
 | Framework | Key Principle | How Lucid Uses It |
 |-----------|--------------|-------------------|
-| **Nir Eyal's Hook Model** | Trigger → Action → Variable Reward → Investment | Morning notification (trigger) → 25-sec recording (action) → Canopy Score reveal with particle animation (variable reward) → historical data accumulates (investment) |
+| **Nir Eyal's Hook Model** | Trigger → Action → Variable Reward → Investment | Morning notification (trigger) → 25-sec recording (action) → Wellness Score reveal with particle animation (variable reward) → historical data accumulates (investment) |
 | **BJ Fogg's Behavior Model** | Behavior = Motivation × Ability × Prompt | High motivation (health data), ultra-low ability barrier (25 seconds), system prompt (morning notification) |
 | **Loss Aversion** (Kahneman & Tversky) | Losses feel 2x as painful as equivalent gains | Grove feature: missed days create wilted trees; users feel compelled to maintain streaks |
-| **Endowed Progress** (Nunes & Dreze 2006) | Pre-giving progress nearly doubles completion (19% → 34%) | First 2 waypoints auto-complete on signup; Canopy Score starts building immediately |
+| **Endowed Progress** (Nunes & Dreze 2006) | Pre-giving progress nearly doubles completion (19% → 34%) | First 2 waypoints auto-complete on signup; Wellness Score starts building immediately |
 | **Variable Ratio Reinforcement** (Skinner) | Unpredictable rewards are most engaging | Echoes (pattern discovery) appear at unpredictable intervals; Sanctuary celebrations have varied triggers |
 | **Zeigarnik Effect** | Incomplete tasks are remembered 1.9x more than completed ones | Rhythm Rings show partial progress; Grove trees in mid-growth stages |
 
@@ -120,7 +120,7 @@
 
 | Feature | Behavioral Mechanic | Comparable App | Dopamine Trigger |
 |---------|---------------------|---------------|-----------------|
-| **Canopy Score** (0–100 daily wellness score) | Progressive disclosure + count-up animation + leaf particles | Oura Readiness Score | Anticipation → Relief → Baseline comparison |
+| **Wellness Score** (0–100 daily wellness score) | Progressive disclosure + count-up animation + leaf particles | Oura Readiness Score | Anticipation → Relief → Baseline comparison |
 | **Grove** (streak forest with wilting) | Loss aversion + collection + recovery ritual | Duolingo streaks (8x retention for streak users) | Status + loss pain + recovery satisfaction |
 | **Sanctuary Overlay** (micro-celebrations) | Variable reward + sensory delight; 5-min cooldown prevents fatigue | Instagram like notification | Immediate positive feedback at milestone moments |
 | **Rhythm Rings** (3 daily goal rings) | Progress visualization + adaptive goals (+5%/week) | Apple Watch Activity Rings | Completion → Celebration → Next-day reset |

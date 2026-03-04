@@ -90,7 +90,7 @@ class GroveRenderer {
                 <circle cx="28" cy="19" r="7" fill="${color}" opacity="0.8"/>
             </svg>`;
         } else {
-            // Full canopy (stage 4)
+            // Full wellness (stage 4)
             return `<svg viewBox="0 0 40 50" class="tree-svg">
                 <line x1="20" y1="45" x2="20" y2="15" stroke="${trunkColor}" stroke-width="4"/>
                 <line x1="20" y1="30" x2="10" y2="20" stroke="${trunkColor}" stroke-width="2.5"/>

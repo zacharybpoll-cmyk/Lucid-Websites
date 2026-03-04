@@ -1,6 +1,6 @@
 """
 Template-powered insight engine
-Generates contextual insights, canopy scores, compass, and time capsules
+Generates contextual insights, wellness scores, compass, and time capsules
 """
 import time
 import math
@@ -109,8 +109,8 @@ class InsightEngine:
         total_speech_min = summary.get('total_speech_min', 0) or 0
         total_meetings = summary.get('total_meetings', 0) or 0
 
-        # --- Overall mental health score (0-100) — aligned with Canopy formula ---
-        score = self._compute_canopy_components(summary)
+        # --- Overall mental health score (0-100) — aligned with Wellness formula ---
+        score = self._compute_wellness_components(summary)
 
         if score >= 85:
             score_label = "Optimal"
@@ -322,11 +322,11 @@ class InsightEngine:
 
         return " ".join(parts)
 
-    # ============ Canopy Score (Feature #1) ============
+    # ============ Wellness Score (Feature #1) ============
 
-    def _compute_canopy_components(self, s: Dict) -> float:
+    def _compute_wellness_components(self, s: Dict) -> float:
         """
-        Shared Canopy Score formula: 7 voice scores + recovery, weighted by validity.
+        Shared Wellness Score formula: 7 voice scores + recovery, weighted by validity.
         Missing new scores (depression_risk, anxiety_risk, emotional_stability) get their
         weight redistributed proportionally to the remaining components.
         Returns score in [0, 100].
@@ -399,8 +399,8 @@ class InsightEngine:
 
         return score
 
-    def compute_canopy_score(self, db, yesterday_summary: Dict) -> Dict[str, Any]:
-        """Compute today's Canopy Score from yesterday's data with fixed daily wellness weights."""
+    def compute_wellness_score(self, db, yesterday_summary: Dict) -> Dict[str, Any]:
+        """Compute today's Wellness Score from yesterday's data with fixed daily wellness weights."""
         if not yesterday_summary:
             return {'score': 0, 'has_data': False}
 
@@ -410,10 +410,10 @@ class InsightEngine:
         # Fixed weights — daily resilience + recovery score
         profile_name = 'Daily Wellness'
 
-        score = self._compute_canopy_components(yesterday_summary)
+        score = self._compute_wellness_components(yesterday_summary)
 
         # Store in DB
-        db.set_canopy_score(today.isoformat(), score, dow, profile_name)
+        db.set_wellness_score(today.isoformat(), score, dow, profile_name)
 
         return {
             'score': score,
@@ -423,8 +423,8 @@ class InsightEngine:
             'day_of_week': dow,
         }
 
-    def compute_intraday_canopy_score(self, db) -> Dict[str, Any]:
-        """Compute today's live intraday Canopy Score. Requires 1+ reading today."""
+    def compute_intraday_wellness_score(self, db) -> Dict[str, Any]:
+        """Compute today's live intraday Wellness Score. Requires 1+ reading today."""
         readings = db.get_today_readings()
         reading_count = len(readings)
 
@@ -439,7 +439,7 @@ class InsightEngine:
         if not today_summary:
             return {'has_data': False, 'reading_count': reading_count, 'readings_needed': 0}
 
-        score = self._compute_canopy_components(today_summary)
+        score = self._compute_wellness_components(today_summary)
 
         return {
             'score': score,
@@ -450,8 +450,8 @@ class InsightEngine:
             'date': date.today().isoformat(),
         }
 
-    def get_top_canopy_contributor(self, db) -> str:
-        """Find which component contributes most to today's canopy score."""
+    def get_top_wellness_contributor(self, db) -> str:
+        """Find which component contributes most to today's wellness score."""
         today_summary = db.compute_daily_summary()
         if not today_summary:
             return "Voice"
@@ -666,23 +666,23 @@ class InsightEngine:
         tw_activation = sum(s.get('avg_activation', s.get('avg_energy', 50)) or 50 for s in this_week) / len(this_week)
         tw_calm = sum(s.get('avg_calm', 50) or 50 for s in this_week) / len(this_week)
 
-        # Canopy scores
-        canopy_scores = []
+        # Wellness scores
+        wellness_scores = []
         for s in this_week:
-            cs = db.get_canopy_score(s['date'])
-            canopy_scores.append(cs['score'] if cs else 0)
-        avg_canopy = sum(canopy_scores) / len(canopy_scores) if canopy_scores else 0
+            cs = db.get_wellness_score(s['date'])
+            wellness_scores.append(cs['score'] if cs else 0)
+        avg_wellness = sum(wellness_scores) / len(wellness_scores) if wellness_scores else 0
 
-        # Previous week canopy for trend
-        prev_canopy = 0
+        # Previous week wellness for trend
+        prev_wellness = 0
         if prev_week:
             prev_scores = []
             for s in prev_week:
-                cs = db.get_canopy_score(s['date'])
+                cs = db.get_wellness_score(s['date'])
                 prev_scores.append(cs['score'] if cs else 0)
-            prev_canopy = sum(prev_scores) / len(prev_scores) if prev_scores else 0
+            prev_wellness = sum(prev_scores) / len(prev_scores) if prev_scores else 0
 
-        canopy_trend = avg_canopy - prev_canopy
+        wellness_trend = avg_wellness - prev_wellness
 
         # Best and worst days
         best_day = min(this_week, key=lambda s: s.get('avg_stress', 50) or 50)
@@ -750,10 +750,10 @@ class InsightEngine:
         return {
             'has_data': True,
             'week_ending': this_week[0]['date'],
-            'canopy': {
-                'avg': round(avg_canopy),
-                'trend': round(canopy_trend, 1),
-                'daily': canopy_scores,
+            'wellness': {
+                'avg': round(avg_wellness),
+                'trend': round(wellness_trend, 1),
+                'daily': wellness_scores,
             },
             'metrics': {
                 'avg_stress': round(tw_stress, 1),
@@ -913,7 +913,7 @@ class InsightEngine:
     def compute_evening_summary(self, db):
         """
         Compute the evening summary data structure (sync portion).
-        Canopy score must be resolved async by the caller.
+        Wellness score must be resolved async by the caller.
 
         Returns:
             dict with evening summary fields, or empty dict if no data.
@@ -983,7 +983,7 @@ class InsightEngine:
 
         # Comparison deltas
         yesterday_summary = db.get_summary_for_date(yesterday)
-        canopy_yesterday = db.get_canopy_score(yesterday.isoformat())
+        wellness_yesterday = db.get_wellness_score(yesterday.isoformat())
 
         stress_delta = None
         if today_summary and yesterday_summary:
@@ -1005,7 +1005,7 @@ class InsightEngine:
 
         return {
             'has_data': True,
-            'canopy_yesterday': canopy_yesterday,
+            'wellness_yesterday': wellness_yesterday,
             'avg_stress': round(today_summary.get('avg_stress') or 0) if today_summary else None,
             'stress_delta': stress_delta,
             'time_in_calm_min': round(today_summary.get('time_in_calm_min') or 0) if today_summary else 0,

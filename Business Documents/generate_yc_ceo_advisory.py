@@ -696,7 +696,7 @@ strengths = [
      'powerful. This is not just a marketing claim \u2014 it\'s an architectural decision that builds '
      'genuine trust.'),
     ('Polished, feature-rich product. ',
-     'Canopy Score for daily wellness tracking, Correlation Explorer for connecting voice data with '
+     'Wellness Score for daily wellness tracking, Correlation Explorer for connecting voice data with '
      'Oura/Whoop/Apple Health, Rhythm Rings for circadian patterns, Compass for directional trends, '
      'Echoes for historical voice signatures, Burnout Risk assessment, Grove for ecological metaphor '
      'tracking. 264 passing tests. This is not an MVP \u2014 it\'s a mature product that happens to '
@@ -812,7 +812,7 @@ doc.add_paragraph(
 doc.add_paragraph(
     'Cons: Consumer mental health has brutal retention curves. Users download wellness '
     'apps with good intentions and stop using them within a month. You need to fight this '
-    'with habit loops, engagement features (you have many \u2014 Canopy Score, Grove, streaks), '
+    'with habit loops, engagement features (you have many \u2014 Wellness Score, Grove, streaks), '
     'and genuine ongoing value delivery.'
 )
 
@@ -958,7 +958,7 @@ add_styled_table(doc,
 
 doc.add_paragraph(
     'Why they convert: Lucid answers a question they ask every day: "Why am I so exhausted '
-    'after that meeting?" The Canopy Score and stress/calm tracking provide objective evidence '
+    'after that meeting?" The Wellness Score and stress/calm tracking provide objective evidence '
     'that was previously invisible. Calendar integration (when shipped) makes this a must-have.'
 )
 

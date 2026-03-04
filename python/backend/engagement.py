@@ -91,7 +91,7 @@ class EngagementTracker:
                 d = date.fromisoformat(tree['date'])
                 days_alive = (today - d).days
                 if days_alive >= 30:
-                    stage = 4  # Full canopy
+                    stage = 4  # Full wellness
                 elif days_alive >= 7:
                     stage = 3  # Blooming
                 elif days_alive >= 3:
@@ -176,7 +176,7 @@ class EngagementTracker:
 
         # Tier: Old Growth (Days 31-90)
         {'id': 'wp_100_readings', 'name': 'Centurion', 'desc': 'Complete 100 voice readings', 'tier': 'Old Growth', 'order': 21, 'check': lambda s, rc, st: rc >= 100},
-        {'id': 'wp_canopy_90', 'name': 'Health 90', 'desc': 'Achieve a Health Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, rc, st: st.get('best_canopy', 0) >= 90},
+        {'id': 'wp_wellness_90', 'name': 'Health 90', 'desc': 'Achieve a Health Score of 90+', 'tier': 'Old Growth', 'order': 22, 'check': lambda s, rc, st: st.get('best_wellness', 0) >= 90},
         {'id': 'wp_5_ring_days', 'name': 'Ring Master', 'desc': 'Close all rings 5 different days', 'tier': 'Old Growth', 'order': 23, 'check': lambda s, rc, st: st.get('ring_close_days', 0) >= 5},
         {'id': 'wp_10_echoes', 'name': 'Pattern Seeker', 'desc': 'Discover 10 Echoes', 'tier': 'Old Growth', 'order': 24, 'check': lambda s, rc, st: st.get('echo_count', 0) >= 10},
         {'id': 'wp_60_days', 'name': 'Two Months', 'desc': '60-day streak', 'tier': 'Old Growth', 'order': 25, 'check': lambda s, rc, st: st.get('streak', 0) >= 60},
@@ -222,23 +222,23 @@ class EngagementTracker:
                 drop = prev_stress - curr_stress
                 peak_recovery = max(peak_recovery, drop)
 
-        # Best canopy from DB
-        best_canopy = 0
+        # Best wellness from DB
+        best_wellness = 0
         try:
             cursor = self.db.conn.cursor()
-            cursor.execute("SELECT MAX(score) as max_score FROM canopy_scores")
+            cursor.execute("SELECT MAX(score) as max_score FROM wellness_scores")
             row = cursor.fetchone()
             if row and row['max_score'] is not None:
-                best_canopy = row['max_score']
+                best_wellness = row['max_score']
         except Exception as e:
-            logger.debug("Canopy score query failed: %s", e)
+            logger.debug("Wellness score query failed: %s", e)
 
         state = {
             'streak': streak,
             'calibrated': is_calibrated,
             'zen_achieved': zen_achieved,
             'peak_recovery': peak_recovery,
-            'best_canopy': best_canopy,
+            'best_wellness': best_wellness,
             'growing_trees': grove['growing_count'],
             'echo_count': len(echoes),
             'rings_closed': False,  # Computed in rings

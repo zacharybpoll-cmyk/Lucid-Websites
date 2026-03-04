@@ -31,7 +31,7 @@
 - [x] 4B: Fixed enrollment race condition (500ms delay)
 
 ## Phase 5: Test Coverage (COMPLETE)
-- [x] `test_insight_engine.py` — canopy, compass, cache, generate_insight
+- [x] `test_insight_engine.py` — wellness, compass, cache, generate_insight
 - [x] `test_engagement.py` — streak, grove, waypoints, rhythm rings
 - [x] `test_notifications.py` — quiet hours, rate limiting, zone transitions
 - [x] `test_pattern_detector.py` — day-of-week patterns, trends, anomalies
@@ -41,7 +41,7 @@
 - [x] Distribution build: 2.3GB
 - [x] Fixed broken venv symlinks (replaced with real binary + relative links)
 - [x] Truncated 5.2GB crash log → 98KB
-- [x] All 10 endpoints: status, today, trends, history, canopy, compass, capsules, echoes, recovery-pulse, health/ready → 200
+- [x] All 10 endpoints: status, today, trends, history, wellness, compass, capsules, echoes, recovery-pulse, health/ready → 200
 - [x] `mic_disconnected` field in StatusResponse schema
 - [x] Screenshot verified: dashboard renders correctly
 

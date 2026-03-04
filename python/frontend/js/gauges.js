@@ -1,6 +1,6 @@
 /**
  * Score circles + hero wellness + zone bar rendering
- * Oura-style translucent circles on forest canopy background
+ * Oura-style translucent circles on forest wellness background
  */
 
 // ============ Gauge analyzing state ============
@@ -49,7 +49,7 @@ function animateCircle(metric, value, duration) {
 
 // ============ Score Circles (Oura-style) — legacy hidden elements ============
 
-function updateScoreCircles(scores, canopyScore, delta) {
+function updateScoreCircles(scores, wellnessScore, delta) {
     const targets = {
         'wellbeing':           scores.wellbeing ?? scores.mood ?? 50,
         'calm':                scores.calm ?? 50,
@@ -69,9 +69,9 @@ function updateScoreCircles(scores, canopyScore, delta) {
 
     // Drive ring gauge + metric bars (skip if ring gauge is in analyzing state)
     if (!_ringAnalyzing) {
-        const effectiveCanopy = canopyScore !== undefined && canopyScore !== null
-            ? canopyScore : _gaugeState.canopy;
-        renderRingGauge(effectiveCanopy, scores, delta);
+        const effectiveWellness = wellnessScore !== undefined && wellnessScore !== null
+            ? wellnessScore : _gaugeState.wellness;
+        renderRingGauge(effectiveWellness, scores, delta);
     }
     updateMetricBars(scores);
 }
@@ -334,7 +334,7 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
-    window.AppState.canopyRevealed = false;  // Reset so renderRingGauge() can show the reveal card
+    window.AppState.wellnessRevealed = false;  // Reset so renderRingGauge() can show the reveal card
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
@@ -342,9 +342,9 @@ function finishRingGaugeProgress() {
 
 // ============ Ring Gauge ============
 
-let _gaugeState = { canopy: null, scores: {} };
+let _gaugeState = { wellness: null, scores: {} };
 
-function _renderRevealCard(canopyScore, scores, delta) {
+function _renderRevealCard(wellnessScore, scores, delta) {
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
     svg.innerHTML = '';
@@ -381,9 +381,9 @@ function _renderRevealCard(canopyScore, scores, delta) {
             overlay.remove();
             _ringScoreReveal = true;
             _metBarReveal = true;
-            window.AppState.canopyRevealed = true;
+            window.AppState.wellnessRevealed = true;
             localStorage.setItem('lucid-last-revealed-count', String(window.AppState.currentReadingCount || 0));
-            renderRingGauge(canopyScore, scores, delta);
+            renderRingGauge(wellnessScore, scores, delta);
             updateMetricBars(_gaugeState.scores);
         }, 300);
     });
@@ -391,29 +391,29 @@ function _renderRevealCard(canopyScore, scores, delta) {
     card.appendChild(overlay);
 }
 
-function renderRingGauge(canopyScore, scores, delta) {
-    _gaugeState = { canopy: canopyScore, scores: scores || {}, delta: delta };
+function renderRingGauge(wellnessScore, scores, delta) {
+    _gaugeState = { wellness: wellnessScore, scores: scores || {}, delta: delta };
 
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
 
     // Capture and consume reveal flag
     const isReveal = _ringScoreReveal;
-    if (!canopyScore && canopyScore !== 0) _ringScoreReveal = false;
+    if (!wellnessScore && wellnessScore !== 0) _ringScoreReveal = false;
     if (isReveal) _ringScoreReveal = false;
 
     // Tap-to-reveal: show overlay only when new readings arrive
-    const showScoreEarly = canopyScore !== null && canopyScore !== undefined;
-    if (showScoreEarly && !window.AppState.canopyRevealed) {
+    const showScoreEarly = wellnessScore !== null && wellnessScore !== undefined;
+    if (showScoreEarly && !window.AppState.wellnessRevealed) {
         const currentCount = window.AppState.currentReadingCount || 0;
         const lastRevealed = parseInt(localStorage.getItem('lucid-last-revealed-count') || '0', 10);
         if (currentCount > lastRevealed && currentCount > 1) {
             // 2nd+ reading of the day: show reveal card
-            _renderRevealCard(canopyScore, scores, delta);
+            _renderRevealCard(wellnessScore, scores, delta);
             return;
         } else {
             // First reading or no new readings — skip overlay, go straight to display
-            window.AppState.canopyRevealed = true;
+            window.AppState.wellnessRevealed = true;
             if (currentCount > lastRevealed) {
                 localStorage.setItem('lucid-last-revealed-count', String(currentCount));
             }
@@ -492,9 +492,9 @@ function renderRingGauge(canopyScore, scores, delta) {
         arcElements.push({ arc, circumference, pct });
     });
 
-    // Center: canopy score
-    const showScore = canopyScore !== null && canopyScore !== undefined;
-    const finalScore = showScore ? Math.round(canopyScore) : null;
+    // Center: wellness score
+    const showScore = wellnessScore !== null && wellnessScore !== undefined;
+    const finalScore = showScore ? Math.round(wellnessScore) : null;
     const scoreStr = showScore ? (isReveal ? '0' : finalScore.toString()) : '--';
 
     const scoreEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -518,8 +518,8 @@ function renderRingGauge(canopyScore, scores, delta) {
     tierEl.setAttribute('fill', style.getPropertyValue('--ring-accent-3').trim() || '#a8c0d0');
     tierEl.setAttribute('opacity', '0.6');
     if (showScore) {
-        const tier = canopyScore >= 80 ? 'EXCELLENT' : canopyScore >= 65 ? 'GOOD' :
-                     canopyScore >= 50 ? 'FAIR' : canopyScore >= 35 ? 'LOW' : 'VERY LOW';
+        const tier = wellnessScore >= 80 ? 'EXCELLENT' : wellnessScore >= 65 ? 'GOOD' :
+                     wellnessScore >= 50 ? 'FAIR' : wellnessScore >= 35 ? 'LOW' : 'VERY LOW';
         tierEl.textContent = tier;
     }
     svg.appendChild(tierEl);
@@ -637,7 +637,7 @@ function initThemeToggle() {
         localStorage.setItem('lucid-theme', next);
         updateThemeIcon(next);
         // Re-render ring gauge for new theme colors
-        renderRingGauge(_gaugeState.canopy, _gaugeState.scores, _gaugeState.delta);
+        renderRingGauge(_gaugeState.wellness, _gaugeState.scores, _gaugeState.delta);
     });
 }
 

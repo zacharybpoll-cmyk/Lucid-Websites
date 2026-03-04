@@ -218,9 +218,14 @@ class Database:
             )
         """)
 
-        # Canopy scores (daily composite)
+        # Migrate: rename canopy_scores → wellness_scores if old table exists
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='canopy_scores'")
+        if cursor.fetchone():
+            cursor.execute("ALTER TABLE canopy_scores RENAME TO wellness_scores")
+
+        # Wellness scores (daily composite)
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS canopy_scores (
+            CREATE TABLE IF NOT EXISTS wellness_scores (
                 date TEXT PRIMARY KEY,
                 score REAL NOT NULL,
                 day_of_week INTEGER,
@@ -1170,20 +1175,20 @@ class Database:
             except sqlite3.IntegrityError:
                 pass  # Already triggered today
 
-    # ============ Canopy Score Methods ============
+    # ============ Wellness Score Methods ============
 
-    def get_canopy_score(self, date_str: str) -> Optional[Dict[str, Any]]:
+    def get_wellness_score(self, date_str: str) -> Optional[Dict[str, Any]]:
         with self.lock:
             cursor = self.conn.cursor()
-            cursor.execute("SELECT * FROM canopy_scores WHERE date = ?", (date_str,))
+            cursor.execute("SELECT * FROM wellness_scores WHERE date = ?", (date_str,))
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    def set_canopy_score(self, date_str: str, score: float, dow: int, profile: str):
+    def set_wellness_score(self, date_str: str, score: float, dow: int, profile: str):
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("""
-                INSERT OR REPLACE INTO canopy_scores (date, score, day_of_week, weight_profile, computed_at)
+                INSERT OR REPLACE INTO wellness_scores (date, score, day_of_week, weight_profile, computed_at)
                 VALUES (?, ?, ?, ?, ?)
             """, (date_str, score, dow, profile, datetime.now().isoformat()))
             self.conn.commit()

@@ -248,7 +248,7 @@ class TestWaypoints:
     def test_waypoints_structure(self):
         """compute_waypoints returns expected structure."""
         db = _make_mock_db()
-        # Mock the conn for best_canopy query
+        # Mock the conn for best_wellness query
         mock_cursor = MagicMock()
         mock_cursor.fetchone.return_value = {'max_score': None}
         db.conn.cursor.return_value = mock_cursor

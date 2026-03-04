@@ -276,3 +276,21 @@ class SpeakerStatusResponse(BaseModel):
     enrollment_samples: int = 0
     enrolled_at: Optional[str] = None
     num_enrollment_samples: int = 0
+
+class OnboardingStatusRequest(BaseModel):
+    completed: bool
+
+class FirstLightTaskRequest(BaseModel):
+    task: str
+    completed: bool = True
+
+class NotifPrefRequest(BaseModel):
+    key: str
+    value: str
+
+class WebhookRequest(BaseModel):
+    url: str
+    trigger_type: str
+    condition_field: Optional[str] = None
+    condition_op: Optional[str] = None
+    condition_value: Optional[float] = None

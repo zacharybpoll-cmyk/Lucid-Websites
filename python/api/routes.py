@@ -43,6 +43,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Exception handler: converts LucidError subclasses to structured JSON 503s
+from api.exceptions import LucidError as _LucidError
+
+@app.exception_handler(_LucidError)
+async def _lucid_error_handler(request, exc: _LucidError):
+    from fastapi.responses import JSONResponse as _JR
+    headers = {"Retry-After": str(exc.retry_after)} if exc.retry_after else {}
+    return _JR(
+        status_code=exc.status_code,
+        content={"error": exc.message, "code": exc.code, "retry_after": exc.retry_after},
+        headers=headers,
+    )
+
+# Include new routers BEFORE legacy route definitions so they take precedence.
+# New routers use api.dependencies globals (safe for test patching).
+from api.routers import health as _health_mod
+from api.routers import readings as _readings_mod
+from api.routers import settings as _settings_mod
+app.include_router(_health_mod.router)
+app.include_router(_readings_mod.router)
+app.include_router(_settings_mod.router)
+
 @app.get("/")
 async def root():
     """Redirect to dashboard"""
@@ -581,11 +603,11 @@ async def get_history(days: int = 30):
     }
 
 
-# ============ Canopy Score (Feature #1) ============
+# ============ Wellness Score (Feature #1) ============
 
 @app.get("/api/morning-summary")
 async def get_morning_summary():
-    """Bundle Canopy Score + morning briefing + today's first reading for morning overlay"""
+    """Bundle Wellness Score + morning briefing + today's first reading for morning overlay"""
     if db is None or insight_engine is None:
         raise HTTPException(status_code=500, detail="Not initialized")
 
@@ -593,14 +615,14 @@ async def get_morning_summary():
     yesterday = date.today() - timedelta(days=1)
     yesterday_str = yesterday.isoformat()
 
-    # 1. Canopy Score
-    canopy = db.get_canopy_score(today_str)
-    if not canopy:
+    # 1. Wellness Score
+    wellness = db.get_wellness_score(today_str)
+    if not wellness:
         yesterday_summary = db.get_summary_for_date(yesterday)
-        canopy_result = insight_engine.compute_canopy_score(db, yesterday_summary)
+        wellness_result = insight_engine.compute_wellness_score(db, yesterday_summary)
     else:
-        canopy_result = {'score': canopy['score'], 'has_data': True,
-                         'profile': canopy['weight_profile'], 'date': today_str}
+        wellness_result = {'score': wellness['score'], 'has_data': True,
+                         'profile': wellness['weight_profile'], 'date': today_str}
 
     # 2. Morning briefing (reuse cached if available)
     briefing_data = None
@@ -634,7 +656,7 @@ async def get_morning_summary():
         }
 
     return {
-        'canopy': canopy_result,
+        'wellness': wellness_result,
         'briefing': briefing_data,
         'voice_weather': voice_weather,
     }
@@ -652,12 +674,12 @@ async def get_evening_summary():
     # 1. Today's aggregate
     today_summary = db.compute_daily_summary()
 
-    # 2. Canopy score (intraday)
-    canopy = insight_engine.compute_intraday_canopy_score(db)
+    # 2. Wellness score (intraday)
+    wellness = insight_engine.compute_intraday_wellness_score(db)
 
     # 3. Yesterday for comparison
     yesterday_summary = db.get_summary_for_date(yesterday)
-    canopy_yesterday = db.get_canopy_score(yesterday.isoformat())
+    wellness_yesterday = db.get_wellness_score(yesterday.isoformat())
 
     # 4. Compact readings for mini-timeline (stress per 30-min bucket, 6 AM - 8 PM)
     today_readings = db.get_today_readings()
@@ -714,10 +736,10 @@ async def get_evening_summary():
         calm_hour = f"{best_h % 12 or 12}–{(best_h+1) % 12 or 12} {'AM' if best_h < 12 else 'PM'}"
 
     # 7. Comparison deltas
-    canopy_delta = None
+    wellness_delta = None
     stress_delta = None
-    if canopy.get('has_data') and canopy_yesterday:
-        canopy_delta = round(canopy['score'] - canopy_yesterday['score'])
+    if wellness.get('has_data') and wellness_yesterday:
+        wellness_delta = round(wellness['score'] - wellness_yesterday['score'])
     if today_summary and yesterday_summary:
         today_stress = today_summary.get('avg_stress') or 0
         yest_stress = yesterday_summary.get('avg_stress') or 0
@@ -737,8 +759,8 @@ async def get_evening_summary():
 
     return {
         'has_data': len(today_readings) >= 1,
-        'canopy': canopy,
-        'canopy_delta': canopy_delta,
+        'wellness': wellness,
+        'wellness_delta': wellness_delta,
         'avg_stress': round(today_summary.get('avg_stress') or 0) if today_summary else None,
         'stress_delta': stress_delta,
         'time_in_calm_min': round(today_summary.get('time_in_calm_min') or 0) if today_summary else 0,
@@ -751,18 +773,18 @@ async def get_evening_summary():
     }
 
 
-@app.get("/api/canopy")
-async def get_canopy_score():
-    """Get today's intraday Canopy Score with delta, trend, and top contributor"""
+@app.get("/api/wellness")
+async def get_wellness_score():
+    """Get today's intraday Wellness Score with delta, trend, and top contributor"""
     if db is None or insight_engine is None:
         raise HTTPException(status_code=500, detail="Not initialized")
 
-    result = insight_engine.compute_intraday_canopy_score(db)
+    result = insight_engine.compute_intraday_wellness_score(db)
 
     # Yesterday's score for delta
     yesterday = (date.today() - timedelta(days=1)).isoformat()
-    yesterday_canopy = db.get_canopy_score(yesterday)
-    result['yesterday_score'] = yesterday_canopy['score'] if yesterday_canopy else None
+    yesterday_wellness = db.get_wellness_score(yesterday)
+    result['yesterday_score'] = yesterday_wellness['score'] if yesterday_wellness else None
 
     # 7-day trend direction
     try:
@@ -772,9 +794,9 @@ async def get_canopy_score():
     except Exception:
         result['trend_direction'] = 'stable'
 
-    # Top contributor to canopy score
+    # Top contributor to wellness score
     if result.get('has_data'):
-        result['top_contributor'] = insight_engine.get_top_canopy_contributor(db)
+        result['top_contributor'] = insight_engine.get_top_wellness_contributor(db)
 
     return result
 
@@ -1023,12 +1045,14 @@ async def set_layout(req: LayoutRequest):
 @app.get("/api/beacon")
 async def get_beacon():
     """Get current zone for menubar beacon display"""
-    if db is None:
-        return {'zone': 'idle', 'stress': 0, 'last_reading': None}
+    from api import dependencies as _deps
+    effective_db = _deps.db if _deps.db is not None else db
+    if effective_db is None:
+        return {'zone': 'idle', 'stress': 0, 'last_reading': None, 'has_data': False}
 
-    readings = db.get_today_readings()
+    readings = effective_db.get_today_readings()
     if not readings:
-        return {'zone': 'idle', 'stress': 0, 'last_reading': None}
+        return {'zone': 'idle', 'stress': 0, 'last_reading': None, 'has_data': False}
 
     latest = readings[0]
     zone = latest.get('zone', 'steady')
@@ -1053,6 +1077,7 @@ async def get_beacon():
         'zone': zone,
         'stress': round(stress),
         'last_reading': time_ago,
+        'has_data': True,
         'tooltip': f'{zone.title()} \u00B7 {round(stress)} stress \u00B7 {time_ago}'
     }
 
@@ -1639,7 +1664,7 @@ async def set_onboarding_status(req: OnboardingStatusRequest):
 
 # ============ First Light Quest ============
 
-FIRST_LIGHT_TASKS = ['canopy', 'rings', 'grove', 'faq', 'trends']
+FIRST_LIGHT_TASKS = ['wellness', 'rings', 'grove', 'faq', 'trends']
 
 @app.get("/api/quest/first-light")
 async def get_first_light_quest():

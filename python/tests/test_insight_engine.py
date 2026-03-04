@@ -1,7 +1,7 @@
 """
 Tests for backend.insight_engine.InsightEngine
 
-Covers instantiation, canopy score computation, compass direction,
+Covers instantiation, wellness score computation, compass direction,
 cache behavior, generate_insight with various reading states,
 morning briefing, evening recap, and first reading interpretation.
 """
@@ -174,31 +174,31 @@ class TestInsightCache:
 
 
 # ---------------------------------------------------------------------------
-# Canopy Score Computation
+# Wellness Score Computation
 # ---------------------------------------------------------------------------
 
-class TestCanopyScore:
-    def test_canopy_with_no_summary(self):
+class TestWellnessScore:
+    def test_wellness_with_no_summary(self):
         """No summary data should return score 0 with has_data=False."""
         engine = InsightEngine()
         db = MagicMock()
-        result = engine.compute_canopy_score(db, None)
+        result = engine.compute_wellness_score(db, None)
         assert result['score'] == 0
         assert result['has_data'] is False
 
-    def test_canopy_with_valid_summary(self):
+    def test_wellness_with_valid_summary(self):
         """A valid summary should produce a score between 0 and 100."""
         engine = InsightEngine()
         db = MagicMock()
         summary = _make_summary()
-        result = engine.compute_canopy_score(db, summary)
+        result = engine.compute_wellness_score(db, summary)
         assert result['has_data'] is True
         assert 0 <= result['score'] <= 100
         assert result['profile'] == 'Daily Wellness'
-        db.set_canopy_score.assert_called_once()
+        db.set_wellness_score.assert_called_once()
 
-    def test_canopy_low_stress_high_wellbeing_scores_high(self):
-        """Low stress + high wellbeing + high calm should yield high canopy score."""
+    def test_wellness_low_stress_high_wellbeing_scores_high(self):
+        """Low stress + high wellbeing + high calm should yield high wellness score."""
         engine = InsightEngine()
         db = MagicMock()
         summary = _make_summary(
@@ -214,11 +214,11 @@ class TestCanopyScore:
             time_in_tense_min=0,
             time_in_stressed_min=0,
         )
-        result = engine.compute_canopy_score(db, summary)
+        result = engine.compute_wellness_score(db, summary)
         assert result['score'] >= 80
 
-    def test_canopy_high_stress_low_wellbeing_scores_low(self):
-        """High stress + low wellbeing should yield low canopy score."""
+    def test_wellness_high_stress_low_wellbeing_scores_low(self):
+        """High stress + low wellbeing should yield low wellness score."""
         engine = InsightEngine()
         db = MagicMock()
         summary = _make_summary(
@@ -234,21 +234,21 @@ class TestCanopyScore:
             time_in_tense_min=30,
             time_in_stressed_min=60,
         )
-        result = engine.compute_canopy_score(db, summary)
+        result = engine.compute_wellness_score(db, summary)
         assert result['score'] <= 45
 
-    def test_canopy_stores_in_db(self):
-        """Canopy score should be stored via db.set_canopy_score."""
+    def test_wellness_stores_in_db(self):
+        """Wellness score should be stored via db.set_wellness_score."""
         engine = InsightEngine()
         db = MagicMock()
         summary = _make_summary()
-        result = engine.compute_canopy_score(db, summary)
-        db.set_canopy_score.assert_called_once()
-        args = db.set_canopy_score.call_args[0]
+        result = engine.compute_wellness_score(db, summary)
+        db.set_wellness_score.assert_called_once()
+        args = db.set_wellness_score.call_args[0]
         assert args[0] == date.today().isoformat()
         assert args[1] == result['score']
 
-    def test_canopy_missing_new_scores_redistributes(self):
+    def test_wellness_missing_new_scores_redistributes(self):
         """Missing depression/anxiety/stability scores should still produce valid result."""
         engine = InsightEngine()
         db = MagicMock()
@@ -257,22 +257,22 @@ class TestCanopyScore:
         del summary['avg_depression_risk']
         del summary['avg_anxiety_risk']
         del summary['avg_emotional_stability']
-        result = engine.compute_canopy_score(db, summary)
+        result = engine.compute_wellness_score(db, summary)
         assert result['has_data'] is True
         assert 0 <= result['score'] <= 100
 
 
 # ---------------------------------------------------------------------------
-# Intraday Canopy Score
+# Intraday Wellness Score
 # ---------------------------------------------------------------------------
 
-class TestIntradayCanopy:
+class TestIntradayWellness:
     def test_intraday_insufficient_readings(self):
         """Zero readings returns has_data=False with needed count."""
         engine = InsightEngine()
         db = MagicMock()
         db.get_today_readings.return_value = []
-        result = engine.compute_intraday_canopy_score(db)
+        result = engine.compute_intraday_wellness_score(db)
         assert result['has_data'] is False
         assert result['readings_needed'] == 1
 
@@ -282,7 +282,7 @@ class TestIntradayCanopy:
         db = MagicMock()
         db.get_today_readings.return_value = [_make_reading() for _ in range(5)]
         db.compute_daily_summary.return_value = _make_summary()
-        result = engine.compute_intraday_canopy_score(db)
+        result = engine.compute_intraday_wellness_score(db)
         assert result['has_data'] is True
         assert 0 <= result['score'] <= 100
         assert result['reading_count'] == 5
@@ -293,7 +293,7 @@ class TestIntradayCanopy:
         db = MagicMock()
         db.get_today_readings.return_value = [_make_reading() for _ in range(5)]
         db.compute_daily_summary.return_value = None
-        result = engine.compute_intraday_canopy_score(db)
+        result = engine.compute_intraday_wellness_score(db)
         assert result['has_data'] is False
 
 
@@ -527,10 +527,10 @@ class TestTimeCapsules:
 
 
 # ---------------------------------------------------------------------------
-# _compute_canopy_components edge cases
+# _compute_wellness_components edge cases
 # ---------------------------------------------------------------------------
 
-class TestCanopyComponents:
+class TestWellnessComponents:
     def test_all_zeros_summary(self):
         """All zero metrics should produce a valid score."""
         engine = InsightEngine()
@@ -540,7 +540,7 @@ class TestCanopyComponents:
             time_in_calm_min=0, time_in_steady_min=0,
             time_in_tense_min=0, time_in_stressed_min=0,
         )
-        score = engine._compute_canopy_components(summary)
+        score = engine._compute_wellness_components(summary)
         assert 0 <= score <= 100
 
     def test_perfect_metrics_high_score(self):
@@ -552,7 +552,7 @@ class TestCanopyComponents:
             time_in_calm_min=100, time_in_steady_min=0,
             time_in_tense_min=0, time_in_stressed_min=0,
         )
-        score = engine._compute_canopy_components(summary)
+        score = engine._compute_wellness_components(summary)
         assert score >= 95
 
     def test_score_bounded_0_100(self):
@@ -565,5 +565,5 @@ class TestCanopyComponents:
             time_in_calm_min=0, time_in_steady_min=0,
             time_in_tense_min=0, time_in_stressed_min=100,
         )
-        score = engine._compute_canopy_components(summary)
+        score = engine._compute_wellness_components(summary)
         assert 0 <= score <= 100

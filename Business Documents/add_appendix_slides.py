@@ -224,10 +224,10 @@ THE ENGAGEMENT PROBLEM MENTAL HEALTH APPS NEVER SOLVED (Section 2A):
 - Key insight: Lucid is a MONITORING TOOL (like Oura), not a TREATMENT APP (like Calm). This is the single most important architectural decision we made.
 
 BEHAVIORAL SCIENCE FRAMEWORKS (Section 2B):
-1. Nir Eyal's Hook Model: Trigger (morning notification) -> Action (25-sec recording) -> Variable Reward (Canopy Score reveal with particle animation) -> Investment (historical data accumulates)
+1. Nir Eyal's Hook Model: Trigger (morning notification) -> Action (25-sec recording) -> Variable Reward (Wellness Score reveal with particle animation) -> Investment (historical data accumulates)
 2. BJ Fogg's Behavior Model: Behavior = Motivation x Ability x Prompt. High motivation (health data) x ultra-low ability barrier (25 seconds) x system prompt (morning notification)
 3. Loss Aversion (Kahneman & Tversky): Losses feel 2x as painful as equivalent gains. Grove feature: missed days create wilted trees; users feel compelled to maintain streaks.
-4. Endowed Progress (Nunes & Dreze 2006): Pre-giving progress nearly doubles completion (19% -> 34%). First 2 waypoints auto-complete on signup; Canopy Score starts building immediately.
+4. Endowed Progress (Nunes & Dreze 2006): Pre-giving progress nearly doubles completion (19% -> 34%). First 2 waypoints auto-complete on signup; Wellness Score starts building immediately.
 5. Variable Ratio Reinforcement (Skinner): Unpredictable rewards are most engaging. Echoes (pattern discovery) appear at unpredictable intervals; Sanctuary celebrations have varied triggers.
 6. Zeigarnik Effect: Incomplete tasks are remembered 1.9x more than completed ones. Rhythm Rings show partial progress; Grove trees in mid-growth stages.
 
@@ -248,7 +248,7 @@ WHY QS USERS ARE UNIQUELY SUSCEPTIBLE (Section 2E):
 NOTES_23 = """=== APPENDIX: BEHAVIORAL SCIENCE — 10 Features Mapped ===
 
 LUCID'S 10 ENGAGEMENT FEATURES MAPPED TO DOPAMINE LOOPS (Section 2C):
-1. Canopy Score (0-100 daily wellness score): Progressive disclosure + count-up animation + leaf particles. Comparable: Oura Readiness Score. Dopamine: Anticipation -> Relief -> Baseline comparison.
+1. Wellness Score (0-100 daily wellness score): Progressive disclosure + count-up animation + leaf particles. Comparable: Oura Readiness Score. Dopamine: Anticipation -> Relief -> Baseline comparison.
 2. Grove (streak forest with wilting): Loss aversion + collection + recovery ritual. Comparable: Duolingo streaks (8x retention for streak users). Dopamine: Status + loss pain + recovery satisfaction.
 3. Sanctuary Overlay (micro-celebrations): Variable reward + sensory delight; 5-min cooldown prevents fatigue. Comparable: Instagram like notification. Dopamine: Immediate positive feedback at milestone moments.
 4. Rhythm Rings (3 daily goal rings): Progress visualization + adaptive goals (+5%/week). Comparable: Apple Watch Activity Rings. Dopamine: Completion -> Celebration -> Next-day reset.
@@ -504,7 +504,7 @@ def slide_23_ten_features(prs):
 
     # Two-column layout for 10 features (5 per column)
     features_left = [
-        ("1. Canopy Score (0\u2013100)", "cf. Oura Readiness Score", STEEL),
+        ("1. Wellness Score (0\u2013100)", "cf. Oura Readiness Score", STEEL),
         ("2. Grove (streak forest)", "cf. Duolingo streaks (8\u00d7 retention)", ACCENT_GREEN),
         ("3. Sanctuary (micro-celebrations)", "Variable reward + cooldown", ACCENT_GOLD),
         ("4. Rhythm Rings (3 goals)", "cf. Apple Watch Activity Rings", ACCENT_CORAL),

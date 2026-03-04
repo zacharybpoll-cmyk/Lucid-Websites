@@ -233,7 +233,7 @@ async def get_briefing(type: str = "morning", force: bool = False):
 
 @router.get("/api/morning-summary")
 async def get_morning_summary():
-    """Bundle Canopy Score + morning briefing + today's first reading for morning overlay"""
+    """Bundle Wellness Score + morning briefing + today's first reading for morning overlay"""
     if deps.db is None:
         raise DatabaseNotReady()
     if deps.insight_engine is None:
@@ -244,14 +244,14 @@ async def get_morning_summary():
         yesterday = date.today() - timedelta(days=1)
         yesterday_str = yesterday.isoformat()
 
-        # 1. Canopy Score
-        canopy = deps.db.get_canopy_score(today_str)
-        if not canopy:
+        # 1. Wellness Score
+        wellness = deps.db.get_wellness_score(today_str)
+        if not wellness:
             yesterday_summary = deps.db.get_summary_for_date(yesterday)
-            canopy_result = deps.insight_engine.compute_canopy_score(deps.db, yesterday_summary)
+            wellness_result = deps.insight_engine.compute_wellness_score(deps.db, yesterday_summary)
         else:
-            canopy_result = {'score': canopy.get('score', 0), 'has_data': True,
-                             'profile': canopy.get('weight_profile'), 'date': today_str}
+            wellness_result = {'score': wellness.get('score', 0), 'has_data': True,
+                             'profile': wellness.get('weight_profile'), 'date': today_str}
 
         # 2. Morning briefing (reuse cached if available)
         briefing_data = None
@@ -285,7 +285,7 @@ async def get_morning_summary():
             }
 
         return {
-            'canopy': canopy_result,
+            'wellness': wellness_result,
             'briefing': briefing_data,
             'voice_weather': voice_weather,
             'has_data': voice_weather is not None,
@@ -293,7 +293,7 @@ async def get_morning_summary():
     except Exception as e:
         logger.warning("Error in /api/morning-summary: %s", e)
         return {
-            'canopy': {'score': 0, 'has_data': False},
+            'wellness': {'score': 0, 'has_data': False},
             'briefing': None,
             'voice_weather': None,
             'has_data': False,
@@ -311,8 +311,8 @@ async def get_evening_summary():
 
     _empty_evening = {
         'has_data': False,
-        'canopy': {'score': 0, 'has_data': False},
-        'canopy_delta': None,
+        'wellness': {'score': 0, 'has_data': False},
+        'wellness_delta': None,
         'avg_stress': None,
         'stress_delta': None,
         'time_in_calm_min': 0,
@@ -329,33 +329,33 @@ async def get_evening_summary():
         if result is None:
             return _empty_evening
 
-        # Resolve canopy score async (circuit-breaker protected)
-        canopy = await _safe_insight_call(deps.insight_engine.compute_intraday_canopy_score, deps.db)
-        if canopy is None:
-            canopy = {'score': None, 'has_data': False}
+        # Resolve wellness score async (circuit-breaker protected)
+        wellness = await _safe_insight_call(deps.insight_engine.compute_intraday_wellness_score, deps.db)
+        if wellness is None:
+            wellness = {'score': None, 'has_data': False}
 
-        canopy_delta = None
-        canopy_yesterday = result.pop('canopy_yesterday', None)
-        if canopy.get('has_data') and canopy_yesterday:
-            canopy_delta = round(canopy.get('score', 0) - canopy_yesterday.get('score', 0))
+        wellness_delta = None
+        wellness_yesterday = result.pop('wellness_yesterday', None)
+        if wellness.get('has_data') and wellness_yesterday:
+            wellness_delta = round(wellness.get('score', 0) - wellness_yesterday.get('score', 0))
 
-        result['canopy'] = canopy
-        result['canopy_delta'] = canopy_delta
+        result['wellness'] = wellness
+        result['wellness_delta'] = wellness_delta
         return result
     except Exception as e:
         logger.warning("Error in /api/evening-summary: %s", e)
         return _empty_evening
 
 
-@router.get("/api/canopy")
-async def get_canopy_score():
-    """Get today's intraday Canopy Score (requires 1+ reading today)"""
+@router.get("/api/wellness")
+async def get_wellness_score():
+    """Get today's intraday Wellness Score (requires 1+ reading today)"""
     if deps.db is None:
         raise DatabaseNotReady()
     if deps.insight_engine is None:
         raise ServiceNotReady("Insight engine")
 
-    result = await _safe_insight_call(deps.insight_engine.compute_intraday_canopy_score, deps.db)
+    result = await _safe_insight_call(deps.insight_engine.compute_intraday_wellness_score, deps.db)
     if result is None:
         return {'score': None, 'has_data': False}
     return result

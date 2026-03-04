@@ -84,7 +84,7 @@ const API = {
     async getHistory(days = 30) { return await apiCall(`/history?days=${days}`); },
 
     // New Feature APIs
-    async getCanopy() { return await apiCall('/canopy'); },
+    async getWellness() { return await apiCall('/wellness'); },
     async getGrove() { return await apiCall('/grove'); },
     async reviveTree(dateStr) {
         return await apiCall('/grove/revive', {

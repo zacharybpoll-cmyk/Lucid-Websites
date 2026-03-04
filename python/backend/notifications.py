@@ -22,6 +22,8 @@ class NotificationManager:
         # In-memory rate limit tracking (reset on restart is fine)
         self._recent_sends: List[float] = []
         self.MAX_PER_HOUR = 4
+        # Shutdown event for clean teardown
+        self._shutdown_event = threading.Event()
         # Scheduled timer for curtain call
         self._curtain_timer = None
         self._curtain_sent_today = False
@@ -437,5 +439,6 @@ class NotificationManager:
 
     def stop(self):
         """Cancel pending timers."""
+        self._shutdown_event.set()
         if self._curtain_timer:
             self._curtain_timer.cancel()
