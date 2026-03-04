@@ -50,7 +50,10 @@ npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
 cp -R python "./Lucid-darwin-arm64/Lucid.app/Contents/Resources/" && \
 rm -rf ~/Desktop/"Lucid.app" && \
 mv "./Lucid-darwin-arm64/Lucid.app" ~/Desktop/"Lucid.app" && \
-codesign --sign - --force --deep ~/Desktop/"Lucid.app"
+ENTITLEMENTS="/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid/entitlements.plist" && \
+find ~/Desktop/"Lucid.app"/Contents/Frameworks -name "*.app" -exec codesign --sign "Lucid Dev Signing" --force --entitlements "$ENTITLEMENTS" {} \; && \
+find ~/Desktop/"Lucid.app"/Contents/Frameworks -name "*.framework" -exec codesign --sign "Lucid Dev Signing" --force {} \; && \
+codesign --sign "Lucid Dev Signing" --force --entitlements "$ENTITLEMENTS" --deep ~/Desktop/"Lucid.app"
 
 # Clear cache after rebuild
 rm -rf ~/Library/Application\ Support/lucid/Cache ~/Library/Application\ Support/lucid/Code\ Cache
