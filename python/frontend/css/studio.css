@@ -10,8 +10,12 @@
 #studio-view {
     padding: 0;
     height: 100%;
-    display: flex;
     flex-direction: column;
+}
+
+/* Override main.css .view.active { display: block } to use flex layout */
+#studio-view.active {
+    display: flex;
 }
 
 .studio-header {

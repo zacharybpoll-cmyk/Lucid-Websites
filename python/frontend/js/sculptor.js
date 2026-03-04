@@ -229,8 +229,8 @@ const sculptorView = (() => {
         state.dTension   = state.dTension   + alpha * (state.tension   - state.dTension);
         state.dPresence  = state.dPresence  + alpha * (state.presence  - state.dPresence);
 
-        // Noise offset drifts faster when tense
-        state.noiseOffset += dt * (NOISE_BASE + state.dTension * 2.5);
+        // Noise offset drifts faster when tense OR incoherent
+        state.noiseOffset += dt * (NOISE_BASE + state.dTension * 2.0 + (1 - state.dCoherence) * 1.5);
 
         _drawBlob();
         _updateUI();
@@ -266,12 +266,29 @@ const sculptorView = (() => {
         const baseR    = 68 + state.dPresence * 38;
         const spikiness = 6 + state.dTension * 44;
 
+        // Coherence → smoothness: high coherence = few, regular bumps; low = chaotic
+        // chaos ranges 0.2 (very coherent) → 1.1 (incoherent)
+        const chaos = 0.2 + (1 - state.dCoherence) * 0.9;
+
+        // Noise drift: faster when tense OR when incoherent
+        // (this is already applied to state.noiseOffset in _animate, but we
+        //  use chaos here to add a second independent high-freq layer offset)
+        const hiOffset = state.noiseOffset * 1.7 + state.dTension * 2;
+
         // Build blob polygon
         const points = [];
         for (let i = 0; i < NUM_POINTS; i++) {
             const angle = (i / NUM_POINTS) * Math.PI * 2;
-            const n     = _noise(angle * 1.5 + state.noiseOffset, i * 0.4);
-            const r     = baseR + n * spikiness;
+
+            // Low-freq base shape (smooth, few bumps) — always present
+            const smoothN = _noise(angle * 1.5 + state.noiseOffset, i * 0.4);
+
+            // High-freq chaotic layer — scales with incoherence
+            const chaoticN = _noise(angle * 6.0 + hiOffset, i * 1.3);
+
+            // Blend: smooth dominates when coherent; chaos dominates when incoherent
+            const n = smoothN * (1 - chaos * 0.5) + chaoticN * chaos * 0.6;
+            const r = baseR + n * spikiness;
             points.push({
                 x: cx + Math.cos(angle) * r,
                 y: cy + Math.sin(angle) * r,
