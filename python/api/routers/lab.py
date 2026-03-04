@@ -38,6 +38,9 @@ _LAB_COLUMNS = [
     "depression_mapped", "anxiety_mapped",
     "stress_score_raw",
     "depression_quantized", "anxiety_quantized",
+    "filler_rate", "hedging_score", "negative_sentiment", "disfluency_rate",
+    "lexical_diversity", "pronoun_i_ratio", "absolutist_ratio",
+    "sentiment_valence", "sentiment_arousal", "semantic_coherence",
 ]
 
 _LAB_SELECT = ", ".join(_LAB_COLUMNS)

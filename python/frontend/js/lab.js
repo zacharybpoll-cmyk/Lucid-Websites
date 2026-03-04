@@ -15,7 +15,7 @@ const labView = (() => {
     // ── Module state ────────────────────────────────────────────────────────
     let _loaded      = false;
     let _data        = null;
-    let _currentCat  = 'acoustic';
+    let _currentCat  = 'mental_health';
 
     // ── Entry point (called by app.js when navigating to #lab) ──────────────
 
@@ -101,9 +101,9 @@ const labView = (() => {
     // ── Tabs ────────────────────────────────────────────────────────────────
 
     const CATEGORIES = [
+        { id: 'mental_health', label: 'Mental Health' },
         { id: 'acoustic',     label: 'Acoustic'      },
         { id: 'linguistic',   label: 'Linguistic'    },
-        { id: 'mental_health', label: 'Mental Health' },
     ];
 
     function renderTabs() {
@@ -199,6 +199,20 @@ const labView = (() => {
             latestDisplay = parseFloat(latest).toFixed(2) + (unit ? '\u00a0' + unit : '');
         }
 
+        // Population mean display + position on range bar
+        const popMean = meta.population_mean;
+        let popMeanDisplay = '—';
+        let popMeanPos = 0.5;
+        if (popMean !== null && popMean !== undefined && !isNaN(popMean)) {
+            const unit = (meta.normal_range && meta.normal_range.unit) ? meta.normal_range.unit : '';
+            popMeanDisplay = parseFloat(popMean).toFixed(2) + (unit ? '\u00a0' + unit : '');
+            const rng = meta.normal_range || {};
+            const rMin = rng.min !== undefined ? rng.min : 0;
+            const rMax = rng.max !== undefined ? rng.max : 1;
+            const span = rMax - rMin;
+            popMeanPos = span > 0 ? Math.max(0, Math.min(1, (popMean - rMin) / span)) : 0.5;
+        }
+
         // Evidence badge
         const evidenceLevel = meta.evidence_level || 'RESEARCH-ONLY';
         const evidenceLabel = evidenceLevel === 'RESEARCH-ONLY'
@@ -217,7 +231,8 @@ const labView = (() => {
         const safeKey       = key.replace(/[^a-zA-Z0-9_-]/g, '_');
 
         return `
-            <div class="lab-card ${statusClass}" id="lab-card-${safeKey}" role="listitem">
+            <div class="lab-card ${statusClass}" id="lab-card-${safeKey}" role="listitem"
+                 onclick="labView.openBellCurve('${safeKey}')">
                 <div class="lab-card-header">
                     <div class="lab-card-name-block">
                         <div class="lab-card-display-name">${displayName}</div>
@@ -230,8 +245,8 @@ const labView = (() => {
 
                 <div class="lab-range-bar-wrap">
                     <div class="lab-range-label">
-                        <span>Population range</span>
-                        <span style="color:#1a1d21;font-weight:500">${sanitizeHTML(latestDisplay)}</span>
+                        <span>Pop avg: ${sanitizeHTML(popMeanDisplay)}</span>
+                        <span style="color:#1a1d21;font-weight:500">You: ${sanitizeHTML(latestDisplay)}</span>
                     </div>
                     <div class="lab-range-bar-bg">
                         <div
@@ -242,6 +257,11 @@ const labView = (() => {
                             aria-valuemin="0"
                             aria-valuemax="100"
                             role="progressbar"
+                        ></div>
+                        <div
+                            class="lab-pop-mean-marker"
+                            style="left:${(popMeanPos * 100).toFixed(1)}%"
+                            title="Population average"
                         ></div>
                         <div
                             class="lab-range-marker"
@@ -266,7 +286,7 @@ const labView = (() => {
 
                 <button
                     class="lab-science-toggle"
-                    onclick="labView.toggleScience('${safeKey}')"
+                    onclick="event.stopPropagation(); labView.toggleScience('${safeKey}')"
                     aria-expanded="false"
                     aria-controls="lab-science-${safeKey}"
                 >
@@ -350,7 +370,7 @@ const labView = (() => {
 
         // DPR-aware sizing for crisp Retina rendering
         const dpr     = window.devicePixelRatio || 1;
-        const cssSize = 200;
+        const cssSize = 240;
         canvas.style.width  = cssSize + 'px';
         canvas.style.height = cssSize + 'px';
         canvas.width  = cssSize * dpr;
@@ -359,9 +379,9 @@ const labView = (() => {
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
 
-        const cx  = cssSize / 2;  // 100
-        const cy  = cssSize / 2;  // 100
-        const r   = 72;
+        const cx  = cssSize / 2;
+        const cy  = cssSize / 2;
+        const r   = 60;
         const n   = dimensions.length;
 
         ctx.clearRect(0, 0, cssSize, cssSize);
@@ -435,16 +455,295 @@ const labView = (() => {
             ctx.fill();
         });
 
-        // Labels
+        // Labels — align based on position relative to center
         ctx.font      = '9px Inter, sans-serif';
         ctx.fillStyle = '#8C96A0';
-        ctx.textAlign = 'center';
         dimensions.forEach((d, i) => {
             const angle = angleFor(i);
             const lx = cx + Math.cos(angle) * (r + 15);
             const ly = cy + Math.sin(angle) * (r + 15) + 3;
+            // Align labels so they don't clip at canvas edges
+            const cosA = Math.cos(angle);
+            if (cosA < -0.2) {
+                ctx.textAlign = 'right';
+            } else if (cosA > 0.2) {
+                ctx.textAlign = 'left';
+            } else {
+                ctx.textAlign = 'center';
+            }
             ctx.fillText(d.dim || '', lx, ly);
         });
+    }
+
+    // ── Bell Curve Modal ────────────────────────────────────────────────────
+
+    function _zToPercentile(z) {
+        // Error function approximation (Abramowitz & Stegun)
+        const sign = z < 0 ? -1 : 1;
+        const x = Math.abs(z) / Math.SQRT2;
+        const t = 1 / (1 + 0.3275911 * x);
+        const a = [0.254829592, -0.284496736, 1.421413741, -1.453152027, 1.061405429];
+        const poly = t * (a[0] + t * (a[1] + t * (a[2] + t * (a[3] + t * a[4]))));
+        const erf = 1 - poly * Math.exp(-x * x);
+        const cdf = 0.5 * (1 + sign * erf);
+        return Math.round(cdf * 100);
+    }
+
+    function _normalPDF(x, mean, std) {
+        const exp = -0.5 * Math.pow((x - mean) / std, 2);
+        return (1 / (std * Math.sqrt(2 * Math.PI))) * Math.exp(exp);
+    }
+
+    function openBellCurve(safeKey) {
+        if (!_data) return;
+        const biomarkers = (_data.bioData && _data.bioData.biomarkers) || {};
+
+        // Find the matching biomarker by safeKey
+        let matchKey = null;
+        let matchVal = null;
+        for (const [k, v] of Object.entries(biomarkers)) {
+            if (k.replace(/[^a-zA-Z0-9_-]/g, '_') === safeKey) {
+                matchKey = k;
+                matchVal = v;
+                break;
+            }
+        }
+        if (!matchVal) return;
+
+        const meta = matchVal.meta || {};
+        const latest = matchVal.latest_value;
+        const popMean = meta.population_mean;
+        const popStd = meta.population_std || 1;
+        const displayName = meta.display_name || matchKey;
+        const description = meta.description || '';
+        const sciSummary = meta.science_summary || '';
+        const sciCitation = meta.evidence_citation || '';
+        const evidenceLevel = meta.evidence_level || 'RESEARCH-ONLY';
+
+        // Calculate z-score and percentile
+        let zScore = 0;
+        let percentile = 50;
+        if (latest !== null && latest !== undefined && !isNaN(latest)) {
+            zScore = (latest - popMean) / popStd;
+            percentile = _zToPercentile(zScore);
+        }
+
+        // Format values
+        const unit = (meta.normal_range && meta.normal_range.unit) ? meta.normal_range.unit : '';
+        const latestFmt = (latest !== null && latest !== undefined && !isNaN(latest))
+            ? parseFloat(latest).toFixed(2) + (unit ? ' ' + unit : '')
+            : 'No data';
+        const popMeanFmt = (popMean !== null && popMean !== undefined)
+            ? parseFloat(popMean).toFixed(2) + (unit ? ' ' + unit : '')
+            : '—';
+
+        // Remove existing modal
+        const existing = document.getElementById('lab-bell-modal');
+        if (existing) existing.remove();
+
+        const modal = document.createElement('div');
+        modal.id = 'lab-bell-modal';
+        modal.className = 'lab-bell-overlay';
+        modal.innerHTML = `
+            <div class="lab-bell-content" onclick="event.stopPropagation()">
+                <button class="lab-bell-close" onclick="labView.closeBellCurve()" aria-label="Close">&times;</button>
+                <div class="lab-bell-title">${sanitizeHTML(displayName)}</div>
+                <div class="lab-bell-desc">${sanitizeHTML(description)}</div>
+                <canvas id="lab-bell-canvas" class="lab-bell-canvas"></canvas>
+                <div class="lab-bell-stats">
+                    <div class="lab-bell-stat">
+                        <div class="lab-bell-stat-value">${sanitizeHTML(latestFmt)}</div>
+                        <div class="lab-bell-stat-label">Your Score</div>
+                    </div>
+                    <div class="lab-bell-stat">
+                        <div class="lab-bell-stat-value">${sanitizeHTML(popMeanFmt)}</div>
+                        <div class="lab-bell-stat-label">Population Average</div>
+                    </div>
+                    <div class="lab-bell-stat">
+                        <div class="lab-bell-stat-value">${percentile}%</div>
+                        <div class="lab-bell-stat-label">Percentile</div>
+                    </div>
+                </div>
+                <button class="lab-science-toggle lab-bell-science-toggle" onclick="event.stopPropagation(); this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
+                    <span>The Science</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="lab-science-body lab-bell-science-body">
+                    <div>${sanitizeHTML(sciSummary)}</div>
+                    ${sciCitation ? `<div class="lab-science-citation">${sanitizeHTML(sciCitation)}</div>` : ''}
+                </div>
+            </div>
+        `;
+
+        modal.addEventListener('click', () => closeBellCurve());
+        document.body.appendChild(modal);
+
+        // Escape key handler
+        const escHandler = (e) => {
+            if (e.key === 'Escape') closeBellCurve();
+        };
+        document.addEventListener('keydown', escHandler);
+        modal._escHandler = escHandler;
+
+        // Draw the bell curve on next frame
+        requestAnimationFrame(() => _drawBellCurve(popMean, popStd, latest));
+    }
+
+    function _drawBellCurve(mean, std, userValue) {
+        const canvas = document.getElementById('lab-bell-canvas');
+        if (!canvas) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        const cssW = 400;
+        const cssH = 180;
+        canvas.style.width = cssW + 'px';
+        canvas.style.height = cssH + 'px';
+        canvas.width = cssW * dpr;
+        canvas.height = cssH * dpr;
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        ctx.clearRect(0, 0, cssW, cssH);
+
+        const padL = 30, padR = 30, padT = 15, padB = 30;
+        const w = cssW - padL - padR;
+        const h = cssH - padT - padB;
+
+        // X range: mean +/- 3.5 std
+        const xMin = mean - 3.5 * std;
+        const xMax = mean + 3.5 * std;
+        const toCanvasX = (x) => padL + ((x - xMin) / (xMax - xMin)) * w;
+        const toCanvasY = (pdf) => {
+            const maxPDF = _normalPDF(mean, mean, std);
+            return padT + h - (pdf / maxPDF) * h;
+        };
+
+        // Draw filled bell curve
+        const steps = 200;
+        const dx = (xMax - xMin) / steps;
+
+        // If user value exists, draw blue fill left of user, gray fill right
+        if (userValue !== null && userValue !== undefined && !isNaN(userValue)) {
+            // Blue fill (left of user)
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(xMin), padT + h);
+            for (let i = 0; i <= steps; i++) {
+                const x = xMin + i * dx;
+                if (x > userValue) break;
+                ctx.lineTo(toCanvasX(x), toCanvasY(_normalPDF(x, mean, std)));
+            }
+            ctx.lineTo(toCanvasX(Math.min(userValue, xMax)), padT + h);
+            ctx.closePath();
+            const blueGrad = ctx.createLinearGradient(padL, 0, toCanvasX(userValue), 0);
+            blueGrad.addColorStop(0, 'rgba(91,141,184,0.08)');
+            blueGrad.addColorStop(1, 'rgba(91,141,184,0.25)');
+            ctx.fillStyle = blueGrad;
+            ctx.fill();
+
+            // Gray fill (right of user)
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(Math.max(userValue, xMin)), padT + h);
+            for (let i = 0; i <= steps; i++) {
+                const x = xMin + i * dx;
+                if (x < userValue) continue;
+                ctx.lineTo(toCanvasX(x), toCanvasY(_normalPDF(x, mean, std)));
+            }
+            ctx.lineTo(toCanvasX(xMax), padT + h);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(200,207,216,0.15)';
+            ctx.fill();
+        } else {
+            // No user value — light fill
+            ctx.beginPath();
+            ctx.moveTo(toCanvasX(xMin), padT + h);
+            for (let i = 0; i <= steps; i++) {
+                const x = xMin + i * dx;
+                ctx.lineTo(toCanvasX(x), toCanvasY(_normalPDF(x, mean, std)));
+            }
+            ctx.lineTo(toCanvasX(xMax), padT + h);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(200,207,216,0.15)';
+            ctx.fill();
+        }
+
+        // Curve outline
+        ctx.beginPath();
+        for (let i = 0; i <= steps; i++) {
+            const x = xMin + i * dx;
+            const cx = toCanvasX(x);
+            const cy = toCanvasY(_normalPDF(x, mean, std));
+            i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy);
+        }
+        ctx.strokeStyle = '#5B8DB8';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // X-axis line
+        ctx.beginPath();
+        ctx.moveTo(padL, padT + h);
+        ctx.lineTo(padL + w, padT + h);
+        ctx.strokeStyle = '#e4e8ec';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // X-axis labels: -2SD, -1SD, avg, +1SD, +2SD
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillStyle = '#8C96A0';
+        ctx.textAlign = 'center';
+        const sdLabels = [
+            { val: mean - 2 * std, label: '-2SD' },
+            { val: mean - std,     label: '-1SD' },
+            { val: mean,           label: 'avg'  },
+            { val: mean + std,     label: '+1SD' },
+            { val: mean + 2 * std, label: '+2SD' },
+        ];
+        sdLabels.forEach(({ val, label }) => {
+            const cx = toCanvasX(val);
+            ctx.fillText(label, cx, padT + h + 16);
+            // Tick mark
+            ctx.beginPath();
+            ctx.moveTo(cx, padT + h);
+            ctx.lineTo(cx, padT + h + 4);
+            ctx.strokeStyle = '#c8cfd8';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        });
+
+        // User value line + dot
+        if (userValue !== null && userValue !== undefined && !isNaN(userValue)) {
+            const ux = toCanvasX(userValue);
+            const uy = toCanvasY(_normalPDF(userValue, mean, std));
+
+            // Dashed vertical line
+            ctx.beginPath();
+            ctx.setLineDash([4, 3]);
+            ctx.moveTo(ux, padT + h);
+            ctx.lineTo(ux, uy);
+            ctx.strokeStyle = '#5B8DB8';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Glowing dot
+            ctx.beginPath();
+            ctx.arc(ux, uy, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#5B8DB8';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(ux, uy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(91,141,184,0.2)';
+            ctx.fill();
+        }
+    }
+
+    function closeBellCurve() {
+        const modal = document.getElementById('lab-bell-modal');
+        if (modal) {
+            if (modal._escHandler) {
+                document.removeEventListener('keydown', modal._escHandler);
+            }
+            modal.remove();
+        }
     }
 
     // ── Public API ───────────────────────────────────────────────────────────
@@ -511,7 +810,7 @@ const labView = (() => {
     }
 
     // Expose public surface
-    return { load, switchCategory, toggleScience, invalidate };
+    return { load, switchCategory, toggleScience, invalidate, openBellCurve, closeBellCurve };
 
 })();
 

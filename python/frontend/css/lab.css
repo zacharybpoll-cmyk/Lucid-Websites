@@ -37,12 +37,12 @@
     border-radius: 16px;
     padding: 24px;
     display: grid;
-    grid-template-columns: 224px 1fr;
+    grid-template-columns: 280px 1fr;
     gap: 24px;
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(91, 141, 184, 0.06);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Subtle top-left accent stripe */
@@ -62,6 +62,7 @@
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    overflow: visible;
 }
 
 .lab-fingerprint-right {
@@ -72,8 +73,8 @@
 /* ── Radar / canvas ─────────────────────────────────────── */
 
 .lab-radar-canvas {
-    width: 200px;
-    height: 200px;
+    width: 240px;
+    height: 240px;
     display: block;
     flex-shrink: 0;
 }
@@ -341,6 +342,31 @@
     background: #7BA7C9;
 }
 
+/* Population mean marker (gray triangle) */
+.lab-pop-mean-marker {
+    position: absolute;
+    top: -5px;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 6px solid #8C96A0;
+    transform: translateX(-50%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.lab-pop-mean-marker::after {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -0.5px;
+    width: 1px;
+    height: 17px;
+    background: #8C96A0;
+    opacity: 0.4;
+}
+
 /* Normal-range zone indicator on the bar */
 .lab-range-normal-zone {
     position: absolute;
@@ -492,6 +518,119 @@
     to { transform: rotate(360deg); }
 }
 
+/* ── Bell Curve Modal ────────────────────────────────────── */
+
+.lab-bell-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: labModalFadeIn 0.2s ease;
+}
+
+@keyframes labModalFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.lab-bell-content {
+    background: white;
+    border-radius: 16px;
+    padding: 28px 32px;
+    max-width: 480px;
+    width: 90%;
+    position: relative;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+    animation: labModalSlideIn 0.25s ease;
+}
+
+@keyframes labModalSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.lab-bell-close {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 22px;
+    color: #8C96A0;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px;
+}
+
+.lab-bell-close:hover {
+    color: #1a1d21;
+}
+
+.lab-bell-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1d21;
+    margin-bottom: 4px;
+    padding-right: 30px;
+}
+
+.lab-bell-desc {
+    font-size: 12px;
+    color: #5a6270;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.lab-bell-canvas {
+    width: 100%;
+    max-width: 400px;
+    display: block;
+    margin: 0 auto 16px;
+}
+
+.lab-bell-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.lab-bell-stat {
+    text-align: center;
+}
+
+.lab-bell-stat-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1d21;
+    line-height: 1.3;
+}
+
+.lab-bell-stat-label {
+    font-size: 10px;
+    color: #8C96A0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+.lab-bell-science-toggle {
+    margin-top: 4px;
+}
+
+.lab-bell-science-body {
+    margin-top: 8px;
+}
+
 /* ── Night theme overrides ────────────────────────────────── */
 
 [data-theme="night"] .lab-title {
@@ -594,6 +733,47 @@
 
 [data-theme="night"] .lab-fingerprint-meta {
     color: rgba(255, 255, 255, 0.28);
+}
+
+[data-theme="night"] .lab-pop-mean-marker {
+    border-top-color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="night"] .lab-pop-mean-marker::after {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="night"] .lab-bell-content {
+    background: #0c141c;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="night"] .lab-bell-title {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="night"] .lab-bell-desc {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="night"] .lab-bell-close {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="night"] .lab-bell-close:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="night"] .lab-bell-stats {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="night"] .lab-bell-stat-value {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme="night"] .lab-bell-stat-label {
+    color: rgba(255, 255, 255, 0.35);
 }
 
 /* ── Responsive ───────────────────────────────────────────── */
