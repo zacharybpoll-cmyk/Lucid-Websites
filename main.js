@@ -465,6 +465,12 @@ if (!gotTheLock) {
     ensureDataDir();
     checkVersionAndClearCache();
 
+    // Allow microphone access for Live Voice Studio
+    session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+      if (permission === 'media') return callback(true);
+      callback(false);
+    });
+
     try {
       await spawnPython();
       console.log('[Main] Python process spawned, waiting for server...');

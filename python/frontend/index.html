@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <link rel="stylesheet" href="css/lab.css?v=1">
     <link rel="stylesheet" href="css/studio.css?v=1">
+    <link rel="stylesheet" href="css/sculptor.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -373,6 +374,14 @@
             <button class="sidebar-icon" data-view="studio" title="Voice Studio" aria-label="Voice Studio">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="sculptor" title="Voice Sculptor" aria-label="Voice Sculptor">
+                <!-- Organic blob / wave icon -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/>
+                    <path d="M22 12c0-2-1-4-3-5.5"/>
+                    <path d="M8 12c0-2.5 1.5-4.5 4-4.5s4 2 4 4.5-1.5 4.5-4 4.5"/>
                 </svg>
             </button>
             <div class="sidebar-spacer"></div>
@@ -917,6 +926,9 @@
                 <!-- VOICE STUDIO VIEW -->
                 <div id="studio-view" class="view"></div>
 
+                <!-- VOICE SCULPTOR VIEW -->
+                <div id="sculptor-view" class="view"></div>
+
                 <!-- FAQ VIEW -->
                 <div id="faq-view" class="view">
                     <div class="faq-section">
@@ -1334,6 +1346,7 @@
     <script src="js/active_assessment.js?v=1"></script>
     <script src="js/lab.js?v=1"></script>
     <script src="js/studio.js?v=1"></script>
+    <script src="js/sculptor.js?v=1"></script>
     <script src="js/app.js?v=30"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->

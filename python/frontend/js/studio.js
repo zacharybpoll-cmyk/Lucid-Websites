@@ -70,6 +70,12 @@ const studioView = (() => {
         waveformCanvas   : null,
         waveformCtx      : null,
         animFrame        : null,
+
+        // Mic capture
+        audioCtx         : null,
+        scriptNode       : null,
+        micStream        : null,
+        audioBuffer      : [],
     };
 
     // ── Entry point ───────────────────────────────────────────────────────────
@@ -368,6 +374,9 @@ const studioView = (() => {
         // Connect WebSocket (or fall back to simulation)
         _connectWebSocket();
 
+        // Start capturing real mic audio
+        _startMicCapture();
+
         // Start breath pacer
         _startBreathingPacer();
 
@@ -403,6 +412,12 @@ const studioView = (() => {
             state.ws.close();
             state.ws = null;
         }
+
+        // Tear down mic capture
+        if (state.scriptNode) { state.scriptNode.disconnect(); state.scriptNode = null; }
+        if (state.micStream) { state.micStream.getTracks().forEach(t => t.stop()); state.micStream = null; }
+        if (state.audioCtx) { state.audioCtx.close(); state.audioCtx = null; }
+        state.audioBuffer = [];
 
         // Stop draw loop
         if (state.animFrame) {
@@ -522,6 +537,7 @@ const studioView = (() => {
         state.wsSimulating   = false;
         state.sustainedAbove = 0;
         state.gaugeValues    = { vocal_steadiness: 0.40, voice_clarity: 0.45, tone_stability: 0.38 };
+        state.audioBuffer    = [];
 
         // Re-render fresh UI
         _render();
@@ -572,6 +588,47 @@ const studioView = (() => {
             console.warn('[Studio] WebSocket constructor failed — using simulation', e);
             _startSimulatedUpdates();
         }
+    }
+
+    async function _startMicCapture() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            state.audioCtx   = new AudioContext({ sampleRate: 16000 });
+            const src        = state.audioCtx.createMediaStreamSource(stream);
+            state.scriptNode = state.audioCtx.createScriptProcessor(8192, 1, 1);
+            state.audioBuffer = [];
+
+            state.scriptNode.onaudioprocess = (e) => {
+                const chunk = Array.from(e.inputBuffer.getChannelData(0));
+                state.audioBuffer.push(...chunk);
+                // Send every ~500ms at 16kHz ≈ 8000 samples
+                if (state.audioBuffer.length >= 8000) {
+                    _sendAudioChunk(state.audioBuffer.splice(0, 8000));
+                }
+            };
+
+            src.connect(state.scriptNode);
+            state.scriptNode.connect(state.audioCtx.destination);
+            state.micStream = stream;
+            console.log('[Studio] Mic capture started');
+        } catch (err) {
+            console.warn('[Studio] Mic capture failed, falling back to simulation', err);
+            _startSimulatedUpdates();
+        }
+    }
+
+    function _sendAudioChunk(samples) {
+        if (!state.ws || state.ws.readyState !== WebSocket.OPEN) return;
+        const f32 = new Float32Array(samples);
+        // Convert to base64 for JSON transport
+        let binary = '';
+        const bytes = new Uint8Array(f32.buffer);
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        const b64 = btoa(binary);
+        state.ws.send(JSON.stringify({ session_id: state.sessionId, audio_b64: b64 }));
     }
 
     // Simulated data: gentle sinusoidal drift, good for dev / offline

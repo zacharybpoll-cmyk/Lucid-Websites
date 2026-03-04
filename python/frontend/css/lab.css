@@ -37,7 +37,7 @@
     border-radius: 16px;
     padding: 24px;
     display: grid;
-    grid-template-columns: 200px 1fr;
+    grid-template-columns: 224px 1fr;
     gap: 24px;
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(91, 141, 184, 0.06);
@@ -72,8 +72,8 @@
 /* ── Radar / canvas ─────────────────────────────────────── */
 
 .lab-radar-canvas {
-    width: 180px;
-    height: 180px;
+    width: 200px;
+    height: 200px;
     display: block;
     flex-shrink: 0;
 }

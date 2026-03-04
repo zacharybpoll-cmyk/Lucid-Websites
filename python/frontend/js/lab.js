@@ -142,8 +142,6 @@ const labView = (() => {
                     <canvas
                         class="lab-radar-canvas"
                         id="lab-radar-canvas"
-                        width="180"
-                        height="180"
                         aria-label="Voice fingerprint radar chart"
                     ></canvas>
                 </div>
@@ -350,13 +348,23 @@ const labView = (() => {
         const canvas = document.getElementById('lab-radar-canvas');
         if (!canvas) return;
 
+        // DPR-aware sizing for crisp Retina rendering
+        const dpr     = window.devicePixelRatio || 1;
+        const cssSize = 200;
+        canvas.style.width  = cssSize + 'px';
+        canvas.style.height = cssSize + 'px';
+        canvas.width  = cssSize * dpr;
+        canvas.height = cssSize * dpr;
+
         const ctx = canvas.getContext('2d');
-        const cx  = 90;
-        const cy  = 90;
-        const r   = 68;
+        ctx.scale(dpr, dpr);
+
+        const cx  = cssSize / 2;  // 100
+        const cy  = cssSize / 2;  // 100
+        const r   = 72;
         const n   = dimensions.length;
 
-        ctx.clearRect(0, 0, 180, 180);
+        ctx.clearRect(0, 0, cssSize, cssSize);
 
         if (n < 3) {
             // Not enough dimensions — draw a placeholder ring
@@ -366,7 +374,7 @@ const labView = (() => {
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            ctx.font = '10px Inter, sans-serif';
+            ctx.font = `${10}px Inter, sans-serif`;
             ctx.fillStyle = '#c8cfd8';
             ctx.textAlign = 'center';
             ctx.fillText('More data needed', cx, cy + 4);

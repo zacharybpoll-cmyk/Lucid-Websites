@@ -1,0 +1,162 @@
+/**
+ * sculptor.css — Voice Sculptor view
+ * Dark immersive canvas. Intentional contrast with the light sidebar.
+ */
+
+/* ── View container ────────────────────────────────────────────── */
+
+#sculptor-view {
+    background: #1a1d21;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 100%;
+    padding: 32px 24px 40px;
+    box-sizing: border-box;
+    color: #e4e8ec;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ── Header ─────────────────────────────────────────────────────── */
+
+.sculptor-header {
+    text-align: center;
+    margin-bottom: 28px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.sculptor-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: #f0f2f4;
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+}
+
+.sculptor-subtitle {
+    font-size: 13px;
+    color: #8C96A0;
+    line-height: 1.5;
+}
+
+/* ── Coherence score ─────────────────────────────────────────────── */
+
+.sculptor-coherence-wrap {
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.sculptor-coherence-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #8C96A0;
+    margin-bottom: 4px;
+}
+
+.sculptor-coherence-value {
+    font-size: 64px;
+    font-weight: 300;
+    color: #5B8DB8;
+    line-height: 1;
+    letter-spacing: -2px;
+    transition: color 0.6s ease;
+}
+
+.sculptor-coherence-value.stressed {
+    color: #8b6abf;
+}
+
+/* ── Blob canvas stage ─────────────────────────────────────────── */
+
+.sculptor-stage {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    margin: 0 auto 24px;
+}
+
+.sculptor-blob-canvas {
+    width: 300px;
+    height: 300px;
+    display: block;
+}
+
+/* ── Biomarker bars ─────────────────────────────────────────────── */
+
+.sculptor-bars {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 0 auto;
+}
+
+.sculptor-bar-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.sculptor-bar-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.sculptor-bar-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #c0c8d4;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.sculptor-bar-pct {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5B8DB8;
+    transition: color 0.4s ease;
+}
+
+.sculptor-bar-bg {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.sculptor-bar-fill {
+    height: 100%;
+    background: #5B8DB8;
+    border-radius: 2px;
+    transition: width 0.5s ease, background 0.5s ease;
+}
+
+.sculptor-bar-fill.tension {
+    background: #8b6abf;
+}
+
+/* ── Status text ─────────────────────────────────────────────────── */
+
+.sculptor-status {
+    margin-top: 24px;
+    font-size: 12px;
+    color: #5a6270;
+    text-align: center;
+    font-style: italic;
+}
+
+/* ── Not active / waiting state ─────────────────────────────────── */
+
+.sculptor-waiting {
+    color: #5a6270;
+    font-size: 14px;
+    text-align: center;
+    margin-top: 40px;
+    line-height: 1.6;
+}

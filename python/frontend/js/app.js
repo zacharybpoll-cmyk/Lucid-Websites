@@ -309,6 +309,13 @@ function switchView(view) {
         }
     }
 
+    // Unload sculptor when navigating away
+    if (AppState.previousView === 'sculptor' && view !== 'sculptor') {
+        if (typeof sculptorView !== 'undefined') {
+            sculptorView.unload();
+        }
+    }
+
     if (view === 'trends' && typeof trendsView !== 'undefined' && trendsView) {
         trendsView.load(14);
     } else if (view === 'history' && typeof correlationExplorer !== 'undefined' && correlationExplorer) {
@@ -322,6 +329,8 @@ function switchView(view) {
         labView.load();
     } else if (view === 'studio' && typeof studioView !== 'undefined') {
         studioView.load();
+    } else if (view === 'sculptor' && typeof sculptorView !== 'undefined') {
+        sculptorView.load();
     }
 
     AppState.previousView = view;
