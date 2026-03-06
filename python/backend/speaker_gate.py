@@ -68,6 +68,9 @@ class SpeakerGate:
         self._consecutive_rejected = 0
         self._momentum_active = False
 
+        # Anti-momentum: rolling verdict buffer to detect isolated acceptances
+        self._verdict_buffer: deque = deque(maxlen=10)  # (verified: bool, segment_chunks, similarity)
+
         # Stats
         self._stats = {
             'segments_verified': 0,
@@ -176,6 +179,36 @@ class SpeakerGate:
             if self._consecutive_rejected >= config.SPEAKER_GATE_MOMENTUM_DECAY and self._momentum_active:
                 self._momentum_active = False
                 logger.info(f"Momentum deactivated (threshold -> {config.SPEAKER_GATE_THRESHOLD})")
+
+        # --- Anti-momentum: detect isolated acceptances ---
+        self._verdict_buffer.append((verified, segment_chunks if verified else None, similarity))
+        if len(self._verdict_buffer) >= 3 and verified is False:
+            # Check if the previous acceptance is isolated
+            buf = list(self._verdict_buffer)
+            for i in range(1, len(buf) - 1):
+                if buf[i][0] is True:  # An acceptance
+                    # Count rejections before and after
+                    rejections_before = 0
+                    for j in range(i - 1, -1, -1):
+                        if buf[j][0] is False:
+                            rejections_before += 1
+                        else:
+                            break
+                    rejections_after = 0
+                    for j in range(i + 1, len(buf)):
+                        if buf[j][0] is False:
+                            rejections_after += 1
+                        else:
+                            break
+                    if (rejections_before >= config.SPEAKER_GATE_ANTI_MOMENTUM_MIN_REJECTIONS and
+                        rejections_after >= config.SPEAKER_GATE_ANTI_MOMENTUM_MIN_REJECTIONS):
+                        # Retroactively flip this acceptance
+                        self._stats['segments_verified'] -= 1
+                        self._stats['segments_rejected'] += 1
+                        # Mark as flipped in buffer
+                        self._verdict_buffer[i] = (False, None, buf[i][2])
+                        logger.info(f"Anti-momentum: flipped isolated acceptance "
+                                   f"(similarity={buf[i][2]:.3f}, {rejections_before}R before, {rejections_after}R after)")
 
         # Record event for debug overlay
         self._recent_events.append({

@@ -30,6 +30,8 @@ class NotificationManager:
         # Track whether voice weather was sent today
         self._weather_sent_today = False
         self._last_weather_date = None
+        # Track whether rings-closed notification was sent today
+        self._ring_close_notified_today = False
         # Previous zone for transition detection
         self._previous_zone = None
 
@@ -436,6 +438,7 @@ class NotificationManager:
         self._curtain_sent_today = False
         self._weather_sent_today = False
         self._last_weather_date = None
+        self._ring_close_notified_today = False
 
     def stop(self):
         """Cancel pending timers."""

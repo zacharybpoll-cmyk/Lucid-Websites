@@ -315,6 +315,39 @@ class SpeakerVerifier:
         logger.info(f"Enrollment complete — {len(embeddings)} samples -> centroid")
         return centroid
 
+    def enhance_profile(self, audio: np.ndarray) -> dict:
+        """Enhance voice profile using a morning recording.
+
+        Extracts embedding, checks similarity vs centroid.
+        If high-confidence match (>0.7), merge 90% centroid + 10% new.
+        """
+        if not self._enrolled or self._centroid is None or self.model is None:
+            return {'enhanced': False, 'reason': 'not_enrolled'}
+
+        embedding = self.get_embedding(audio)
+        similarity = self._compute_similarity(embedding)
+
+        if similarity < 0.5:
+            logger.warning(f"Morning enhance rejected: similarity {similarity:.3f} < 0.5")
+            return {'enhanced': False, 'reason': 'low_similarity', 'similarity': round(float(similarity), 3)}
+
+        if similarity >= 0.7:
+            with self._lock:
+                blended = 0.9 * self._centroid + 0.1 * embedding
+                norm = np.linalg.norm(blended)
+                if norm > 0:
+                    blended = blended / norm
+                self._centroid = blended
+
+            if self.db:
+                self.db.update_speaker_centroid(self._centroid.tobytes())
+
+            logger.info(f"Morning profile enhanced (similarity={similarity:.3f}, merged 90/10)")
+            return {'enhanced': True, 'similarity': round(float(similarity), 3)}
+        else:
+            logger.info(f"Morning enhance skipped: similarity {similarity:.3f} (needs >= 0.7)")
+            return {'enhanced': False, 'reason': 'moderate_similarity', 'similarity': round(float(similarity), 3)}
+
     def _compute_similarity(self, embedding: np.ndarray) -> float:
         """Compute max similarity across centroid and all enrollment embeddings.
 

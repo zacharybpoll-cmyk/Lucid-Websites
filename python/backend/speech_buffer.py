@@ -49,6 +49,7 @@ class SpeechBuffer:
         # Grace period tracking
         self._soft_triggered = False
         self._last_chunk_time: float = 0.0
+        self._last_chunk_wall_time: Optional[float] = None  # wall-clock time of last add_speech_chunk
 
     def add_speech_chunk(self, chunk: np.ndarray, vad_confidence: float = 1.0):
         """
@@ -61,6 +62,7 @@ class SpeechBuffer:
         self.speech_chunks.append((chunk, vad_confidence))
         self.total_speech_samples += len(chunk)
         self._last_chunk_time = time.monotonic()
+        self._last_chunk_wall_time = time.time()
 
         # Hard trigger at preferred duration (60s) — optimal reliability
         if self.total_speech_samples >= self.preferred_samples:
@@ -123,6 +125,7 @@ class SpeechBuffer:
         self.total_speech_samples = 0
         self._soft_triggered = False
         self._last_chunk_time = 0.0
+        self._last_chunk_wall_time = None
 
     def get_current_duration(self) -> float:
         """Get current buffered speech duration in seconds"""
@@ -133,6 +136,12 @@ class SpeechBuffer:
         if not self.speech_chunks:
             return 0.0
         return float(np.mean([conf for _, conf in self.speech_chunks]))
+
+    def get_last_chunk_age(self) -> Optional[float]:
+        """Seconds since last chunk was added, or None if never."""
+        if self._last_chunk_wall_time is None:
+            return None
+        return time.time() - self._last_chunk_wall_time
 
     def is_ready(self) -> bool:
         """Check if buffer has reached soft threshold"""

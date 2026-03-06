@@ -35,6 +35,7 @@ class AppConfig:
     preferred_speech_sec: int = 60      # Hard trigger: optimal DAM reliability at 60s
     buffer_size_sec: int = 90           # Max buffer size before force-analysis
     grace_period_sec: int = 4           # After soft trigger, wait this long for more speech before analyzing
+    stale_buffer_timeout_sec: int = 3600     # Clear partial buffer after 60 min of inactivity
 
     # Temporal Smoothing
     ema_alpha: float = 0.4              # Exponential moving average alpha (0.4 = half-life ~1.3 readings)
@@ -86,6 +87,7 @@ class AppConfig:
     speaker_gate_momentum_decay: int = 1            # Consecutive rejections to deactivate momentum
     speaker_gate_momentum_min_sim: float = 0.26     # Minimum similarity to use momentum threshold
     speaker_gate_absolute_floor: float = 0.22       # Below this similarity, always reject
+    speaker_gate_anti_momentum_min_rejections: int = 2  # Rejections needed on both sides to flip
 
     # Overlap Detection
     overlap_detection_enabled: bool = True          # Pitch-based multi-speaker overlap detection
@@ -100,6 +102,12 @@ class AppConfig:
 
     # VAD Settings
     vad_speech_threshold: float = 0.40              # Silero VAD speech probability threshold
+
+    # Ollama LLM Settings
+    ollama_enabled: bool = field(default_factory=lambda: os.environ.get('LUCID_OLLAMA_ENABLED', 'true').lower() == 'true')
+    ollama_host: str = field(default_factory=lambda: os.environ.get('LUCID_OLLAMA_HOST', 'http://localhost:11434'))
+    ollama_model: str = field(default_factory=lambda: os.environ.get('LUCID_OLLAMA_MODEL', 'phi4-mini'))
+    ollama_timeout_sec: float = field(default_factory=lambda: float(os.environ.get('LUCID_OLLAMA_TIMEOUT', '10')))
 
     # Analytics (Supabase)
     analytics_enabled: bool = True
@@ -145,6 +153,7 @@ SPEECH_THRESHOLD_SEC = config.speech_threshold_sec
 PREFERRED_SPEECH_SEC = config.preferred_speech_sec
 BUFFER_SIZE_SEC = config.buffer_size_sec
 GRACE_PERIOD_SEC = config.grace_period_sec
+STALE_BUFFER_TIMEOUT_SEC = config.stale_buffer_timeout_sec
 
 # Temporal Smoothing
 EMA_ALPHA = config.ema_alpha
@@ -183,6 +192,7 @@ SPEAKER_GATE_MOMENTUM_THRESHOLD = config.speaker_gate_momentum_threshold
 SPEAKER_GATE_MOMENTUM_DECAY = config.speaker_gate_momentum_decay
 SPEAKER_GATE_MOMENTUM_MIN_SIM = config.speaker_gate_momentum_min_sim
 SPEAKER_GATE_ABSOLUTE_FLOOR = config.speaker_gate_absolute_floor
+SPEAKER_GATE_ANTI_MOMENTUM_MIN_REJECTIONS = config.speaker_gate_anti_momentum_min_rejections
 
 # Overlap Detection
 OVERLAP_DETECTION_ENABLED = config.overlap_detection_enabled
@@ -198,6 +208,12 @@ ACTIVE_STATUS_POLL_MS = config.active_status_poll_ms
 
 # VAD Settings
 VAD_SPEECH_THRESHOLD = config.vad_speech_threshold
+
+# Ollama LLM Settings
+OLLAMA_ENABLED = config.ollama_enabled
+OLLAMA_HOST = config.ollama_host
+OLLAMA_MODEL = config.ollama_model
+OLLAMA_TIMEOUT_SEC = config.ollama_timeout_sec
 
 # Analytics (Supabase)
 ANALYTICS_ENABLED = config.analytics_enabled

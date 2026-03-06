@@ -371,6 +371,19 @@ class AnalysisOrchestrator:
                     except Exception as be:
                         logger.warning(f"Bootstrap enrollment failed (non-fatal): {be}")
 
+                # Morning profile enhancement (first reading of the day)
+                if not self._bootstrap_done:
+                    pass  # Skip — bootstrap takes priority
+                elif similarity >= 0.60:
+                    today_readings = self.db.get_today_readings()
+                    if len(today_readings) <= 1:  # First reading of the day
+                        try:
+                            result = self.speaker_verifier.enhance_profile(speech_audio)
+                            if result.get('enhanced'):
+                                logger.info(f"Morning profile enhancement applied")
+                        except Exception as me:
+                            logger.warning(f"Morning enhance failed (non-fatal): {me}")
+
             # Run DAM analysis
             try:
                 dam_output = self.dam_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
@@ -588,6 +601,15 @@ class AnalysisOrchestrator:
         while not self._shutdown_event.is_set():
             if self.is_running and not self.is_paused:
                 self.speech_buffer.check_grace_timeout()
+
+                # Stale buffer watchdog: clear partial buffer if no new speech for too long
+                if self.speech_buffer.get_current_duration() > 0:
+                    last_chunk_age = self.speech_buffer.get_last_chunk_age()
+                    if last_chunk_age is not None and last_chunk_age > config.STALE_BUFFER_TIMEOUT_SEC:
+                        stale_dur = self.speech_buffer.get_current_duration()
+                        self.speech_buffer.clear()
+                        logger.warning(f"Stale buffer cleared: {stale_dur:.1f}s partial data "
+                                      f"(no new speech for {last_chunk_age:.0f}s)")
 
                 # EDGE-001: Watchdog — check for stuck analysis thread
                 if (self._analysis_start_time and

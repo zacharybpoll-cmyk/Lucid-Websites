@@ -145,6 +145,9 @@ window.AppState = {
     wellnessProgressRAF: null,
     wellnessProgressStart: 0,
     wellnessProgressSafetyTimer: null,
+
+    // Rings closed notification guard (once per day)
+    ringsClosedNotified: false,
 };
 
 // ========== Startup Sequencing ==========
@@ -1409,7 +1412,8 @@ async function loadRhythmRings() {
         if (checkinLabel) checkinLabel.textContent = `Check-in: ${data.checkin.current}/${data.checkin.target}`;
 
         // All rings closed celebration
-        if (data.all_closed) {
+        if (data.all_closed && !AppState.ringsClosedNotified) {
+            AppState.ringsClosedNotified = true;
             triggerSanctuary('rings_closed', 'All rings closed! Outstanding.');
         }
     } catch (e) {
