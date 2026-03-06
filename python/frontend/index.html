@@ -17,6 +17,8 @@
     <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <link rel="stylesheet" href="css/lab.css?v=1">
     <link rel="stylesheet" href="css/sculptor.css?v=1">
+    <link rel="stylesheet" href="css/voice_profile.css?v=1">
+    <link rel="stylesheet" href="css/reports.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
 <body>
@@ -351,17 +353,23 @@
                     <polyline points="9 22 9 12 15 12 15 22"/>
                 </svg>
             </button>
+            <button class="sidebar-icon" data-view="profile" title="Your Voice" aria-label="Your Voice">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
             <button class="sidebar-icon" data-view="trends" title="Trends" aria-label="Trends">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" data-view="history" title="History" aria-label="History">
+            <button class="sidebar-icon" data-view="reports" title="Reports" aria-label="Reports">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
                 </svg>
             </button>
             <button class="sidebar-icon" data-view="waypoints" title="Waypoints" aria-label="Waypoints">
@@ -858,6 +866,12 @@
                         <div id="meetings-list"></div>
                     </div>
                 </div>
+
+                <!-- VOICE PROFILE VIEW -->
+                <div id="profile-view" class="view"></div>
+
+                <!-- REPORTS VIEW -->
+                <div id="reports-view" class="view"></div>
 
                 <!-- TRENDS VIEW -->
                 <div id="trends-view" class="view"></div>
@@ -1409,6 +1423,8 @@
     <script src="js/active_assessment.js?v=1"></script>
     <script src="js/lab.js?v=1"></script>
     <script src="js/sculptor.js?v=1"></script>
+    <script src="js/voice_profile.js?v=1"></script>
+    <script src="js/reports.js?v=1"></script>
     <script src="js/app.js?v=30"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->

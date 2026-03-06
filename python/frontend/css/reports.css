@@ -1,0 +1,238 @@
+/* Reports view */
+#reports-view {
+    padding: 20px 0;
+}
+.reports-layout {
+    display: flex;
+    gap: 24px;
+}
+.reports-main {
+    flex: 7;
+    min-width: 0;
+}
+.reports-sidebar {
+    flex: 3;
+    min-width: 220px;
+}
+
+.reports-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #1a1d21;
+    margin-bottom: 4px;
+}
+.reports-subtitle {
+    font-size: 13px;
+    color: #5a6270;
+    margin-bottom: 24px;
+}
+
+/* Stress chart */
+.reports-stress-section {
+    margin-bottom: 24px;
+}
+.reports-stress-section .section-label {
+    margin-bottom: 12px;
+}
+
+/* Grove participation */
+.reports-grove-section {
+    margin-bottom: 24px;
+}
+.reports-grove-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 12px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e4e8ec;
+}
+.reports-grove-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: #e4e8ec;
+}
+.reports-grove-dot.active {
+    background: #5a9a6e;
+}
+.reports-grove-dot.partial {
+    background: #b8d4a8;
+}
+
+/* Flagged events */
+.reports-events-section {
+    margin-bottom: 24px;
+}
+.reports-events-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.reports-events-table th {
+    text-align: left;
+    padding: 8px 12px;
+    background: #f0f2f4;
+    color: #5a6270;
+    font-weight: 500;
+    border-bottom: 1px solid #e4e8ec;
+}
+.reports-events-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e4e8ec;
+    color: #1a1d21;
+}
+.reports-event-severity {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+}
+.reports-event-severity.warning {
+    background: #FFF3E0;
+    color: #E65100;
+}
+.reports-event-severity.alert {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+/* Sidebar */
+.reports-export-card {
+    background: white;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid #e4e8ec;
+    margin-bottom: 16px;
+}
+.reports-export-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1a1d21;
+    margin-bottom: 16px;
+}
+.reports-range-btns {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.reports-range-btn {
+    flex: 1;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid #e4e8ec;
+    background: transparent;
+    color: #5a6270;
+    font-size: 13px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.reports-range-btn.active {
+    background: #5B8DB8;
+    color: white;
+    border-color: #5B8DB8;
+}
+.reports-generate-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #5B8DB8;
+    color: white;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-bottom: 10px;
+}
+.reports-generate-btn:hover {
+    background: #4a7ca7;
+}
+.reports-generate-btn:disabled {
+    background: #c8cfd8;
+    cursor: not-allowed;
+}
+.reports-share-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #e4e8ec;
+    background: transparent;
+    color: #5a6270;
+    font-size: 14px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.reports-share-btn:hover {
+    background: #f0f2f4;
+}
+
+/* Zone summary */
+.reports-zone-bar {
+    display: flex;
+    height: 24px;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+.reports-zone-seg {
+    transition: width 0.3s;
+}
+.reports-zone-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #5a6270;
+}
+
+/* Empty state */
+.reports-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #5a6270;
+}
+.reports-empty h3 {
+    font-size: 18px;
+    color: #1a1d21;
+    margin-bottom: 8px;
+}
+
+/* Summary stats */
+.reports-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+.reports-stat {
+    flex: 1;
+    background: white;
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid #e4e8ec;
+    text-align: center;
+}
+.reports-stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1a1d21;
+}
+.reports-stat-label {
+    font-size: 11px;
+    color: #5a6270;
+    margin-top: 2px;
+}
+
+@media (max-width: 700px) {
+    .reports-layout {
+        flex-direction: column;
+    }
+    .reports-sidebar {
+        min-width: auto;
+    }
+}

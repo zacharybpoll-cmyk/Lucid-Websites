@@ -165,6 +165,8 @@ async function init() {
     initGrove();
     initLayout();
     if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.init();
+    initVoiceProfileView();
+    initReportsView();
 
     // 3. Setup UI event handlers and static content
     setupNavigation();
@@ -321,9 +323,7 @@ function switchView(view) {
 
     if (view === 'trends' && typeof trendsView !== 'undefined' && trendsView) {
         trendsView.load(14);
-    } else if (view === 'history' && typeof correlationExplorer !== 'undefined' && correlationExplorer) {
-        correlationExplorer.load(30);
-        loadHeatmapData();
+    } else if (view === 'history') { switchView('trends'); return;
     } else if (view === 'waypoints') {
         loadWaypoints();
     } else if (view === 'voicescan' && typeof ActiveAssessment !== 'undefined') {
@@ -332,6 +332,10 @@ function switchView(view) {
         labView.load();
     } else if (view === 'sculptor' && typeof sculptorView !== 'undefined') {
         sculptorView.load();
+    } else if (view === 'profile' && typeof voiceProfileView !== 'undefined') {
+        voiceProfileView.load();
+    } else if (view === 'reports' && typeof reportsView !== 'undefined') {
+        reportsView.load();
     }
 
     AppState.previousView = view;
@@ -1206,7 +1210,6 @@ async function loadFeatures() {
         loadTopicCorrelations(),
         loadMeetingImpact(),
         loadStreakInsurance(),
-        loadVoiceSeason(),
     ]);
 }
 

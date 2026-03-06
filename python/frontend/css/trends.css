@@ -51,3 +51,70 @@
 [data-theme="night"] .trends-empty p { color: rgba(255, 255, 255, 0.6); }
 
 @media (max-width: 768px) { .trends-charts { grid-template-columns: 1fr; } }
+
+/* Day toggle */
+.trends-day-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.trends-toggle-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid #e4e8ec;
+    background: transparent;
+    color: #5a6270;
+    font-size: 13px;
+    font-family: Inter, sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.trends-toggle-btn.active {
+    background: #5B8DB8;
+    color: white;
+    border-color: #5B8DB8;
+}
+
+/* Voice Season in Trends */
+.trends-voice-season {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+}
+
+/* Zone legend */
+.zone-legend {
+    display: flex;
+    gap: 16px;
+    padding: 8px 0 16px;
+    justify-content: center;
+}
+.zone-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #5a6270;
+}
+.zone-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* Score Trends section */
+.trends-score-trends {
+    margin: 20px 0;
+}
+.trends-score-trends .section-label {
+    margin-bottom: 12px;
+}
+
+/* Heatmap section */
+.trends-heatmap-section {
+    margin: 20px 0;
+}
+.trends-heatmap-section .section-label {
+    margin-bottom: 12px;
+}

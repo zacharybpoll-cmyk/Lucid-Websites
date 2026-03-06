@@ -62,10 +62,14 @@ from api.routers import health as _health_mod
 from api.routers import readings as _readings_mod
 from api.routers import settings as _settings_mod
 from api.routers import lab as _lab_mod
+from api.routers import voice_profile as _voice_profile_mod
+from api.routers import reports as _reports_mod
 app.include_router(_health_mod.router)
 app.include_router(_readings_mod.router)
 app.include_router(_settings_mod.router)
 app.include_router(_lab_mod.router)
+app.include_router(_voice_profile_mod.router)
+app.include_router(_reports_mod.router)
 
 @app.get("/")
 async def root():

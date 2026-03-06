@@ -1011,9 +1011,8 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
     const container = document.getElementById(containerIdOverride || 'heatmap-calendar');
     if (!container) return;
 
-    // Build day-of-week headers
     const headersContainer = document.getElementById(
-        containerIdOverride ? 'history-heatmap-day-headers' : 'heatmap-day-headers'
+        containerIdOverride ? containerIdOverride.replace('calendar', 'day-headers') : 'heatmap-day-headers'
     );
     if (headersContainer) {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -1023,8 +1022,9 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Build a map of date -> wellness score from summaries
+    // Build maps from summaries
     const scoreMap = {};
+    const summaryMap = {};
     if (summaries && summaries.length > 0) {
         for (const s of summaries) {
             const wellbeing = s.avg_wellbeing || s.avg_mood || 50;
@@ -1033,17 +1033,18 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
             const stress = s.avg_stress || 50;
             const wellness = (wellbeing + calm + activation + (100 - stress)) / 4;
             scoreMap[s.date] = wellness;
+            summaryMap[s.date] = s;
         }
     }
 
-    // Generate 28 cells (4 weeks) ending this week
+    // Generate 28 cells
     const start = new Date(today);
     const todayDay = start.getDay();
     const mondayOffset = todayDay === 0 ? -6 : 1 - todayDay;
     start.setDate(start.getDate() + mondayOffset);
     start.setDate(start.getDate() - 21);
 
-    const cells = [];
+    container.innerHTML = '';
     for (let i = 0; i < 28; i++) {
         const d = new Date(start);
         d.setDate(d.getDate() + i);
@@ -1060,14 +1061,90 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
             else if (score >= 40) cls = 'moderate';
             else cls = 'poor';
         }
-
         if (isToday) cls += ' today';
 
-        cells.push(`<div class="heatmap-cell ${cls}" title="${dateStr}"></div>`);
+        const cell = document.createElement('div');
+        cell.className = `heatmap-cell ${cls}`;
+        cell.title = dateStr;
+        cell.dataset.date = dateStr;
+
+        // Click handler for detail overlay
+        if (!isFuture && summaryMap[dateStr]) {
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', (e) => {
+                e.stopPropagation();
+                _showHeatmapOverlay(e.target, dateStr, scoreMap[dateStr], summaryMap[dateStr]);
+            });
+        }
+
+        container.appendChild(cell);
+    }
+}
+
+function _showHeatmapOverlay(cellEl, dateStr, wellness, summary) {
+    // Remove any existing overlay
+    _dismissHeatmapOverlay();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'heatmap-detail-overlay';
+    overlay.id = 'heatmap-detail-overlay';
+
+    const dateObj = new Date(dateStr + 'T12:00:00');
+    const dateLabel = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    const stress = summary.avg_stress != null ? Math.round(summary.avg_stress) : '—';
+    const wellbeing = summary.avg_wellbeing || summary.avg_mood;
+    const wellbeingVal = wellbeing != null ? Math.round(wellbeing) : '—';
+    const calm = summary.avg_calm != null ? Math.round(summary.avg_calm) : '—';
+    const activation = summary.avg_activation || summary.avg_energy;
+    const activationVal = activation != null ? Math.round(activation) : '—';
+    const readings = summary.reading_count || 0;
+
+    overlay.innerHTML = `
+        <button class="heatmap-overlay-close" onclick="window._dismissHeatmapOverlay()">&times;</button>
+        <div class="heatmap-overlay-date">${dateLabel}</div>
+        <div class="heatmap-overlay-wellness">Wellness: <strong>${wellness != null ? Math.round(wellness) : '—'}</strong></div>
+        <div class="heatmap-overlay-metrics">
+            <div class="heatmap-overlay-metric"><span class="heatmap-metric-dot" style="background:#C44E52"></span>Stress: ${stress}</div>
+            <div class="heatmap-overlay-metric"><span class="heatmap-metric-dot" style="background:#5B8DB8"></span>Wellbeing: ${wellbeingVal}</div>
+            <div class="heatmap-overlay-metric"><span class="heatmap-metric-dot" style="background:#7a9eb8"></span>Calm: ${calm}</div>
+            <div class="heatmap-overlay-metric"><span class="heatmap-metric-dot" style="background:#6a90a8"></span>Activation: ${activationVal}</div>
+        </div>
+        <div class="heatmap-overlay-readings">${readings} reading${readings !== 1 ? 's' : ''}</div>
+    `;
+
+    // Position near the clicked cell
+    document.body.appendChild(overlay);
+    const cellRect = cellEl.getBoundingClientRect();
+    const overlayRect = overlay.getBoundingClientRect();
+
+    let top = cellRect.bottom + 8;
+    let left = cellRect.left + cellRect.width / 2 - overlayRect.width / 2;
+
+    // Edge positioning
+    if (left < 8) left = 8;
+    if (left + overlayRect.width > window.innerWidth - 8) left = window.innerWidth - overlayRect.width - 8;
+    if (top + overlayRect.height > window.innerHeight - 8) {
+        top = cellRect.top - overlayRect.height - 8;
     }
 
-    container.innerHTML = cells.join('');
+    overlay.style.top = top + 'px';
+    overlay.style.left = left + 'px';
+    overlay.style.opacity = '1';
+
+    // Click outside to dismiss
+    setTimeout(() => {
+        document.addEventListener('click', _dismissHeatmapOverlay, { once: true });
+    }, 50);
 }
+
+function _dismissHeatmapOverlay() {
+    const overlay = document.getElementById('heatmap-detail-overlay');
+    if (overlay) overlay.remove();
+}
+
+// Make dismiss globally accessible for onclick in innerHTML
+window._dismissHeatmapOverlay = _dismissHeatmapOverlay;
 
 // ============ Backward Compat ============
 

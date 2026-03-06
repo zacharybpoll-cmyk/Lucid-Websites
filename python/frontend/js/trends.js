@@ -10,8 +10,15 @@ class TrendsView {
 
     async load(days = 14) {
         try {
-            const data = await API.getTrends(days);
+            const [data, seasonData, summaries] = await Promise.all([
+                API.getTrends(days),
+                API.getVoiceSeason().catch(() => null),
+                API.getSummaries(35).catch(() => []),
+            ]);
             this.data = data;
+            this.seasonData = seasonData;
+            this.summaries = summaries;
+            this.days = days;
             this.render();
         } catch (e) {
             console.error('Failed to load trends:', e);
@@ -25,18 +32,32 @@ class TrendsView {
             return;
         }
 
-        // Clear container
         this.container.textContent = '';
 
-        // Create structure
+        // Day toggle
+        const toggleDiv = document.createElement('div');
+        toggleDiv.className = 'trends-day-toggle';
+        toggleDiv.innerHTML = `
+            <button class="trends-toggle-btn ${this.days === 14 ? 'active' : ''}" data-days="14">14 Days</button>
+            <button class="trends-toggle-btn ${this.days === 30 ? 'active' : ''}" data-days="30">30 Days</button>
+        `;
+        toggleDiv.querySelectorAll('.trends-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.load(parseInt(btn.dataset.days));
+            });
+        });
+        this.container.appendChild(toggleDiv);
+
+        // Voice Season
+        this.renderVoiceSeason();
+
+        // Header
         const header = document.createElement('div');
         header.className = 'trends-header';
-
         const trend = this.data.trend_direction || 'stable';
         const trendArrow = trend === 'improving' ? '\u2191' : trend === 'declining' ? '\u2193' : '\u2192';
         const trendColor = trend === 'improving' ? '#5a9a6e' : trend === 'declining' ? '#C44E52' : '#5a6270';
-
-        header.innerHTML = `<h2>14-Day Trends <span class="trend-arrow" style="color: ${trendColor}; font-size: 18px;">${trendArrow} ${trend}</span></h2>`;
+        header.innerHTML = `<h2>${this.days}-Day Trends <span class="trend-arrow" style="color: ${trendColor}; font-size: 18px;">${trendArrow} ${trend}</span></h2>`;
         this.container.appendChild(header);
 
         // Line charts
@@ -44,6 +65,15 @@ class TrendsView {
 
         // Zone breakdown
         this.renderZoneBreakdown();
+
+        // Zone legend
+        this.renderZoneLegend();
+
+        // Score Trends (Plotly)
+        this.renderScoreTrends();
+
+        // 30-Day Heatmap
+        this.renderHeatmap();
     }
 
     renderLineCharts() {
@@ -280,6 +310,119 @@ class TrendsView {
         });
 
         this.container.appendChild(breakdownContainer);
+    }
+
+    renderVoiceSeason() {
+        if (!this.seasonData || !this.seasonData.has_data) return;
+        const d = this.seasonData;
+        const seasonLabel = d.season_number > 1 ? `Season ${d.season_number}` : '';
+        const section = document.createElement('div');
+        section.className = 'trends-voice-season glass-card';
+        section.innerHTML = `
+            <h3 class="section-label">VOICE SEASON ${sanitizeHTML(seasonLabel)}</h3>
+            <div class="voice-season-content">
+                <div class="voice-season-day">
+                    <span class="voice-season-day-num">${d.day}</span>
+                    <span class="voice-season-day-label">of 90 days</span>
+                </div>
+                <div class="voice-season-phase">${sanitizeHTML(d.phase)}</div>
+                <div class="voice-season-progress">
+                    <div class="voice-season-progress-track">
+                        <div class="voice-season-progress-fill" style="width: ${d.progress_pct}%"></div>
+                    </div>
+                    <div class="voice-season-phase-labels">
+                        <span class="voice-season-phase-dot ${d.phase === 'Discovery' ? 'active' : ''}">Discovery</span>
+                        <span class="voice-season-phase-dot ${d.phase === 'Patterns' ? 'active' : ''}">Patterns</span>
+                        <span class="voice-season-phase-dot ${d.phase === 'Prediction' ? 'active' : ''}">Prediction</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        this.container.appendChild(section);
+    }
+
+    renderZoneLegend() {
+        const legend = document.createElement('div');
+        legend.className = 'zone-legend';
+        legend.innerHTML = `
+            <span class="zone-legend-item"><span class="zone-legend-dot" style="background: #5B8DB8;"></span>Calm</span>
+            <span class="zone-legend-item"><span class="zone-legend-dot" style="background: #5a6270;"></span>Steady</span>
+            <span class="zone-legend-item"><span class="zone-legend-dot" style="background: #DD8452;"></span>Tense</span>
+            <span class="zone-legend-item"><span class="zone-legend-dot" style="background: #C44E52;"></span>Stressed</span>
+        `;
+        this.container.appendChild(legend);
+    }
+
+    renderScoreTrends() {
+        if (!this.data || !this.data.daily_summaries || this.data.daily_summaries.length < 2) return;
+
+        const section = document.createElement('div');
+        section.className = 'trends-score-trends';
+        section.innerHTML = `
+            <h3 class="section-label">SCORE TRENDS</h3>
+            <div id="trends-plotly-chart"></div>
+        `;
+        this.container.appendChild(section);
+
+        const summaries = [...this.data.daily_summaries].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const days = summaries.map(s => s.date);
+        const avg = (key) => summaries.map(s => s[key] || 50);
+
+        const traces = [
+            { x: days, y: avg('avg_stress'), name: 'Stress', line: { color: '#C44E52', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_wellbeing'), name: 'Wellbeing', line: { color: '#5B8DB8', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_activation'), name: 'Activation', line: { color: '#DD8452', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_calm'), name: 'Calm', line: { color: '#5a6270', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_emotional_stability'), name: 'Stability', line: { color: '#7B68EE', width: 2 }, marker: { size: 5 } },
+        ].map(t => ({ ...t, type: 'scatter', mode: 'lines+markers' }));
+
+        const layout = {
+            xaxis: { title: { text: 'Date', font: { size: 12 } } },
+            yaxis: { title: { text: 'Score', font: { size: 12 } }, range: [0, 100], gridcolor: '#e4e8ec' },
+            paper_bgcolor: 'transparent',
+            plot_bgcolor: 'transparent',
+            font: { family: 'Inter, sans-serif', color: '#5a6270', size: 11 },
+            showlegend: true,
+            legend: { x: 0, y: 1, font: { size: 10 } },
+            hovermode: 'x unified',
+            margin: { t: 10, r: 20, b: 40, l: 45 },
+            height: 280,
+        };
+
+        if (typeof Plotly !== 'undefined') {
+            Plotly.newPlot('trends-plotly-chart', traces, layout, { displaylogo: false, responsive: true });
+        }
+    }
+
+    renderHeatmap() {
+        if (!this.summaries || this.summaries.length === 0) return;
+
+        const section = document.createElement('div');
+        section.className = 'trends-heatmap-section';
+        section.innerHTML = `
+            <h3 class="section-label">WELLNESS HEATMAP</h3>
+            <div class="heatmap-card glass-card">
+                <div id="trends-heatmap-day-headers" class="heatmap-day-headers"></div>
+                <div id="trends-heatmap-calendar" class="heatmap-grid"></div>
+                <div class="heatmap-legend">
+                    <span class="heatmap-legend-item"><span class="heatmap-dot good"></span>Good</span>
+                    <span class="heatmap-legend-item"><span class="heatmap-dot moderate"></span>Moderate</span>
+                    <span class="heatmap-legend-item"><span class="heatmap-dot poor"></span>Poor</span>
+                </div>
+            </div>
+        `;
+        this.container.appendChild(section);
+
+        // Reuse existing heatmap function from gauges.js
+        if (typeof updateHeatmapCalendar === 'function') {
+            // Need to temporarily set the header container ID
+            const headersEl = document.getElementById('trends-heatmap-day-headers');
+            if (headersEl) {
+                const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                headersEl.innerHTML = days.map(d => `<span class="heatmap-day-header">${d}</span>`).join('');
+            }
+            updateHeatmapCalendar(this.summaries, 'trends-heatmap-calendar');
+        }
     }
 
     renderEmpty() {

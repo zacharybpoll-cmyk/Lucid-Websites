@@ -166,7 +166,7 @@ const labView = (() => {
         const biomarkers = (bioData && bioData.biomarkers) ? bioData.biomarkers : {};
 
         const filtered = Object.entries(biomarkers).filter(([, val]) => {
-            return val && val.meta && val.meta.category === category;
+            return val && val.meta && val.meta.category === category && val.meta.display_priority !== 'hidden';
         });
 
         if (filtered.length === 0) {
@@ -197,6 +197,32 @@ const labView = (() => {
         if (latest !== null && latest !== undefined && !isNaN(latest)) {
             const unit = (meta.normal_range && meta.normal_range.unit) ? meta.normal_range.unit : '';
             latestDisplay = parseFloat(latest).toFixed(2) + (unit ? '\u00a0' + unit : '');
+        }
+
+        // Special display for depression/anxiety mapped scores
+        let severityHTML = '';
+        if (key === 'depression_mapped' || key === 'anxiety_mapped') {
+            const score = parseFloat(latest);
+            let severityLabel = 'Minimal';
+            let severityColor = '#5a9a6e';
+
+            if (key === 'depression_mapped') {
+                if (score >= 20) { severityLabel = 'Severe'; severityColor = '#C44E52'; }
+                else if (score >= 15) { severityLabel = 'Moderately Severe'; severityColor = '#c46438'; }
+                else if (score >= 10) { severityLabel = 'Moderate'; severityColor = '#DD8452'; }
+                else if (score >= 5) { severityLabel = 'Mild'; severityColor = '#c4a83a'; }
+            } else {
+                if (score >= 15) { severityLabel = 'Severe'; severityColor = '#C44E52'; }
+                else if (score >= 10) { severityLabel = 'Moderate'; severityColor = '#DD8452'; }
+                else if (score >= 5) { severityLabel = 'Mild'; severityColor = '#c4a83a'; }
+            }
+
+            const scaleLabel = key === 'depression_mapped' ? 'PHQ-9' : 'GAD-7';
+            severityHTML = `
+                <div class="lab-severity-display">
+                    <span class="lab-severity-badge" style="background: ${severityColor}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">${sanitizeHTML(severityLabel)}</span>
+                    <span class="lab-severity-score" style="color: #1a1d21; font-weight: 500; margin-left: 8px; font-size: 13px;">${scaleLabel}: ${!isNaN(score) ? score.toFixed(1) : '—'}</span>
+                </div>`;
         }
 
         // Population mean display + position on range bar
@@ -242,6 +268,7 @@ const labView = (() => {
                 </div>
 
                 <div class="lab-card-description">${description}</div>
+                ${severityHTML}
 
                 <div class="lab-range-bar-wrap">
                     <div class="lab-range-label">

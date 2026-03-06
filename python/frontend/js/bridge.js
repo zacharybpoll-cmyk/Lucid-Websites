@@ -116,6 +116,24 @@ const API = {
     // Streak Insurance
     async getStreakInsuranceStatus() { return await apiCall('/streak-insurance/status'); },
     async getVoiceSeason() { return await apiCall('/voice-season'); },
+    async getVoiceProfile() { return await apiCall('/voice-profile'); },
+
+    // Reports
+    async getClinicalPreview(days = 90) { return await apiCall(`/reports/clinical-preview?days=${days}`); },
+    async generateClinicalPDF(days = 90) {
+        const resp = await fetch(`${API_BASE}/reports/pdf?days=${days}`);
+        if (!resp.ok) throw new Error('PDF generation failed');
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lucid_wellness_report_${days}d.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    },
+    async getExportHistory() { return await apiCall('/reports/export-history'); },
     async useStreakInsurance() { return await apiCall('/streak-insurance', { method: 'POST' }); },
 
     // The Beacon

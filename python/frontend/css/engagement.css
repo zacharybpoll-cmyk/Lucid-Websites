@@ -2341,3 +2341,64 @@
 .export-report-btn:hover {
     background: #4a7a9e;
 }
+
+/* Heatmap detail overlay */
+.heatmap-detail-overlay {
+    position: fixed;
+    z-index: 10000;
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
+    min-width: 200px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    font-family: Inter, sans-serif;
+}
+.heatmap-overlay-close {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #8C96A0;
+    cursor: pointer;
+    line-height: 1;
+}
+.heatmap-overlay-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1d21;
+    margin-bottom: 6px;
+}
+.heatmap-overlay-wellness {
+    font-size: 13px;
+    color: #5a6270;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e4e8ec;
+}
+.heatmap-overlay-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.heatmap-overlay-metric {
+    font-size: 12px;
+    color: #5a6270;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.heatmap-metric-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.heatmap-overlay-readings {
+    font-size: 11px;
+    color: #8C96A0;
+}
