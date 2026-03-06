@@ -23,7 +23,8 @@ class EngagementTracker:
         return self._compute_streak_from_summaries(summaries)
 
     def _compute_streak_from_summaries(self, summaries: List[Dict]) -> int:
-        """Compute streak from pre-fetched summaries."""
+        """Compute streak from pre-fetched summaries.
+        Allows one 1-day gap per week when streak insurance is active."""
         if not summaries:
             return 0
 
@@ -33,21 +34,70 @@ class EngagementTracker:
         # Check if today has data
         today = date.today().isoformat()
         if summaries[0]['date'] != today:
-            return 0
+            # Check if insurance was used this week (allow 1 day gap)
+            week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+            used_week = self.db.get_user_state('streak_insurance_used_week', '')
+            if used_week == week_start and summaries[0]['date'] == (date.today() - timedelta(days=1)).isoformat():
+                pass  # Allow the gap — continue counting
+            else:
+                return 0
 
         # Count consecutive days backwards from today
         streak = 0
         current_date = date.today()
+        gaps_used = 0
+        week_start = (date.today() - timedelta(days=date.today().weekday())).isoformat()
+        max_gaps = 1 if self.db.get_user_state('streak_insurance_used_week', '') == week_start else 0
 
-        for summary in summaries:
-            summary_date = date.fromisoformat(summary['date'])
-            if summary_date == current_date:
+        summary_dates = {s['date'] for s in summaries}
+
+        while True:
+            date_str = current_date.isoformat()
+            if date_str in summary_dates:
                 streak += 1
                 current_date -= timedelta(days=1)
-            elif summary_date < current_date:
+            elif gaps_used < max_gaps:
+                gaps_used += 1
+                current_date -= timedelta(days=1)
+                # Don't count the gap day itself
+            else:
                 break
 
         return streak
+
+    # ============ Streak Insurance (Resilience Day) ============
+
+    def use_streak_insurance(self) -> Dict[str, Any]:
+        """Use streak insurance to save the current streak."""
+        today = date.today()
+        week_start = (today - timedelta(days=today.weekday())).isoformat()
+        used_week = self.db.get_user_state('streak_insurance_used_week', '')
+
+        if used_week == week_start:
+            return {'success': False, 'message': 'Already used this week', 'available': False}
+
+        # Must have an active streak to save
+        streak = self.compute_streak()
+        if streak == 0:
+            return {'success': False, 'message': 'No active streak to save', 'available': True}
+
+        self.db.set_user_state('streak_insurance_used_week', week_start)
+        return {'success': True, 'streak': streak, 'available': False, 'message': f'Streak of {streak} days saved!'}
+
+    def get_streak_insurance_status(self) -> Dict[str, Any]:
+        """Check if streak insurance is available this week."""
+        today = date.today()
+        week_start = (today - timedelta(days=today.weekday())).isoformat()
+        used_week = self.db.get_user_state('streak_insurance_used_week', '')
+        available = used_week != week_start
+        streak = self.compute_streak()
+
+        return {
+            'available': available,
+            'streak': streak,
+            'week_start': week_start,
+            'used_this_week': not available,
+        }
 
     # ============ Grove (Feature #2) ============
 
@@ -348,6 +398,71 @@ class EngagementTracker:
 
         this_week_start = (today - timedelta(days=today.weekday())).isoformat()
         self.db.set_goals(this_week_start, new_speak, new_calm, new_checkin)
+
+    # ============ Voice Season (90-Day Arc) ============
+
+    def compute_voice_season(self) -> Dict[str, Any]:
+        """Compute current voice season progress.
+
+        Each season is 90 days. Phase breakdown:
+        - Discovery: days 1-30
+        - Patterns: days 31-60
+        - Prediction: days 61-90
+        """
+        summaries = self.db.get_daily_summaries(days=365)
+        if not summaries:
+            return {
+                'has_data': False,
+                'season_number': 1,
+                'day': 0,
+                'phase': 'Discovery',
+                'phase_day': 0,
+                'progress_pct': 0,
+                'total_readings': 0,
+            }
+
+        total_days = len(summaries)
+        total_readings = self.db.count_readings()
+
+        # Season number (1-indexed)
+        season_number = (total_days - 1) // 90 + 1
+        day_in_season = ((total_days - 1) % 90) + 1
+
+        # Phase determination
+        if day_in_season <= 30:
+            phase = 'Discovery'
+            phase_day = day_in_season
+        elif day_in_season <= 60:
+            phase = 'Patterns'
+            phase_day = day_in_season - 30
+        else:
+            phase = 'Prediction'
+            phase_day = day_in_season - 60
+
+        progress_pct = round(day_in_season / 90 * 100)
+
+        # Check for phase transitions (just crossed day 31 or 61)
+        phase_transition = None
+        if day_in_season == 31:
+            phase_transition = {'new_phase': 'Patterns', 'day': 31}
+        elif day_in_season == 61:
+            phase_transition = {'new_phase': 'Prediction', 'day': 61}
+
+        # Check for season complete
+        season_complete = day_in_season == 90
+
+        return {
+            'has_data': True,
+            'season_number': season_number,
+            'day': day_in_season,
+            'total_days': total_days,
+            'phase': phase,
+            'phase_day': phase_day,
+            'progress_pct': progress_pct,
+            'total_readings': total_readings,
+            'phase_transition': phase_transition,
+            'season_complete': season_complete,
+        }
 
     # ============ Legacy Milestones (kept for backward compat) ============
 

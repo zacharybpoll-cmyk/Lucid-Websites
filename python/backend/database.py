@@ -427,6 +427,16 @@ class Database:
             )
         """)
 
+        # Notification opens (for adaptive timing)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS notification_opens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                opened_at TEXT NOT NULL,
+                hour INTEGER NOT NULL,
+                day_of_week INTEGER NOT NULL
+            )
+        """)
+
         self.conn.commit()
 
         # Run versioned migrations
@@ -1233,6 +1243,30 @@ class Database:
             cursor = self.conn.cursor()
             cursor.execute("SELECT key, value FROM notification_prefs")
             return {row['key']: row['value'] for row in cursor.fetchall()}
+
+    # ============ Notification Opens (Adaptive Timing) ============
+
+    def record_notification_open(self):
+        """Record that a notification was opened/responded to."""
+        from datetime import datetime
+        now = datetime.now()
+        with self.lock:
+            self.conn.execute(
+                "INSERT INTO notification_opens (opened_at, hour, day_of_week) VALUES (?, ?, ?)",
+                (now.isoformat(), now.hour, now.weekday())
+            )
+            self.conn.commit()
+
+    def get_notification_opens(self, days: int = 7) -> List[Dict[str, Any]]:
+        """Get notification opens from the last N days."""
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+        with self.lock:
+            cursor = self.conn.execute(
+                "SELECT * FROM notification_opens WHERE opened_at >= ? ORDER BY opened_at DESC",
+                (cutoff,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
 
     # ============ Webhook Methods ============
 

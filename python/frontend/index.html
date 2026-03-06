@@ -733,6 +733,51 @@
                         </div>
                     </div>
 
+                    <!-- Streak Insurance -->
+                    <!-- Voice Season (90-Day Arc) -->
+                    <div id="voice-season-card" class="dashboard-card" data-card-id="voice-season" style="display: none;">
+                        <div class="voice-season-section glass-card">
+                            <h3 class="section-label">VOICE SEASON <span class="voice-season-number" id="voice-season-number"></span></h3>
+                            <div class="voice-season-content">
+                                <div class="voice-season-day">
+                                    <span class="voice-season-day-num" id="voice-season-day">1</span>
+                                    <span class="voice-season-day-label">of 90 days</span>
+                                </div>
+                                <div class="voice-season-phase" id="voice-season-phase">Discovery</div>
+                                <div class="voice-season-progress">
+                                    <div class="voice-season-progress-track">
+                                        <div class="voice-season-progress-fill" id="voice-season-fill" style="width: 0%"></div>
+                                    </div>
+                                    <div class="voice-season-phase-labels">
+                                        <span class="voice-season-phase-dot" data-phase="Discovery">Discovery</span>
+                                        <span class="voice-season-phase-dot" data-phase="Patterns">Patterns</span>
+                                        <span class="voice-season-phase-dot" data-phase="Prediction">Prediction</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="streak-insurance-card" class="dashboard-card" data-card-id="streak-insurance" style="display: none;">
+                        <div class="streak-insurance-section glass-card">
+                            <div class="streak-insurance-header">
+                                <span class="streak-insurance-shield">&#x1F6E1;</span>
+                                <div class="streak-insurance-info">
+                                    <span class="streak-insurance-title" id="streak-insurance-title">Resilience Day Available</span>
+                                    <span class="streak-insurance-desc" id="streak-insurance-desc">Your streak survives even if you miss a day</span>
+                                </div>
+                            </div>
+                            <div class="streak-insurance-streak">
+                                <span class="streak-insurance-number" id="streak-insurance-number">0</span>
+                                <span class="streak-insurance-label">Day Streak</span>
+                            </div>
+                            <div class="streak-insurance-actions" id="streak-insurance-actions">
+                                <button class="btn btn-primary streak-insurance-use-btn" onclick="useStreakInsurance()">Use Resilience Day</button>
+                                <button class="btn streak-insurance-dismiss-btn" onclick="dismissStreakInsurance()">Not Now</button>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Weekly Wrapped (Your Week in Voice) -->
                     <div id="weekly-wrapped-card" class="dashboard-card" data-card-id="wrapped" style="display: none;">
                         <div class="wrapped-section glass-card">
@@ -1080,6 +1125,21 @@
                 <h3>Notifications</h3>
                 <p class="settings-desc">Control which notifications Lucid sends you.</p>
                 <div id="notification-settings" class="notification-settings"></div>
+                            <div class="setting-row" id="adaptive-timing-row">
+                                <div class="setting-info">
+                                    <span class="setting-label">Adaptive Timing</span>
+                                    <span class="setting-desc">Deliver notifications during your peak engagement hours</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="adaptive-timing-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="adaptive-heatmap-container" id="adaptive-heatmap" style="display: none;">
+                                <div class="adaptive-heatmap-label">Your notification response pattern</div>
+                                <div class="adaptive-heatmap-grid" id="adaptive-heatmap-grid"></div>
+                                <div class="adaptive-peak-label" id="adaptive-peak-label"></div>
+                            </div>
             </div>
             <div class="settings-section">
                 <h3>Analysis</h3>

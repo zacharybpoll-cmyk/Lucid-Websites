@@ -2007,3 +2007,211 @@
     margin: 0;
     line-height: 1.4;
 }
+
+/* ========== Streak Insurance ========== */
+.streak-insurance-section {
+    padding: 20px 24px;
+}
+
+.streak-insurance-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.streak-insurance-shield {
+    font-size: 28px;
+}
+
+.streak-insurance-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.streak-insurance-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.streak-insurance-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.streak-insurance-streak {
+    text-align: center;
+    margin: 16px 0;
+}
+
+.streak-insurance-number {
+    font-family: var(--font-heading);
+    font-size: 48px;
+    font-weight: 700;
+    color: #5B8DB8;
+    display: block;
+    line-height: 1;
+}
+
+.streak-insurance-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.streak-insurance-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.streak-insurance-use-btn {
+    background: #5B8DB8;
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.streak-insurance-dismiss-btn {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+/* ========== Voice Season (90-Day Arc) ========== */
+.voice-season-section {
+    padding: 20px 24px;
+}
+
+.voice-season-content {
+    text-align: center;
+}
+
+.voice-season-day {
+    margin: 12px 0 8px;
+}
+
+.voice-season-day-num {
+    font-family: var(--font-heading);
+    font-size: 36px;
+    font-weight: 700;
+    color: #5B8DB8;
+}
+
+.voice-season-day-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-left: 6px;
+}
+
+.voice-season-phase {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 16px;
+}
+
+.voice-season-number {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 6px;
+}
+
+.voice-season-progress {
+    margin-top: 8px;
+}
+
+.voice-season-progress-track {
+    height: 6px;
+    background: var(--ring-track, #e4e8ec);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.voice-season-progress-fill {
+    height: 100%;
+    background: #5B8DB8;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+}
+
+.voice-season-phase-labels {
+    display: flex;
+    justify-content: space-between;
+}
+
+.voice-season-phase-dot {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.voice-season-phase-dot.active {
+    color: #5B8DB8;
+    font-weight: 600;
+}
+
+/* ========== Adaptive Notification Timing ========== */
+.adaptive-heatmap-container {
+    padding: 12px 0;
+    margin-top: 8px;
+}
+
+.adaptive-heatmap-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+.adaptive-heatmap-grid {
+    display: flex;
+    gap: 2px;
+}
+
+.heatmap-cell {
+    flex: 1;
+    height: 28px;
+    background: #5B8DB8;
+    border-radius: 3px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 2px;
+    min-width: 0;
+}
+
+.heatmap-cell.heatmap-peak {
+    box-shadow: 0 0 0 1.5px #5B8DB8;
+}
+
+.heatmap-hour {
+    font-size: 9px;
+    color: white;
+    font-weight: 500;
+}
+
+.adaptive-peak-label {
+    font-size: 12px;
+    color: #5B8DB8;
+    font-weight: 500;
+    margin-top: 8px;
+    text-align: center;
+}

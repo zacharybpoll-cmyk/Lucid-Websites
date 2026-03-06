@@ -113,6 +113,11 @@ const API = {
         });
     },
 
+    // Streak Insurance
+    async getStreakInsuranceStatus() { return await apiCall('/streak-insurance/status'); },
+    async getVoiceSeason() { return await apiCall('/voice-season'); },
+    async useStreakInsurance() { return await apiCall('/streak-insurance', { method: 'POST' }); },
+
     // The Beacon
     async getBeacon() { return await apiCall('/beacon'); },
 
@@ -132,6 +137,9 @@ const API = {
         });
     },
     async getNotifLog(limit = 50) { return await apiCall(`/notifications/log?limit=${limit}`); },
+    async getNotificationTiming() { return await apiCall('/notifications/timing'); },
+    async setAdaptiveTiming(enabled) { return await apiCall('/notifications/timing/enabled', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({enabled}) }); },
+    async recordNotificationOpen() { return await apiCall('/notifications/open', { method: 'POST' }); },
 
     // The Bridge — Export & Webhooks
     async exportJson(days = 30) { return await apiCall(`/export/json?days=${days}`); },

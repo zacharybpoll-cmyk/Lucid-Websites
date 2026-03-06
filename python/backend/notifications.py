@@ -95,6 +95,15 @@ class NotificationManager:
             if len(self._recent_sends) >= self.MAX_PER_HOUR:
                 return False
 
+        # Adaptive timing: prefer peak window when enabled
+        adaptive_enabled = self.db.get_notification_pref('adaptive_timing', 'false')
+        if adaptive_enabled.lower() == 'true' and notif_type not in ('threshold', 'transition'):
+            peak = self.get_peak_window()
+            if peak['has_data']:
+                hour = now.hour
+                if not (peak['peak_start'] <= hour < peak['peak_end']):
+                    return False
+
         return True
 
     def _is_type_enabled(self, notif_type: str) -> bool:
@@ -111,6 +120,38 @@ class NotificationManager:
     def _escape(text: str) -> str:
         """Escape quotes for osascript."""
         return text.replace('\\', '\\\\').replace('"', '\\"')
+
+    # ================================================================
+    #  Adaptive Notification Timing
+    # ================================================================
+
+    def get_peak_window(self) -> Dict[str, Any]:
+        """Compute the peak 2-hour notification engagement window from open history."""
+        opens = self.db.get_notification_opens(days=14)
+        if len(opens) < 5:
+            return {'has_data': False, 'peak_start': 9, 'peak_end': 11}
+
+        # Build hourly histogram
+        histogram = [0] * 24
+        for o in opens:
+            histogram[o['hour']] += 1
+
+        # Find peak 2-hour window
+        best_start = 9
+        best_count = 0
+        for h in range(6, 20):  # Only consider 6 AM to 8 PM
+            window_count = histogram[h] + histogram[(h + 1) % 24]
+            if window_count > best_count:
+                best_count = window_count
+                best_start = h
+
+        return {
+            'has_data': True,
+            'peak_start': best_start,
+            'peak_end': best_start + 2,
+            'histogram': histogram,
+            'total_opens': len(opens),
+        }
 
     # ================================================================
     #  Threshold Alerts — triggered per reading
@@ -178,6 +219,19 @@ class NotificationManager:
             msg,
             subtitle="Pattern Discovered",
             notif_type="echo"
+        )
+
+    # ================================================================
+    #  Streak Insurance Prompt
+    # ================================================================
+
+    def prompt_streak_insurance(self, streak: int):
+        """Prompt user to use streak insurance when streak is at risk."""
+        self.send_notification(
+            "Lucid",
+            f"Your {streak}-day streak is at risk! Use your resilience day to save it.",
+            subtitle="Streak Insurance",
+            notif_type="streak_insurance"
         )
 
     # ================================================================
@@ -420,6 +474,33 @@ class NotificationManager:
             "Your Week in Voice is ready. See how last week went.",
             subtitle="Weekly Wrapped",
             notif_type="weekly_wrapped"
+        )
+
+    # ================================================================
+    #  Voice Season Notifications
+    # ================================================================
+
+    def notify_phase_transition(self, phase: str, day: int):
+        """Notify when entering a new voice season phase."""
+        messages = {
+            'Patterns': f"Day {day} — Patterns phase unlocked. Your voice has a story forming.",
+            'Prediction': f"Day {day} — Prediction phase unlocked. Your voice patterns are maturing.",
+        }
+        msg = messages.get(phase, f"Day {day} — New phase: {phase}")
+        self.send_notification(
+            "Voice Season",
+            msg,
+            subtitle=f"{phase} Unlocked",
+            notif_type="voice_season"
+        )
+
+    def notify_season_complete(self, season_number: int, total_readings: int):
+        """Notify when a voice season is complete."""
+        self.send_notification(
+            "Voice Season Complete",
+            f"Season {season_number} complete! {total_readings} readings over 90 days.",
+            subtitle=f"Season {season_number}",
+            notif_type="voice_season"
         )
 
     # ================================================================

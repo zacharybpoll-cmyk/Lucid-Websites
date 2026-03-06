@@ -1205,7 +1205,105 @@ async function loadFeatures() {
         pollBeacon(),
         loadTopicCorrelations(),
         loadMeetingImpact(),
+        loadStreakInsurance(),
+        loadVoiceSeason(),
     ]);
+}
+
+// ========== Voice Season ==========
+
+async function loadVoiceSeason() {
+    try {
+        const data = await API.getVoiceSeason();
+        const card = document.getElementById('voice-season-card');
+        if (!card) return;
+
+        if (!data.has_data) {
+            card.style.display = 'none';
+            return;
+        }
+
+        card.style.display = 'block';
+
+        const dayEl = document.getElementById('voice-season-day');
+        const phaseEl = document.getElementById('voice-season-phase');
+        const fillEl = document.getElementById('voice-season-fill');
+        const numberEl = document.getElementById('voice-season-number');
+
+        if (dayEl) dayEl.textContent = data.day;
+        if (phaseEl) phaseEl.textContent = data.phase;
+        if (fillEl) fillEl.style.width = data.progress_pct + '%';
+        if (numberEl) numberEl.textContent = data.season_number > 1 ? `Season ${data.season_number}` : '';
+
+        // Highlight active phase
+        card.querySelectorAll('.voice-season-phase-dot').forEach(dot => {
+            dot.classList.toggle('active', dot.dataset.phase === data.phase);
+        });
+
+        // Phase transition celebration
+        if (data.phase_transition) {
+            triggerSanctuary('phase_transition', `${data.phase_transition.new_phase} Unlocked — Day ${data.phase_transition.day}`);
+        }
+
+        // Season complete celebration
+        if (data.season_complete) {
+            triggerSanctuary('season_complete', `Voice Season ${data.season_number} Complete!`);
+        }
+    } catch (e) {
+        console.error('Failed to load voice season:', e);
+    }
+}
+
+// ========== Streak Insurance ==========
+
+async function loadStreakInsurance() {
+    try {
+        const data = await API.getStreakInsuranceStatus();
+        const card = document.getElementById('streak-insurance-card');
+        if (!card) return;
+
+        const numberEl = document.getElementById('streak-insurance-number');
+        const titleEl = document.getElementById('streak-insurance-title');
+        const descEl = document.getElementById('streak-insurance-desc');
+        const actionsEl = document.getElementById('streak-insurance-actions');
+
+        if (numberEl) numberEl.textContent = data.streak || 0;
+
+        if (data.available && data.streak > 0) {
+            card.style.display = 'block';
+            if (titleEl) titleEl.textContent = '1 Resilience Day Available';
+            if (descEl) descEl.textContent = 'Your streak survives even if you miss a day';
+            if (actionsEl) actionsEl.style.display = 'flex';
+        } else if (data.used_this_week) {
+            card.style.display = 'block';
+            if (titleEl) titleEl.textContent = 'Resilience Day Used';
+            if (descEl) descEl.textContent = 'Resets next Monday';
+            if (actionsEl) actionsEl.style.display = 'none';
+        } else {
+            card.style.display = 'none';
+        }
+    } catch (e) {
+        console.error('Failed to load streak insurance:', e);
+    }
+}
+
+async function useStreakInsurance() {
+    try {
+        const result = await API.useStreakInsurance();
+        if (result.success) {
+            triggerSanctuary('streak_saved', result.message);
+            loadStreakInsurance();
+        } else {
+            showUserError(result.message);
+        }
+    } catch (e) {
+        console.error('Failed to use streak insurance:', e);
+    }
+}
+
+function dismissStreakInsurance() {
+    const card = document.getElementById('streak-insurance-card');
+    if (card) card.style.display = 'none';
 }
 
 // ========== Wellness Score (Feature #1) ==========
@@ -2028,6 +2126,7 @@ function setupSettings() {
     settingsBtn.addEventListener('click', () => {
         settingsPanel.style.display = 'block';
         loadNotificationSettings();
+        loadAdaptiveTiming();
         loadSpeakerStatus();
     });
 
@@ -2776,6 +2875,55 @@ async function saveQuietHours() {
     }
 }
 
+
+// ========== Adaptive Notification Timing ==========
+
+async function loadAdaptiveTiming() {
+    try {
+        const data = await API.getNotificationTiming();
+        const toggle = document.getElementById('adaptive-timing-toggle');
+        const heatmapContainer = document.getElementById('adaptive-heatmap');
+
+        if (toggle) {
+            toggle.checked = data.adaptive_enabled || false;
+            toggle.onchange = async () => {
+                await API.setAdaptiveTiming(toggle.checked);
+                loadAdaptiveTiming();
+            };
+        }
+
+        if (data.has_data && data.histogram && heatmapContainer) {
+            heatmapContainer.style.display = 'block';
+            renderAdaptiveHeatmap(data.histogram, data.peak_start, data.peak_end);
+
+            const peakLabel = document.getElementById('adaptive-peak-label');
+            if (peakLabel) {
+                peakLabel.textContent = `Peak window: ${data.peak_start}:00\u2013${data.peak_end}:00`;
+            }
+        }
+    } catch (e) {
+        console.error('Failed to load adaptive timing:', e);
+    }
+}
+
+function renderAdaptiveHeatmap(histogram, peakStart, peakEnd) {
+    const grid = document.getElementById('adaptive-heatmap-grid');
+    if (!grid) return;
+
+    const maxVal = Math.max(...histogram, 1);
+    const hours = [];
+    for (let h = 6; h <= 20; h++) {
+        const val = histogram[h] || 0;
+        const intensity = val / maxVal;
+        const isPeak = h >= peakStart && h < peakEnd;
+        hours.push(`<div class="heatmap-cell ${isPeak ? 'heatmap-peak' : ''}"
+            style="opacity: ${0.15 + intensity * 0.85}"
+            title="${h}:00 \u2014 ${val} opens">
+            <span class="heatmap-hour">${h}</span>
+        </div>`);
+    }
+    grid.innerHTML = hours.join('');
+}
 
 // ========== Speaker Verification — Voice Profile ==========
 

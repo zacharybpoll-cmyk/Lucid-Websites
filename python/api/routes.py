@@ -823,6 +823,59 @@ async def revive_tree(req: ReviveRequest):
     tracker = EngagementTracker(db)
     return tracker.revive_tree(req.date)
 
+# ============ Streak Insurance ============
+
+@app.post("/api/streak-insurance")
+async def use_streak_insurance():
+    """Use streak insurance to save the current streak."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+    tracker = EngagementTracker(db)
+    result = tracker.use_streak_insurance()
+    return result
+
+@app.get("/api/streak-insurance/status")
+async def get_streak_insurance_status():
+    """Get streak insurance availability."""
+    if db is None:
+        raise HTTPException(status_code=500, detail="Not initialized")
+    tracker = EngagementTracker(db)
+    return tracker.get_streak_insurance_status()
+
+# ============ Voice Season ============
+
+@app.get("/api/voice-season")
+async def get_voice_season():
+    """Get current voice season progress."""
+    tracker = EngagementTracker(db)
+    return tracker.compute_voice_season()
+
+# ============ Adaptive Notification Timing ============
+
+@app.post("/api/notifications/open")
+async def record_notification_open():
+    """Record that a notification was opened."""
+    db.record_notification_open()
+    return {'success': True}
+
+@app.get("/api/notifications/timing")
+async def get_notification_timing():
+    """Get adaptive notification timing data."""
+    nm = notification_manager
+    if not nm:
+        return {'has_data': False}
+    peak = nm.get_peak_window()
+    adaptive_enabled = db.get_notification_pref('adaptive_timing', 'false').lower() == 'true'
+    return {**peak, 'adaptive_enabled': adaptive_enabled}
+
+@app.put("/api/notifications/timing/enabled")
+async def set_adaptive_timing(request: Request):
+    """Enable/disable adaptive notification timing."""
+    body = await request.json()
+    enabled = body.get('enabled', False)
+    db.set_notification_pref('adaptive_timing', 'true' if enabled else 'false')
+    return {'success': True, 'adaptive_enabled': enabled}
+
 # ============ Waypoints (Feature #4) ============
 
 @app.get("/api/waypoints")
