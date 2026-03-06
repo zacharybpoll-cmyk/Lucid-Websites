@@ -73,7 +73,7 @@ curl -s http://localhost:8767/api/dashboard | python3 -c "import sys,json; json.
 ```
 
 ## Current Version
-v1.0.0
+v1.1.0
 
 ## Shared Lessons
 All app variants share one lessons file: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/lucid-lessons.md`
