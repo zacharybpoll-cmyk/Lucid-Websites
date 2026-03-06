@@ -77,6 +77,7 @@ let mainWindow = null;
 let pythonProcess = null;
 let pythonRestartCount = 0;
 let isQuitting = false;
+let onboardingDone = false;
 let appLaunchTime = Date.now();
 
 // Ensure data directory exists
@@ -397,6 +398,7 @@ ipcMain.handle('onboarding-complete', async () => {
       let body = '';
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => {
+        onboardingDone = true;
         resolve({ success: true });
         showMainApp();
       });
@@ -490,6 +492,7 @@ if (!gotTheLock) {
       console.log('[Main] Onboarding status:', status);
 
       if (status.completed) {
+        onboardingDone = true;
         showMainApp();
       } else {
         showOnboarding();
@@ -550,7 +553,10 @@ if (!gotTheLock) {
   });
 
   app.on('window-all-closed', () => {
-    app.quit();
+    if (!onboardingDone) {
+      app.quit();
+    }
+    // After onboarding: stay alive so Python keeps recording
   });
 
   app.on('activate', () => {
@@ -558,6 +564,8 @@ if (!gotTheLock) {
       mainWindow.show();
     } else if (onboardingWindow) {
       onboardingWindow.show();
+    } else if (onboardingDone) {
+      showMainApp();
     }
   });
 

@@ -84,7 +84,7 @@ class ScoreEngine:
         # For borderline readings (Step 7), prefer less severe zone
         uncertainty_flag = dam_output.get('uncertainty_flag')
         anx_mapped = dam_output.get('anxiety_mapped', 0.0)
-        zone = self._classify_zone(anx_mapped, smoothed['stress_score'], uncertainty_flag)
+        zone = self._classify_zone(anx_mapped, smoothed['stress_score'], uncertainty_flag, smoothed['calm_score'])
 
         # Zone confidence (Tier 4c)
         zone_confidence = self._compute_zone_confidence(
@@ -561,7 +561,8 @@ class ScoreEngine:
     # ------------------------------------------------------------------ #
 
     def _classify_zone(self, anxiety_mapped: float, stress_score: float,
-                       uncertainty_flag: Optional[str] = None) -> str:
+                       uncertainty_flag: Optional[str] = None,
+                       calm_score: float = 50.0) -> str:
         """
         Classify current state using convergence logic (AND gates).
 
@@ -572,6 +573,9 @@ class ScoreEngine:
         GAD-7 thresholds: 0-4 minimal, 5-9 mild, 10-14 moderate, 15-21 severe
 
         When uncertainty_flag is 'borderline', prefer the less severe zone.
+
+        Calm uses calm_score (multi-feature composite) rather than dual AND logic,
+        which was too strict and ignored the dedicated calm signal.
         """
         if uncertainty_flag == 'borderline':
             # Borderline: even stricter convergence required
@@ -583,7 +587,7 @@ class ScoreEngine:
                 return 'tense'
             elif anxiety_mapped >= 7 or stress_score > 55:
                 return 'steady'  # Escalated single-signal → steady (not tense)
-            elif anxiety_mapped < 3 and stress_score < 30:
+            elif calm_score >= 62 and stress_score < 45:
                 return 'calm'
             else:
                 return 'steady'
@@ -595,7 +599,7 @@ class ScoreEngine:
                 return 'tense'  # Single signal elevated → tense (not stressed)
             elif anxiety_mapped >= 5 and stress_score > 35:
                 return 'tense'
-            elif anxiety_mapped < 3 and stress_score < 30:
+            elif calm_score >= 57 and stress_score < 45:
                 return 'calm'
             else:
                 return 'steady'

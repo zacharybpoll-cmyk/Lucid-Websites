@@ -176,7 +176,12 @@ class Lucid:
 
         # Create insight engine
         logger.info("Initializing insight engine...")
-        self.insight_engine = InsightEngine()
+        self.insight_engine = InsightEngine(
+            ollama_enabled=config.OLLAMA_ENABLED,
+            ollama_host=config.OLLAMA_HOST,
+            ollama_model=config.OLLAMA_MODEL,
+            ollama_timeout_sec=config.OLLAMA_TIMEOUT_SEC,
+        )
 
         # Create notification manager (The Pulse)
         logger.info("Initializing notification engine...")
