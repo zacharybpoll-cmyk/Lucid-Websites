@@ -228,6 +228,18 @@
         </div>
     </div>
 
+    <!-- Weekly Wrapped Full-Screen Overlay -->
+    <div id="wrapped-overlay" class="wrapped-overlay" style="display: none;">
+        <div class="wrapped-overlay-content">
+            <h2 class="wrapped-overlay-title">Your Week in Voice</h2>
+            <div class="wrapped-day-circles" id="wrapped-day-circles"></div>
+            <div class="wrapped-overlay-stats" id="wrapped-overlay-stats"></div>
+            <div class="wrapped-overlay-actions">
+                <button class="btn btn-primary" onclick="dismissWrappedOverlay()">Continue</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Dive Deeper Overlay (7 sub-factor breakdown) -->
     <div id="dive-deeper-overlay" class="dive-deeper-overlay" style="display: none;">
         <div class="dive-deeper-content">
@@ -1156,7 +1168,14 @@
                 <button id="export-readings-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Readings (CSV)</button>
                 <button id="export-summaries-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Summaries (CSV)</button>
                 <button id="export-json-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export All Data (JSON)</button>
-                <button id="export-therapist-btn" class="btn btn-secondary" style="width: 100%;">Export Therapist Summary (JSON)</button>
+                <button id="export-therapist-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 10px;">Export Therapist Summary (JSON)</button>
+                            <div class="setting-row">
+                                <div class="setting-info">
+                                    <span class="setting-label">Voice Wellness Report</span>
+                                    <span class="setting-desc">Download a PDF summary of your voice wellness data</span>
+                                </div>
+                                <button class="btn btn-primary export-report-btn" onclick="downloadReport()">Export PDF</button>
+                            </div>
             </div>
             <div class="settings-section">
                 <h3>API Access</h3>

@@ -821,11 +821,36 @@ class InsightEngine:
 
         # Week-over-week changes
         wow = {}
+        stress_delta = 0
         if prev_week:
             pw_stress = sum(s.get('avg_stress', 50) or 50 for s in prev_week) / len(prev_week)
             wow['stress'] = round(tw_stress - pw_stress, 1)
+            stress_delta = round(tw_stress - pw_stress, 1)
             pw_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) or 50 for s in prev_week) / len(prev_week)
             wow['wellbeing'] = round(tw_wellbeing - pw_wellbeing, 1)
+
+        # Calmest day (lowest avg stress)
+        calmest_day = min(this_week, key=lambda s: s.get('avg_stress', 50) or 50)
+
+        # Current streak: consecutive days with data (from most recent backwards)
+        streak = 0
+        for s in this_week:
+            day_readings = db.get_readings_for_date(date.fromisoformat(s['date']))
+            if len(day_readings) > 0:
+                streak += 1
+            else:
+                break
+
+        # Day data for overlay day circles
+        day_data = []
+        for s in sorted(this_week, key=lambda s: s['date']):
+            d = date.fromisoformat(s['date'])
+            day_readings = db.get_readings_for_date(d)
+            day_data.append({
+                'date': s['date'],
+                'has_data': len(day_readings) > 0,
+                'day_name': day_names[d.weekday()],
+            })
 
         return {
             'has_data': True,
@@ -862,6 +887,15 @@ class InsightEngine:
             'compass_direction': direction,
             'summary_line': summary_line,
             'week_over_week': wow,
+            'calmest_day': {
+                'date': calmest_day['date'],
+                'label': day_label(calmest_day['date']),
+                'stress': round(calmest_day.get('avg_stress', 50) or 50),
+            },
+            'avg_stress': round(tw_stress, 1),
+            'stress_delta': stress_delta,
+            'streak': streak,
+            'day_data': day_data,
         }
 
     # ============ First Spark — Interpret First Reading ============

@@ -1853,6 +1853,25 @@ async def active_update_notes(req: ActiveNotesRequest):
     return {'success': True}
 
 
+# ============ Voice Wellness Report (PDF) ============
+
+@app.get("/api/report/pdf")
+async def generate_report_pdf(days: int = 90):
+    """Generate and return a Voice Wellness PDF report."""
+    from backend.report_generator import WellnessReportGenerator
+
+    generator = WellnessReportGenerator(db)
+    user_name = db.get_user_state('user_name', 'User')
+    pdf_bytes = generator.generate(days=days, user_name=user_name)
+
+    filename = f"Voice_Wellness_Report_{date.today().isoformat()}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 # Analytics router
 from api.routers.analytics import router as analytics_router
 app.include_router(analytics_router)

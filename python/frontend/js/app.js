@@ -2338,9 +2338,64 @@ async function loadWeeklyWrapped() {
                 localStorage.setItem('wrapped-collapsed', expanded ? 'true' : 'false');
             });
         }
+
+        // Click handler for full-screen overlay
+        const sectionLabel = card.querySelector('.section-label');
+        if (sectionLabel && !sectionLabel.dataset.overlayBound) {
+            sectionLabel.dataset.overlayBound = 'true';
+            sectionLabel.style.cursor = 'pointer';
+            sectionLabel.addEventListener('click', () => showWrappedOverlay(data));
+        }
     } catch (e) {
         console.error('Failed to load weekly wrapped:', e);
     }
+}
+
+// ========== Weekly Wrapped Overlay ==========
+
+function showWrappedOverlay(data) {
+    const overlay = document.getElementById('wrapped-overlay');
+    if (!overlay) return;
+
+    // Render day circles
+    const circlesEl = document.getElementById('wrapped-day-circles');
+    if (circlesEl && data.day_data) {
+        circlesEl.innerHTML = data.day_data.map(d => {
+            const cls = d.has_data ? 'wrapped-day-circle active' : 'wrapped-day-circle missed';
+            return `<div class="${cls}"><span class="wrapped-day-name">${sanitizeHTML(d.day_name)}</span></div>`;
+        }).join('');
+    }
+
+    // Render stats
+    const statsEl = document.getElementById('wrapped-overlay-stats');
+    if (statsEl) {
+        const deltaSign = (data.stress_delta || 0) > 0 ? '+' : '';
+        statsEl.innerHTML = `
+            <div class="wrapped-stat-item">
+                <span class="wrapped-stat-value">${sanitizeHTML(data.best_day ? data.best_day.label : '--')}</span>
+                <span class="wrapped-stat-label">Calmest Day</span>
+            </div>
+            <div class="wrapped-stat-item">
+                <span class="wrapped-stat-value">${Math.round(data.metrics ? data.metrics.avg_stress : 0)}</span>
+                <span class="wrapped-stat-label">Avg Stress</span>
+            </div>
+            <div class="wrapped-stat-item">
+                <span class="wrapped-stat-value">${deltaSign}${Math.round(data.stress_delta || 0)}</span>
+                <span class="wrapped-stat-label">vs Last Week</span>
+            </div>
+        `;
+    }
+
+    overlay.style.display = 'flex';
+    overlay.offsetHeight;
+    overlay.classList.add('visible');
+}
+
+function dismissWrappedOverlay() {
+    const overlay = document.getElementById('wrapped-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('visible');
+    setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
 // ========== The Beacon — Ambient Status Polling ==========
@@ -3379,6 +3434,13 @@ async function startEnhanceRecording() {
         btn.textContent = 'Microphone Access Required';
         btn.disabled = true;
     }
+}
+
+// ========== Voice Wellness Report (PDF) ==========
+
+function downloadReport() {
+    // Open the PDF endpoint in a new tab to trigger download
+    window.open('/api/report/pdf?days=90', '_blank');
 }
 
 async function finishEnhanceRecording() {

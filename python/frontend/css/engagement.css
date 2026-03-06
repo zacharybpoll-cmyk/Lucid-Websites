@@ -2215,3 +2215,129 @@
     margin-top: 8px;
     text-align: center;
 }
+
+/* ========== Weekly Wrapped Overlay ========== */
+.wrapped-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 29, 33, 0.95);
+    z-index: 9600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.wrapped-overlay.visible {
+    opacity: 1;
+}
+
+.wrapped-overlay-content {
+    text-align: center;
+    max-width: 420px;
+    padding: 40px 32px;
+    color: white;
+}
+
+.wrapped-overlay-title {
+    font-family: var(--font-heading);
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 28px;
+    color: white;
+}
+
+.wrapped-day-circles {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 28px;
+}
+
+.wrapped-day-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.wrapped-day-circle.active {
+    background: #5B8DB8;
+    color: white;
+}
+
+.wrapped-day-circle.missed {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.wrapped-day-circle .wrapped-day-name {
+    font-size: 11px;
+    font-family: var(--font-body);
+    color: inherit;
+}
+
+.wrapped-overlay-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.wrapped-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.wrapped-stat-value {
+    font-family: var(--font-heading);
+    font-size: 24px;
+    font-weight: 600;
+    color: white;
+}
+
+.wrapped-stat-label {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+.wrapped-overlay-actions {
+    margin-top: 24px;
+}
+
+.wrapped-overlay-actions .btn-primary {
+    background: #5B8DB8;
+    color: white;
+    border: none;
+    padding: 10px 32px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ========== Export Report Button ========== */
+.export-report-btn {
+    background: #5B8DB8;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.export-report-btn:hover {
+    background: #4a7a9e;
+}

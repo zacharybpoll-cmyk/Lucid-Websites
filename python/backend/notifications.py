@@ -465,13 +465,13 @@ class NotificationManager:
     # ================================================================
 
     def notify_weekly_wrapped(self):
-        """Send notification that weekly wrap is ready (Monday mornings)."""
+        """Send notification that weekly wrap is ready (Friday evenings)."""
         today = date.today()
-        if today.weekday() != 0:  # Monday
+        if today.weekday() != 4:  # Friday
             return
         self.send_notification(
             "Lucid",
-            "Your Week in Voice is ready. See how last week went.",
+            "Your Week in Voice is ready. Tap to see your weekly highlights.",
             subtitle="Weekly Wrapped",
             notif_type="weekly_wrapped"
         )
