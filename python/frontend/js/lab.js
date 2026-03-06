@@ -65,15 +65,12 @@ const labView = (() => {
         if (!container) return;
 
         container.innerHTML = `
+            <div class="lab-top-category-title">${getCategoryTitle(_currentCat)}</div>
             <div class="lab-header">
                 <div class="lab-title">What Your Voice Reveals</div>
                 <div class="lab-subtitle">Every reading, every biomarker — your complete voice fingerprint.</div>
             </div>
             ${renderFingerprint(fpData)}
-            <div class="lab-tabs" role="tablist" aria-label="Biomarker categories">
-                ${renderTabs()}
-            </div>
-            <div class="lab-category-title" id="lab-category-title">${getCategoryTitle(_currentCat)}</div>
             <div class="lab-cards-grid" id="lab-cards-grid" role="list">
                 ${renderCards(bioData, _currentCat)}
             </div>

@@ -169,14 +169,15 @@
     outline-offset: 2px;
 }
 
-/* ── Category title ─────────────────────────────────────── */
+/* ── Top category title (centered, above header) ──────── */
 
-.lab-category-title {
+.lab-top-category-title {
     font-family: 'Playfair Display', var(--font-heading), Georgia, serif;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 600;
     color: #1a1d21;
-    margin-bottom: 16px;
+    text-align: center;
+    margin-bottom: 20px;
     letter-spacing: -0.01em;
 }
 
@@ -643,6 +644,10 @@
 }
 
 /* ── Night theme overrides ────────────────────────────────── */
+
+[data-theme="night"] .lab-top-category-title {
+    color: rgba(255, 255, 255, 0.9);
+}
 
 [data-theme="night"] .lab-title {
     color: rgba(255, 255, 255, 0.9);

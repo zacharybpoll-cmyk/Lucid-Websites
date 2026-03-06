@@ -216,10 +216,16 @@ const ActiveAssessment = (() => {
         ctx.clearRect(0, 0, w, h);
 
         const midY = h / 2;
-        const data = _waveformBuffer;
-        if (data.length < 2) return;
+        const raw = _waveformBuffer;
+        if (raw.length < 2) return;
 
-        // Draw 4 layered wave traces with varying amplitude multipliers and opacity
+        // Simple moving average (window=3) for smoothing
+        const data = raw.map((v, i) => {
+            if (i === 0) return (raw[0] + raw[1]) / 2;
+            if (i === raw.length - 1) return (raw[i - 1] + raw[i]) / 2;
+            return (raw[i - 1] + raw[i] + raw[i + 1]) / 3;
+        });
+
         const layers = [
             { ampMult: 0.5, opacity: 0.10, offset: 0 },
             { ampMult: 0.75, opacity: 0.15, offset: 2 },
@@ -227,30 +233,27 @@ const ActiveAssessment = (() => {
             { ampMult: 0.85, opacity: 0.45, offset: 0 },
         ];
 
+        const step = w / (_waveformMaxSamples - 1);
+        const startIdx = _waveformMaxSamples - data.length;
+
         for (const layer of layers) {
+            // Upper trace
             ctx.beginPath();
             ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity})`;
             ctx.lineWidth = 2;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
 
-            const step = w / (_waveformMaxSamples - 1);
-            const startIdx = _waveformMaxSamples - data.length;
-
             for (let i = 0; i < data.length; i++) {
                 const x = (startIdx + i) * step;
-                const amp = data[i] * layer.ampMult * (h * 0.4);
-                const y = midY + layer.offset - amp * Math.sin((i / data.length) * Math.PI);
+                const y = midY + layer.offset - data[i] * layer.ampMult * (h * 0.4);
 
                 if (i === 0) {
                     ctx.moveTo(x, y);
                 } else {
-                    // Smooth bezier between points
                     const prevX = (startIdx + i - 1) * step;
-                    const prevAmp = data[i - 1] * layer.ampMult * (h * 0.4);
-                    const prevY = midY + layer.offset - prevAmp * Math.sin(((i - 1) / data.length) * Math.PI);
                     const cpx = (prevX + x) / 2;
-                    ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+                    ctx.quadraticCurveTo(cpx, midY + layer.offset - data[i - 1] * layer.ampMult * (h * 0.4), x, y);
                 }
             }
             ctx.stroke();
@@ -260,17 +263,14 @@ const ActiveAssessment = (() => {
             ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity * 0.6})`;
             for (let i = 0; i < data.length; i++) {
                 const x = (startIdx + i) * step;
-                const amp = data[i] * layer.ampMult * (h * 0.35);
-                const y = midY - layer.offset + amp * Math.sin((i / data.length) * Math.PI);
+                const y = midY - layer.offset + data[i] * layer.ampMult * (h * 0.35);
 
                 if (i === 0) {
                     ctx.moveTo(x, y);
                 } else {
                     const prevX = (startIdx + i - 1) * step;
-                    const prevAmp = data[i - 1] * layer.ampMult * (h * 0.35);
-                    const prevY = midY - layer.offset + prevAmp * Math.sin(((i - 1) / data.length) * Math.PI);
                     const cpx = (prevX + x) / 2;
-                    ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+                    ctx.quadraticCurveTo(cpx, midY - layer.offset + data[i - 1] * layer.ampMult * (h * 0.35), x, y);
                 }
             }
             ctx.stroke();

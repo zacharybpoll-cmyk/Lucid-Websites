@@ -381,14 +381,14 @@ class TrendsView {
             plot_bgcolor: 'transparent',
             font: { family: 'Inter, sans-serif', color: '#5a6270', size: 11 },
             showlegend: true,
-            legend: { x: 0, y: 1, font: { size: 10 } },
+            legend: { orientation: 'h', x: 0.5, xanchor: 'center', y: 1.1, font: { size: 10 } },
             hovermode: 'x unified',
             margin: { t: 10, r: 20, b: 40, l: 45 },
             height: 280,
         };
 
         if (typeof Plotly !== 'undefined') {
-            Plotly.newPlot('trends-plotly-chart', traces, layout, { displaylogo: false, responsive: true });
+            Plotly.newPlot('trends-plotly-chart', traces, layout, { displaylogo: false, displayModeBar: false, responsive: true });
         }
     }
 
