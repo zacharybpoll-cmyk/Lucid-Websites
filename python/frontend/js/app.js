@@ -165,7 +165,6 @@ async function init() {
     initGrove();
     initLayout();
     if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.init();
-    initVoiceProfileView();
     initReportsView();
 
     // 3. Setup UI event handlers and static content
@@ -332,8 +331,6 @@ function switchView(view) {
         labView.load();
     } else if (view === 'sculptor' && typeof sculptorView !== 'undefined') {
         sculptorView.load();
-    } else if (view === 'profile' && typeof voiceProfileView !== 'undefined') {
-        voiceProfileView.load();
     } else if (view === 'reports' && typeof reportsView !== 'undefined') {
         reportsView.load();
     }
@@ -1209,7 +1206,6 @@ async function loadFeatures() {
         pollBeacon(),
         loadTopicCorrelations(),
         loadMeetingImpact(),
-        loadStreakInsurance(),
     ]);
 }
 
@@ -1735,6 +1731,25 @@ async function loadWaypoints() {
 
         if (!waypointsContainer) {
             waypointsView.innerHTML = `
+                <div id="streak-insurance-card" class="dashboard-card" data-card-id="streak-insurance" style="display: none;">
+                    <div class="streak-insurance-section glass-card">
+                        <div class="streak-insurance-header">
+                            <span class="streak-insurance-shield">&#x1F6E1;</span>
+                            <div class="streak-insurance-info">
+                                <span class="streak-insurance-title" id="streak-insurance-title">Resilience Day Available</span>
+                                <span class="streak-insurance-desc" id="streak-insurance-desc">Your streak survives even if you miss a day</span>
+                            </div>
+                        </div>
+                        <div class="streak-insurance-streak">
+                            <span class="streak-insurance-number" id="streak-insurance-number">0</span>
+                            <span class="streak-insurance-label">Day Streak</span>
+                        </div>
+                        <div class="streak-insurance-actions" id="streak-insurance-actions">
+                            <button class="btn btn-primary streak-insurance-use-btn" onclick="useStreakInsurance()">Use Resilience Day</button>
+                            <button class="btn streak-insurance-dismiss-btn" onclick="dismissStreakInsurance()">Not Now</button>
+                        </div>
+                    </div>
+                </div>
                 <div class="waypoints-section">
                     <h3 class="section-label" style="margin-top: 24px;">WAYPOINTS</h3>
                     <div class="waypoints-progress-bar">
@@ -1774,6 +1789,9 @@ async function loadWaypoints() {
         }
 
         waypointsContainer.innerHTML = html;
+
+        // Load streak insurance into waypoints view
+        loadStreakInsurance();
     } catch (e) {
         console.error('Failed to load waypoints:', e);
     }

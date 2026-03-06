@@ -73,6 +73,7 @@ const labView = (() => {
             <div class="lab-tabs" role="tablist" aria-label="Biomarker categories">
                 ${renderTabs()}
             </div>
+            <div class="lab-category-title" id="lab-category-title">${getCategoryTitle(_currentCat)}</div>
             <div class="lab-cards-grid" id="lab-cards-grid" role="list">
                 ${renderCards(bioData, _currentCat)}
             </div>
@@ -105,6 +106,16 @@ const labView = (() => {
         { id: 'acoustic',     label: 'Acoustic'      },
         { id: 'linguistic',   label: 'Linguistic'    },
     ];
+
+    const CATEGORY_TITLES = {
+        mental_health: 'Mental Biomarkers',
+        acoustic: 'Acoustic Biomarkers',
+        linguistic: 'Linguistic Biomarkers',
+    };
+
+    function getCategoryTitle(cat) {
+        return CATEGORY_TITLES[cat] || 'Biomarkers';
+    }
 
     function renderTabs() {
         return CATEGORIES.map(cat => `
@@ -790,6 +801,10 @@ const labView = (() => {
             btn.classList.toggle('active', isCat);
             btn.setAttribute('aria-selected', isCat ? 'true' : 'false');
         });
+
+        // Update category title
+        const titleEl = document.getElementById('lab-category-title');
+        if (titleEl) titleEl.textContent = getCategoryTitle(cat);
 
         // Re-render cards grid
         const grid = document.getElementById('lab-cards-grid');

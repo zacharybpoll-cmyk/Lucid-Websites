@@ -51,6 +51,9 @@ class TrendsView {
         // Voice Season
         this.renderVoiceSeason();
 
+        // Score Trends (Plotly) — moved up
+        this.renderScoreTrends();
+
         // Header
         const header = document.createElement('div');
         header.className = 'trends-header';
@@ -63,14 +66,9 @@ class TrendsView {
         // Line charts
         this.renderLineCharts();
 
-        // Zone breakdown
+        // Zone breakdown + legend
         this.renderZoneBreakdown();
-
-        // Zone legend
         this.renderZoneLegend();
-
-        // Score Trends (Plotly)
-        this.renderScoreTrends();
 
         // 30-Day Heatmap
         this.renderHeatmap();

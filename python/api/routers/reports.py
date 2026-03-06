@@ -72,12 +72,17 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
     except Exception as e:
         logger.warning(f"Failed to load echoes: {e}")
 
-    # Pattern flags
+    # Pattern flags & readings for enriched data
+    start_date = date.today() - timedelta(days=days)
+    start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
+    readings = []
+    try:
+        readings = db.get_readings(start_time=start_time, limit=5000) or []
+    except Exception as e:
+        logger.warning(f"Failed to load readings: {e}")
+
     try:
         from backend.pattern_detector import PatternDetector
-        start_date = date.today() - timedelta(days=days)
-        start_time = datetime.combine(start_date, datetime.min.time()).isoformat()
-        readings = db.get_readings(start_time=start_time, limit=5000)
         if readings:
             detector = PatternDetector()
             patterns = detector.detect(readings, summaries)
@@ -92,6 +97,123 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
     except Exception as e:
         logger.warning(f"Failed to detect patterns: {e}")
 
+    # --- Enriched clinical data from readings ---
+
+    def _safe_avg(values):
+        """Average a list, skipping None values. Returns None if empty."""
+        clean = [v for v in values if v is not None]
+        return round(sum(clean) / len(clean), 2) if clean else None
+
+    # Acoustic summary
+    acoustic_summary = {
+        "avg_f0": _safe_avg([r.get("f0_mean") for r in readings]),
+        "avg_hnr": _safe_avg([r.get("hnr") for r in readings]),
+        "avg_speech_rate": _safe_avg([r.get("speech_rate") for r in readings]),
+        "avg_alpha_ratio": _safe_avg([r.get("alpha_ratio") for r in readings]),
+    }
+
+    # Linguistic summary
+    linguistic_summary = {
+        "avg_filler_rate": _safe_avg([r.get("filler_rate") for r in readings]),
+        "avg_hedging_rate": _safe_avg([r.get("hedging_rate") for r in readings]),
+        "avg_negative_sentiment": _safe_avg([r.get("negative_sentiment") for r in readings]),
+        "avg_lexical_diversity": _safe_avg([r.get("lexical_diversity") for r in readings]),
+        "avg_pronoun_i_ratio": _safe_avg([r.get("pronoun_i_ratio") for r in readings]),
+    }
+
+    # Depression / anxiety trends
+    phq9_values = [r.get("phq9_mapped") for r in readings if r.get("phq9_mapped") is not None]
+    gad7_values = [r.get("gad7_mapped") for r in readings if r.get("gad7_mapped") is not None]
+
+    def _severity_distribution(values, thresholds):
+        """Bucket values into severity categories."""
+        dist = {label: 0 for _, label in thresholds}
+        for v in values:
+            for ceiling, label in thresholds:
+                if v <= ceiling:
+                    dist[label] += 1
+                    break
+        return dist
+
+    phq9_thresholds = [(4, "minimal"), (9, "mild"), (14, "moderate"), (19, "mod_severe"), (27, "severe")]
+    gad7_thresholds = [(4, "minimal"), (9, "mild"), (14, "moderate"), (21, "severe")]
+
+    depression_anxiety = {
+        "avg_phq9_mapped": _safe_avg(phq9_values),
+        "avg_gad7_mapped": _safe_avg(gad7_values),
+        "phq9_severity_distribution": _severity_distribution(phq9_values, phq9_thresholds) if phq9_values else None,
+        "gad7_severity_distribution": _severity_distribution(gad7_values, gad7_thresholds) if gad7_values else None,
+    }
+
+    # Week-over-week comparison
+    now = date.today()
+    last_7d = [r for r in readings if r.get("timestamp") and r["timestamp"][:10] >= (now - timedelta(days=7)).isoformat()]
+    prior_7d = [r for r in readings if r.get("timestamp") and (now - timedelta(days=14)).isoformat() <= r["timestamp"][:10] < (now - timedelta(days=7)).isoformat()]
+
+    week_over_week = {
+        "last_7d": {
+            "avg_stress": _safe_avg([r.get("stress") for r in last_7d]),
+            "avg_wellbeing": _safe_avg([r.get("wellbeing") for r in last_7d]),
+            "avg_depression": _safe_avg([r.get("depression") for r in last_7d]),
+            "reading_count": len(last_7d),
+        },
+        "prior_7d": {
+            "avg_stress": _safe_avg([r.get("stress") for r in prior_7d]),
+            "avg_wellbeing": _safe_avg([r.get("wellbeing") for r in prior_7d]),
+            "avg_depression": _safe_avg([r.get("depression") for r in prior_7d]),
+            "reading_count": len(prior_7d),
+        },
+    }
+
+    # Notable patterns: day-of-week stress variation
+    from collections import defaultdict
+    dow_stress = defaultdict(list)
+    for r in readings:
+        ts = r.get("timestamp")
+        stress_val = r.get("stress")
+        if ts and stress_val is not None:
+            try:
+                day_name = datetime.fromisoformat(ts.replace("Z", "+00:00")).strftime("%A")
+                dow_stress[day_name].append(stress_val)
+            except (ValueError, TypeError):
+                pass
+
+    notable_patterns = {
+        "day_of_week_stress": {
+            day: round(sum(vals) / len(vals), 1)
+            for day, vals in dow_stress.items() if vals
+        },
+        "meeting_impact": None,  # Placeholder — requires calendar integration
+    }
+
+    # Therapist flags
+    therapist_flags = []
+
+    # Elevated self-focus language (pronoun-I ratio > 0.10)
+    avg_pronoun_i = linguistic_summary["avg_pronoun_i_ratio"]
+    if avg_pronoun_i is not None and avg_pronoun_i > 0.10:
+        therapist_flags.append({
+            "flag": "elevated_self_focus",
+            "detail": f"Average pronoun-I ratio {avg_pronoun_i:.3f} exceeds threshold (0.10)",
+        })
+
+    # Rising stress trend (last 7d avg > prior 7d avg by 5+ points)
+    last_stress = week_over_week["last_7d"]["avg_stress"]
+    prior_stress = week_over_week["prior_7d"]["avg_stress"]
+    if last_stress is not None and prior_stress is not None and (last_stress - prior_stress) >= 5:
+        therapist_flags.append({
+            "flag": "rising_stress_trend",
+            "detail": f"Stress increased from {prior_stress:.1f} to {last_stress:.1f} week-over-week",
+        })
+
+    # Vocabulary contraction (lexical diversity < 0.40)
+    avg_lex = linguistic_summary["avg_lexical_diversity"]
+    if avg_lex is not None and avg_lex < 0.40:
+        therapist_flags.append({
+            "flag": "vocabulary_contraction",
+            "detail": f"Lexical diversity {avg_lex:.3f} below clinical threshold (0.40)",
+        })
+
     return {
         "has_data": True,
         "days": days,
@@ -101,6 +223,12 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
         "zone_summary": zone_summary,
         "grove_calendar": grove_data[:days],
         "flagged_events": flagged_events[:20],
+        "acoustic_summary": acoustic_summary,
+        "linguistic_summary": linguistic_summary,
+        "depression_anxiety": depression_anxiety,
+        "week_over_week": week_over_week,
+        "notable_patterns": notable_patterns,
+        "therapist_flags": therapist_flags,
     }
 
 

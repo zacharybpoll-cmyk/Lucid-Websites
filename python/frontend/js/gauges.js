@@ -1060,6 +1060,8 @@ function updateHeatmapCalendar(summaries, containerIdOverride) {
             if (score >= 65) cls = 'good';
             else if (score >= 40) cls = 'moderate';
             else cls = 'poor';
+        } else {
+            cls = 'no-data';
         }
         if (isToday) cls += ' today';
 

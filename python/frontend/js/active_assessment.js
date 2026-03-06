@@ -172,32 +172,117 @@ const ActiveAssessment = (() => {
         const stopBtn = document.getElementById('vs-stop-btn');
         if (stopBtn) stopBtn.disabled = !data.ready_for_analysis;
 
-        // Level meter
-        _renderLevelMeter(data.rms_levels || []);
+        // Waveform
+        _renderWaveform(data.rms_levels || []);
     }
 
-    function _renderLevelMeter(levels) {
-        const container = document.getElementById('vs-level-meter');
-        if (!container) return;
+    // Rolling buffer for smooth waveform scrolling
+    const _waveformBuffer = [];
+    const _waveformMaxSamples = 200;
+    let _waveformAnimFrame = null;
 
-        const barCount = 30;
-        // Ensure we have enough bars
-        while (container.children.length < barCount) {
-            const bar = document.createElement('div');
-            bar.className = 'vs-level-bar';
-            container.appendChild(bar);
-        }
+    function _renderWaveform(levels) {
+        const canvas = document.getElementById('vs-waveform-canvas');
+        if (!canvas) return;
 
-        // Map levels to bar heights (take last N levels)
-        const recent = levels.slice(-barCount);
-        const maxRms = 0.15; // normalization cap
-        for (let i = 0; i < barCount; i++) {
-            const bar = container.children[i];
-            const val = i < recent.length ? recent[recent.length - 1 - (barCount - 1 - i)] : 0;
+        // Push new samples into rolling buffer
+        const maxRms = 0.15;
+        for (const val of levels.slice(-10)) {
             const normalized = Math.min(1, (val || 0) / maxRms);
-            const height = 4 + normalized * 76; // min 4px, max 80px
-            bar.style.height = height + 'px';
+            _waveformBuffer.push(normalized);
+            if (_waveformBuffer.length > _waveformMaxSamples) {
+                _waveformBuffer.shift();
+            }
         }
+
+        // Cancel any pending frame and schedule draw
+        if (_waveformAnimFrame) cancelAnimationFrame(_waveformAnimFrame);
+        _waveformAnimFrame = requestAnimationFrame(() => _drawWaveform(canvas));
+    }
+
+    function _drawWaveform(canvas) {
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+
+        // Set canvas resolution for sharpness
+        if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        ctx.clearRect(0, 0, w, h);
+
+        const midY = h / 2;
+        const data = _waveformBuffer;
+        if (data.length < 2) return;
+
+        // Draw 4 layered wave traces with varying amplitude multipliers and opacity
+        const layers = [
+            { ampMult: 0.5, opacity: 0.10, offset: 0 },
+            { ampMult: 0.75, opacity: 0.15, offset: 2 },
+            { ampMult: 1.0, opacity: 0.25, offset: -1 },
+            { ampMult: 0.85, opacity: 0.45, offset: 0 },
+        ];
+
+        for (const layer of layers) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity})`;
+            ctx.lineWidth = 2;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            const step = w / (_waveformMaxSamples - 1);
+            const startIdx = _waveformMaxSamples - data.length;
+
+            for (let i = 0; i < data.length; i++) {
+                const x = (startIdx + i) * step;
+                const amp = data[i] * layer.ampMult * (h * 0.4);
+                const y = midY + layer.offset - amp * Math.sin((i / data.length) * Math.PI);
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    // Smooth bezier between points
+                    const prevX = (startIdx + i - 1) * step;
+                    const prevAmp = data[i - 1] * layer.ampMult * (h * 0.4);
+                    const prevY = midY + layer.offset - prevAmp * Math.sin(((i - 1) / data.length) * Math.PI);
+                    const cpx = (prevX + x) / 2;
+                    ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Mirror below center line
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity * 0.6})`;
+            for (let i = 0; i < data.length; i++) {
+                const x = (startIdx + i) * step;
+                const amp = data[i] * layer.ampMult * (h * 0.35);
+                const y = midY - layer.offset + amp * Math.sin((i / data.length) * Math.PI);
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    const prevX = (startIdx + i - 1) * step;
+                    const prevAmp = data[i - 1] * layer.ampMult * (h * 0.35);
+                    const prevY = midY - layer.offset + prevAmp * Math.sin(((i - 1) / data.length) * Math.PI);
+                    const cpx = (prevX + x) / 2;
+                    ctx.bezierCurveTo(cpx, prevY, cpx, y, x, y);
+                }
+            }
+            ctx.stroke();
+        }
+
+        // Center baseline when mostly silent
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(91, 141, 184, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(0, midY);
+        ctx.lineTo(w, midY);
+        ctx.stroke();
     }
 
     function _formatTime(sec) {
@@ -584,6 +669,18 @@ const ActiveAssessment = (() => {
                 const el = document.getElementById(id);
                 if (el) el.innerHTML = html;
             });
+
+            // Update idle stats cards
+            const sessionsEl = document.getElementById('vs-sessions-count');
+            const stressEl = document.getElementById('vs-stress-index');
+            const lastEl = document.getElementById('vs-last-session');
+            if (sessionsEl) sessionsEl.textContent = history ? history.length : 0;
+            if (history && history.length > 0) {
+                const avgStress = history.reduce((sum, h) => sum + (h.stress || 50), 0) / history.length;
+                if (stressEl) stressEl.textContent = Math.round(avgStress);
+                const lastDate = new Date(history[0].timestamp);
+                if (lastEl) lastEl.textContent = lastDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
         } catch (e) {
             ['vs-history-list', 'vs-idle-history-list'].forEach(id => {
                 const el = document.getElementById(id);

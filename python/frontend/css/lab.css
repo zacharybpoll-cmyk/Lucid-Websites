@@ -169,6 +169,17 @@
     outline-offset: 2px;
 }
 
+/* ── Category title ─────────────────────────────────────── */
+
+.lab-category-title {
+    font-family: 'Playfair Display', var(--font-heading), Georgia, serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1d21;
+    margin-bottom: 16px;
+    letter-spacing: -0.01em;
+}
+
 /* ── Cards grid ─────────────────────────────────────────── */
 
 .lab-cards-grid {

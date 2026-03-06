@@ -17,7 +17,6 @@
     <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <link rel="stylesheet" href="css/lab.css?v=1">
     <link rel="stylesheet" href="css/sculptor.css?v=1">
-    <link rel="stylesheet" href="css/voice_profile.css?v=1">
     <link rel="stylesheet" href="css/reports.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
@@ -351,14 +350,6 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                     <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="profile" title="Your Voice" aria-label="Your Voice">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
                 </svg>
             </button>
             <button class="sidebar-icon" data-view="trends" title="Trends" aria-label="Trends">
@@ -778,26 +769,6 @@
                         </div>
                     </div>
 
-                    <div id="streak-insurance-card" class="dashboard-card" data-card-id="streak-insurance" style="display: none;">
-                        <div class="streak-insurance-section glass-card">
-                            <div class="streak-insurance-header">
-                                <span class="streak-insurance-shield">&#x1F6E1;</span>
-                                <div class="streak-insurance-info">
-                                    <span class="streak-insurance-title" id="streak-insurance-title">Resilience Day Available</span>
-                                    <span class="streak-insurance-desc" id="streak-insurance-desc">Your streak survives even if you miss a day</span>
-                                </div>
-                            </div>
-                            <div class="streak-insurance-streak">
-                                <span class="streak-insurance-number" id="streak-insurance-number">0</span>
-                                <span class="streak-insurance-label">Day Streak</span>
-                            </div>
-                            <div class="streak-insurance-actions" id="streak-insurance-actions">
-                                <button class="btn btn-primary streak-insurance-use-btn" onclick="useStreakInsurance()">Use Resilience Day</button>
-                                <button class="btn streak-insurance-dismiss-btn" onclick="dismissStreakInsurance()">Not Now</button>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Weekly Wrapped (Your Week in Voice) -->
                     <div id="weekly-wrapped-card" class="dashboard-card" data-card-id="wrapped" style="display: none;">
                         <div class="wrapped-section glass-card">
@@ -867,9 +838,6 @@
                     </div>
                 </div>
 
-                <!-- VOICE PROFILE VIEW -->
-                <div id="profile-view" class="view"></div>
-
                 <!-- REPORTS VIEW -->
                 <div id="reports-view" class="view"></div>
 
@@ -910,6 +878,20 @@
                             Begin Recording
                         </button>
                         <div class="vs-privacy-note">Analyzed locally on your device. Nothing leaves your machine.</div>
+                        <div class="vs-idle-stats">
+                            <div class="vs-idle-stat">
+                                <div class="vs-idle-stat-value" id="vs-sessions-count">--</div>
+                                <div class="vs-idle-stat-label">Sessions Captured</div>
+                            </div>
+                            <div class="vs-idle-stat">
+                                <div class="vs-idle-stat-value" id="vs-stress-index">--</div>
+                                <div class="vs-idle-stat-label">Stress Index</div>
+                            </div>
+                            <div class="vs-idle-stat">
+                                <div class="vs-idle-stat-value" id="vs-last-session">--</div>
+                                <div class="vs-idle-stat-label">Last Session</div>
+                            </div>
+                        </div>
                         <div class="vs-history" style="width:100%;margin-top:24px">
                             <div class="vs-history-title">Previous Scans</div>
                             <div id="vs-idle-history-list"></div>
@@ -922,7 +904,7 @@
                             <div class="vs-recording-dot"></div>
                             <div class="vs-recording-label">Recording...</div>
                         </div>
-                        <div class="vs-level-meter" id="vs-level-meter"></div>
+                        <canvas class="vs-waveform-canvas" id="vs-waveform-canvas" width="500" height="160"></canvas>
                         <div class="vs-timers">
                             <div class="vs-timer">
                                 <div class="vs-timer-value" id="vs-total-time">0:00</div>
@@ -1423,7 +1405,6 @@
     <script src="js/active_assessment.js?v=1"></script>
     <script src="js/lab.js?v=1"></script>
     <script src="js/sculptor.js?v=1"></script>
-    <script src="js/voice_profile.js?v=1"></script>
     <script src="js/reports.js?v=1"></script>
     <script src="js/app.js?v=30"></script>
 
