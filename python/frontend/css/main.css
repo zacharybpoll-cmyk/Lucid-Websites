@@ -1683,8 +1683,9 @@ body {
     background: #f8f9fa;
     z-index: 9500;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
+    min-height: 100vh;
     overflow-y: auto;
     animation: mornFadeIn 0.8s ease;
 }

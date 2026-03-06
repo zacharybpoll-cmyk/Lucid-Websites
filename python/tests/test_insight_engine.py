@@ -491,42 +491,6 @@ class TestEveningRecap:
 
 
 # ---------------------------------------------------------------------------
-# Time Capsules
-# ---------------------------------------------------------------------------
-
-class TestTimeCapsules:
-    def test_no_readings_returns_empty(self):
-        """No readings should return empty capsules list."""
-        engine = InsightEngine()
-        db = MagicMock()
-        db.get_readings.return_value = []
-        db.get_daily_summaries.return_value = []
-        result = engine.check_time_capsules(db)
-        assert result == []
-
-    def test_week_1_capsule_trigger(self):
-        """8+ days of summaries should trigger week_1 capsule."""
-        engine = InsightEngine()
-        db = MagicMock()
-
-        readings = [_make_reading(speech_duration_sec=30) for _ in range(20)]
-        db.get_readings.return_value = readings
-
-        summaries = []
-        today = date.today()
-        for i in range(10):
-            d = today - timedelta(days=i)
-            summaries.append(_make_summary(date=d.isoformat(), avg_stress=45))
-        db.get_daily_summaries.return_value = summaries
-        db.get_time_capsules.return_value = [{'trigger_type': 'week_1', 'message': 'test'}]
-
-        result = engine.check_time_capsules(db)
-        # Verify add_time_capsule was called with week_1 trigger
-        calls = [c for c in db.add_time_capsule.call_args_list if c[0][0] == 'week_1']
-        assert len(calls) >= 1
-
-
-# ---------------------------------------------------------------------------
 # _compute_wellness_components edge cases
 # ---------------------------------------------------------------------------
 

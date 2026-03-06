@@ -571,8 +571,8 @@
     align-items: flex-start;
     gap: 10px;
     padding: 12px 14px;
-    background: var(--cream);
-    border: 1px solid var(--cream-dark);
+    background: var(--cream-dark);
+    border: 1px solid var(--void-light);
     border-radius: var(--radius-lg);
     transition: all 0.3s ease;
 }
@@ -808,43 +808,6 @@
         opacity: 0;
         transform: rotate(360deg) translateY(100vh) translateX(40px);
     }
-}
-
-/* ==========================================================
-   9. TIME CAPSULE — Historical Lookback
-   ========================================================== */
-
-.capsules-section {
-    padding: 0;
-}
-
-.capsules-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.capsule-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 14px 16px;
-    background: var(--cream);
-    border: 1px solid var(--cream-dark);
-    border-radius: var(--radius-lg);
-    border-left: 3px solid var(--gold);
-}
-
-.capsule-icon {
-    font-size: 20px;
-    flex-shrink: 0;
-    line-height: 1;
-}
-
-.capsule-message {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.6;
 }
 
 /* ==========================================================
@@ -1672,6 +1635,13 @@
     font-weight: 600;
     letter-spacing: 3px;
     fill: rgba(91, 141, 184, 0.7);
+}
+
+.readiness-top-label {
+    font-family: var(--font-body);
+    font-size: 14px;
+    fill: #5a6270;
+    font-weight: 500;
 }
 
 /* Stat cards row */

@@ -1197,7 +1197,6 @@ async function loadFeatures() {
         loadRecoveryPulse(),
         loadEchoes(),
         loadCompass(),
-        loadCapsules(),
         updateGrove(),
         loadWeeklyWrapped(),
         pollBeacon(),
@@ -1616,37 +1615,6 @@ async function saveIntention() {
         triggerSanctuary('intention', 'Intention set. Stay committed.');
     } catch (e) {
         console.error('Failed to save intention:', e);
-    }
-}
-
-// ========== Time Capsule (Feature #9) ==========
-
-async function loadCapsules() {
-    try {
-        const data = await API.getCapsules();
-        const container = document.getElementById('capsules-container');
-        const section = document.getElementById('capsules-section');
-
-        if (!data.capsules || data.capsules.length === 0) {
-            if (section) section.style.display = 'none';
-            return;
-        }
-
-        if (section) section.style.display = 'block';
-        if (!container) return;
-
-        let html = '';
-        for (const capsule of data.capsules.slice(0, 3)) {
-            html += `
-                <div class="capsule-item">
-                    <span class="capsule-icon">\u{1F4E6}</span>
-                    <span class="capsule-message">${sanitizeHTML(capsule.message)}</span>
-                </div>`;
-        }
-
-        container.innerHTML = html;
-    } catch (e) {
-        console.error('Failed to load capsules:', e);
     }
 }
 

@@ -1,5 +1,5 @@
 """
-Analysis, correlations, summaries, compass, capsules, echoes, recovery pulse.
+Analysis, correlations, summaries, compass, echoes, recovery pulse.
 """
 import logging
 import threading
@@ -540,20 +540,6 @@ async def get_weekly_wrapped():
     if result is None:
         return {'has_data': False}
     return result
-
-
-@router.get("/api/capsules")
-async def get_capsules():
-    """Get time capsule messages"""
-    if deps.db is None:
-        raise DatabaseNotReady()
-    if deps.insight_engine is None:
-        raise ServiceNotReady("Insight engine")
-
-    capsules = await _safe_insight_call(deps.insight_engine.check_time_capsules, deps.db)
-    if capsules is None:
-        return {'capsules': [], 'has_data': False}
-    return {'capsules': capsules, 'has_data': len(capsules) > 0}
 
 
 @router.get("/api/echoes")

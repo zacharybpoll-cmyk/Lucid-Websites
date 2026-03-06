@@ -1,18 +1,107 @@
 """
-Template-powered insight engine
-Generates contextual insights, wellness scores, compass, and time capsules
+LLM-enhanced insight engine
+Generates contextual insights, wellness scores, and compass.
+Uses Ollama (local LLM) for text generation with template fallback.
 """
 import time
 import math
+import re
+import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, date, timedelta
 
+logger = logging.getLogger('lucid.insight_engine')
+
 
 class InsightEngine:
-    def __init__(self):
+    def __init__(self, ollama_enabled=True, ollama_host="http://localhost:11434",
+                 ollama_model="phi4-mini", ollama_timeout_sec=10.0):
         self._cache = None
         self._cache_time = 0
         self._cache_ttl = 60  # 60 second cache
+        self._ollama_enabled = ollama_enabled
+        self._ollama_host = ollama_host.rstrip('/')
+        self._ollama_model = ollama_model
+        self._ollama_timeout = ollama_timeout_sec
+        self._ollama_available = None  # None=unchecked, True/False after check
+        self._ollama_client = None     # Lazy httpx.AsyncClient
+        logger.info(f"Insight engine ready (Ollama: {'enabled' if ollama_enabled else 'disabled'}, model: {ollama_model})")
+
+    # ============ Ollama LLM Helpers ============
+
+    async def _get_ollama_client(self):
+        """Lazy-init httpx.AsyncClient."""
+        if self._ollama_client is None:
+            import httpx
+            self._ollama_client = httpx.AsyncClient(timeout=self._ollama_timeout)
+        return self._ollama_client
+
+    async def _check_ollama_available(self) -> bool:
+        """Check if Ollama is reachable. Caches result; re-checks on failure."""
+        if self._ollama_available is True:
+            return True
+        # Re-check if previously failed or unchecked
+        try:
+            client = await self._get_ollama_client()
+            resp = await client.get(f"{self._ollama_host}/api/tags")
+            self._ollama_available = resp.status_code == 200
+        except Exception:
+            self._ollama_available = False
+        return self._ollama_available
+
+    async def _ollama_generate(self, system_prompt: str, user_prompt: str, max_chars: int = 300) -> Optional[str]:
+        """Call Ollama /api/generate. Returns cleaned text or None on any failure."""
+        if not self._ollama_enabled:
+            return None
+        if not await self._check_ollama_available():
+            return None
+        try:
+            import httpx
+            client = await self._get_ollama_client()
+            # Use longer timeout for generate (model cold-start can take 15-30s)
+            resp = await client.post(
+                f"{self._ollama_host}/api/generate",
+                json={
+                    "model": self._ollama_model,
+                    "system": system_prompt,
+                    "prompt": user_prompt,
+                    "stream": False,
+                    "options": {"num_predict": max_chars, "temperature": 0.7},
+                },
+                timeout=httpx.Timeout(30.0, connect=5.0),
+            )
+            if resp.status_code != 200:
+                logger.warning(f"Ollama returned {resp.status_code}")
+                return None
+            text = resp.json().get("response", "").strip()
+            if not text:
+                return None
+            return self._clean_llm_output(text, max_chars)
+        except Exception as e:
+            logger.warning(f"Ollama generate failed: {e}")
+            self._ollama_available = False
+            return None
+
+    @staticmethod
+    def _clean_llm_output(text: str, max_chars: int) -> str:
+        """Strip markdown artifacts and truncate at sentence boundary."""
+        # Remove markdown bold/italic/headers
+        text = re.sub(r'[#*_`]+', '', text)
+        # Remove any leading/trailing quotes
+        text = text.strip().strip('"').strip("'").strip()
+        # Truncate at sentence boundary if over limit
+        if len(text) > max_chars:
+            # Find last sentence end before max_chars
+            truncated = text[:max_chars]
+            last_period = truncated.rfind('.')
+            last_excl = truncated.rfind('!')
+            last_q = truncated.rfind('?')
+            cut = max(last_period, last_excl, last_q)
+            if cut > max_chars // 3:
+                text = truncated[:cut + 1]
+            else:
+                text = truncated.rstrip() + "..."
+        return text
 
     async def generate_insight(self, readings: List[Dict], summary: Optional[Dict], status: Dict) -> Dict[str, Any]:
         """
@@ -24,10 +113,43 @@ class InsightEngine:
         if self._cache and (now - self._cache_time) < self._cache_ttl:
             return {"success": True, "insight": self._cache, "cached": True}
 
-        insight = self._build_insight_from_data(readings, summary, status)
+        # Try LLM first, fall back to templates
+        insight = await self._generate_insight_llm(readings, summary, status)
+        if not insight:
+            insight = self._build_insight_from_data(readings, summary, status)
+
         self._cache = insight
         self._cache_time = now
         return {"success": True, "insight": insight, "cached": False}
+
+    async def _generate_insight_llm(self, readings: List[Dict], summary: Optional[Dict], status: Dict) -> Optional[str]:
+        """Try to generate a live insight via Ollama."""
+        reading_count = len(readings) if readings else 0
+        if reading_count == 0:
+            return None
+
+        latest = readings[0] if readings else {}
+        zone = latest.get('zone', 'steady')
+        stress = latest.get('stress_score', 50)
+        wellbeing = latest.get('wellbeing_score', latest.get('mood_score', 50))
+        activation = latest.get('activation_score', latest.get('energy_score', 50))
+        calm_time = summary.get('time_in_calm_min', 0) if summary else 0
+        stressed_time = summary.get('time_in_stressed_min', 0) if summary else 0
+        hour = datetime.now().hour
+        time_context = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
+
+        system_prompt = (
+            "You are a voice wellness coach inside a desktop app. "
+            "Write exactly 2 sentences. No greetings. No questions. "
+            "Only reference the data provided. Be warm but concise."
+        )
+        user_prompt = (
+            f"Zone: {zone}. Stress: {stress:.0f}/100. Wellbeing: {wellbeing:.0f}/100. "
+            f"Activation: {activation:.0f}/100. Readings today: {reading_count}. "
+            f"Calm time: {calm_time:.0f} min. Stressed time: {stressed_time:.0f} min. "
+            f"Time of day: {time_context}."
+        )
+        return await self._ollama_generate(system_prompt, user_prompt, max_chars=250)
 
     def _build_insight_from_data(self, readings: List[Dict], summary: Optional[Dict], status: Dict) -> str:
         """Build a contextual insight from the user's current data using templates."""
@@ -219,7 +341,7 @@ class InsightEngine:
             highlights.append(f"Overall score: {score}/100 ({score_label}). A balanced day.")
 
         # --- Coach's note ---
-        coach_note = self._get_coach_note(score, score_label, avg_stress, avg_wellbeing, avg_activation, calm_min, peak_stress)
+        coach_note = await self._get_coach_note(score, score_label, avg_stress, avg_wellbeing, avg_activation, calm_min, peak_stress)
 
         return {
             "has_data": True,
@@ -233,7 +355,30 @@ class InsightEngine:
             "coach_note": coach_note,
         }
 
-    def _get_coach_note(self, score, label, stress, wellbeing, activation, calm_min, peak_stress) -> str:
+    async def _get_coach_note(self, score, label, stress, wellbeing, activation, calm_min, peak_stress) -> str:
+        """Generate a coach note via LLM with template fallback."""
+        note = await self._get_coach_note_llm(score, label, stress, wellbeing, activation, calm_min, peak_stress)
+        if not note:
+            note = self._get_coach_note_template(score, label, stress, wellbeing, activation, calm_min, peak_stress)
+        return note
+
+    async def _get_coach_note_llm(self, score, label, stress, wellbeing, activation, calm_min, peak_stress) -> Optional[str]:
+        """Try to generate a coach note via Ollama."""
+        system_prompt = (
+            "You are a voice wellness coach writing a morning briefing note. "
+            "Write exactly 3 sentences. Sentence 1: summarize yesterday. "
+            "Sentence 2: one data observation. Sentence 3: set an intention for today. "
+            "No greetings. No questions. Only reference the data provided."
+        )
+        user_prompt = (
+            f"Yesterday's wellness score: {score}/100 ({label}). "
+            f"Avg stress: {stress:.0f}/100. Wellbeing: {wellbeing:.0f}/100. "
+            f"Activation: {activation:.0f}/100. Calm time: {calm_min:.0f} min. "
+            f"Peak stress: {peak_stress:.0f}/100."
+        )
+        return await self._ollama_generate(system_prompt, user_prompt, max_chars=400)
+
+    def _get_coach_note_template(self, score, label, stress, wellbeing, activation, calm_min, peak_stress) -> str:
         """Generate a data-specific coach note from modular templates."""
         import random
         parts = []
@@ -580,71 +725,6 @@ class InsightEngine:
             'has_data': True,
         }
 
-    # ============ Time Capsule (Feature #9) ============
-
-    def check_time_capsules(self, db) -> List[Dict[str, Any]]:
-        """Generate time capsule messages at meaningful intervals."""
-        capsules = []
-        all_readings = db.get_readings(limit=10000)
-        all_summaries = db.get_daily_summaries(days=365)
-
-        if not all_readings:
-            return capsules
-
-        total_readings = len(all_readings)
-        total_days = len(all_summaries)
-
-        # Day 8: "One week ago, your first reading"
-        if total_days >= 8:
-            first_date = all_summaries[-1]['date'] if all_summaries else None
-            if first_date:
-                capsules.append({
-                    'trigger_type': 'week_1',
-                    'message': f'One week ago ({first_date}), your journey with Lucid began.',
-                })
-
-        # Day 15: Compare stress now vs then
-        if total_days >= 15:
-            sorted_s = sorted(all_summaries, key=lambda s: s['date'])
-            first_week_stress = sum(s.get('avg_stress', 50) for s in sorted_s[:7]) / 7
-            last_week_stress = sum(s.get('avg_stress', 50) for s in sorted_s[-7:]) / 7
-            diff = first_week_stress - last_week_stress
-            if diff > 0:
-                capsules.append({
-                    'trigger_type': 'week_2_compare',
-                    'message': f'Two weeks ago your stress was {first_week_stress:.0f} — today it\'s {last_week_stress:.0f}. That\'s {diff:.0f} points of progress.',
-                })
-            else:
-                capsules.append({
-                    'trigger_type': 'week_2_compare',
-                    'message': f'Two weeks in. Your stress went from {first_week_stress:.0f} to {last_week_stress:.0f}. Awareness is the first step.',
-                })
-
-        # Day 31: Month in review
-        if total_days >= 31:
-            sorted_s = sorted(all_summaries, key=lambda s: s['date'])
-            week1_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) for s in sorted_s[:7]) / 7
-            week4_wellbeing = sum(s.get('avg_wellbeing', s.get('avg_mood', 50)) for s in sorted_s[-7:]) / 7
-            capsules.append({
-                'trigger_type': 'month_review',
-                'message': f'One month with Lucid! Week 1 wellbeing: {week1_wellbeing:.0f} → Week 4 wellbeing: {week4_wellbeing:.0f}. {total_readings} readings captured.',
-            })
-
-        # Hours-spoken milestones (logarithmic spacing)
-        total_hours = sum(r.get('speech_duration_sec', 0) for r in all_readings) / 3600
-        for milestone_hrs in [1, 5, 10, 20, 50, 100, 200, 500]:
-            if total_hours >= milestone_hrs:
-                capsules.append({
-                    'trigger_type': f'hours_{milestone_hrs}',
-                    'message': f"You've spoken for {milestone_hrs} {'hour' if milestone_hrs == 1 else 'hours'} while Lucid listened.",
-                })
-
-        # Store new capsules (duplicates silently skipped via UNIQUE constraint)
-        for c in capsules:
-            db.add_time_capsule(c['trigger_type'], c['message'], c.get('detail'))
-
-        return db.get_time_capsules(limit=5)
-
     # ============ Weekly Wrapped (Your Week in Voice) ============
 
     def generate_weekly_wrapped(self, db) -> Dict[str, Any]:
@@ -848,10 +928,47 @@ class InsightEngine:
         }
 
     async def generate_evening_recap(self, today_summary: Dict, today_readings: List[Dict]) -> str:
-        """Generate evening recap based on today's data using templates."""
+        """Generate evening recap via LLM with template fallback."""
         if not today_summary or not today_readings:
             return "Your day is just beginning. Check back this evening for a recap."
 
+        # Try LLM first
+        recap = await self._generate_evening_recap_llm(today_summary, today_readings)
+        if not recap:
+            recap = self._generate_evening_recap_template(today_summary, today_readings)
+        return recap
+
+    async def _generate_evening_recap_llm(self, today_summary: Dict, today_readings: List[Dict]) -> Optional[str]:
+        """Try to generate an evening recap via Ollama."""
+        avg_stress = today_summary.get('avg_stress', 50)
+        peak_stress = today_summary.get('peak_stress', 0)
+        calm_time = today_summary.get('time_in_calm_min', 0)
+        stressed_time = today_summary.get('time_in_stressed_min', 0)
+        meetings = today_summary.get('total_meetings', 0)
+        reading_count = len(today_readings)
+
+        peak_time = ""
+        if today_readings:
+            peak_reading = max(today_readings, key=lambda r: r.get('stress_score', 0))
+            peak_timestamp = datetime.fromisoformat(peak_reading['timestamp'])
+            peak_time = peak_timestamp.strftime("%-I:%M %p")
+
+        system_prompt = (
+            "You are a voice wellness coach writing an evening recap. "
+            "Write exactly 3 sentences. Sentence 1: describe the day's arc. "
+            "Sentence 2: one highlight or observation. Sentence 3: a recovery tip for tonight. "
+            "No greetings. No questions. Only reference the data provided."
+        )
+        user_prompt = (
+            f"Avg stress: {avg_stress:.0f}/100. Peak stress: {peak_stress:.0f}/100"
+            f"{f' around {peak_time}' if peak_time else ''}. "
+            f"Calm time: {calm_time:.0f} min. Stressed time: {stressed_time:.0f} min. "
+            f"Meetings: {meetings}. Total readings: {reading_count}."
+        )
+        return await self._ollama_generate(system_prompt, user_prompt, max_chars=400)
+
+    def _generate_evening_recap_template(self, today_summary: Dict, today_readings: List[Dict]) -> str:
+        """Generate evening recap from templates (original logic)."""
         import random
 
         avg_stress = today_summary.get('avg_stress', 50)

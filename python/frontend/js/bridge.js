@@ -104,7 +104,6 @@ const API = {
             body: JSON.stringify({ intention })
         });
     },
-    async getCapsules() { return await apiCall('/capsules'); },
     async getLayout() { return await apiCall('/layout'); },
     async setLayout(cards) {
         return await apiCall('/layout', {

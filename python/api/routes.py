@@ -1010,16 +1010,6 @@ async def set_intention(req: IntentionRequest):
     db.set_compass_intention(week_start, req.intention)
     return {'success': True}
 
-# ============ Time Capsule (Feature #9) ============
-
-@app.get("/api/capsules")
-async def get_capsules():
-    """Get time capsule messages"""
-    if db is None or insight_engine is None:
-        raise HTTPException(status_code=500, detail="Not initialized")
-    capsules = insight_engine.check_time_capsules(db)
-    return {'capsules': capsules}
-
 # ============ Voice Garden / Dashboard Layout (Feature #10) ============
 
 @app.get("/api/layout")

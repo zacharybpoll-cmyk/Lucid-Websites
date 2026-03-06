@@ -205,19 +205,6 @@ class Database:
             )
         """)
 
-        # Time capsules
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS time_capsules (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                trigger_type TEXT NOT NULL,
-                message TEXT NOT NULL,
-                detail TEXT,
-                triggered_at TEXT NOT NULL,
-                seen INTEGER DEFAULT 0,
-                UNIQUE(trigger_type, triggered_at)
-            )
-        """)
-
         # Migrate: rename canopy_scores → wellness_scores if old table exists
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='canopy_scores'")
         if cursor.fetchone():
@@ -1156,27 +1143,6 @@ class Database:
             cursor = self.conn.cursor()
             cursor.execute("UPDATE compass_entries SET intention = ? WHERE week_start = ?", (intention, week_start))
             self.conn.commit()
-
-    # ============ Time Capsule Methods ============
-
-    def get_time_capsules(self, limit: int = 10) -> List[Dict[str, Any]]:
-        with self.lock:
-            cursor = self.conn.cursor()
-            cursor.execute("SELECT * FROM time_capsules ORDER BY triggered_at DESC LIMIT ?", (limit,))
-            return [dict(row) for row in cursor.fetchall()]
-
-    def add_time_capsule(self, trigger_type: str, message: str, detail: str = None):
-        with self.lock:
-            cursor = self.conn.cursor()
-            today = date.today().isoformat()
-            try:
-                cursor.execute("""
-                    INSERT INTO time_capsules (trigger_type, message, detail, triggered_at)
-                    VALUES (?, ?, ?, ?)
-                """, (trigger_type, message, detail, today))
-                self.conn.commit()
-            except sqlite3.IntegrityError:
-                pass  # Already triggered today
 
     # ============ Wellness Score Methods ============
 
