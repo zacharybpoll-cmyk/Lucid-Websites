@@ -35,3 +35,6 @@ Screenshot *.png
 
 # Bundled ML models (too large for GitHub)
 python/bundled_models/
+
+# Screenshot directories
+screenshots/

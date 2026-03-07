@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototype 1: Resonance Breath Guide — Lucid Voice Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f8f9fa;
+      --mid:       #f0f2f4;
+      --border:    #e4e8ec;
+      --steel:     #5B8DB8;
+      --light-blue:#7BA7C9;
+      --dark:      #1a1d21;
+      --body:      #5a6270;
+      --radius:    12px;
+      --transition: 0.4s ease;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-badge {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--body);
+      text-transform: uppercase;
+    }
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--dark);
+      letter-spacing: 0.02em;
+    }
+    .header-tag {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--steel);
+      background: rgba(91,141,184,0.10);
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Layout ── */
+    .app-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      grid-template-rows: auto 1fr auto;
+      gap: 0;
+      max-width: 1000px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 28px 32px 0;
+    }
+
+    /* ── Framing text ── */
+    .framing {
+      grid-column: 1 / 2;
+      grid-row: 1;
+      margin-bottom: 28px;
+    }
+    .framing h2 {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .framing p {
+      font-size: 14px;
+      color: var(--body);
+      line-height: 1.6;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      grid-column: 2;
+      grid-row: 1 / 4;
+      padding-left: 28px;
+      padding-top: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .sidebar-card h3 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--body);
+      margin-bottom: 18px;
+    }
+    .gauge-row {
+      margin-bottom: 16px;
+    }
+    .gauge-row:last-child { margin-bottom: 0; }
+    .gauge-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 7px;
+    }
+    .gauge-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--dark);
+    }
+    .gauge-value {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--steel);
+      font-variant-numeric: tabular-nums;
+    }
+    .gauge-track {
+      height: 7px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .gauge-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--light-blue), var(--steel));
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+    .gauge-sub {
+      font-size: 10px;
+      color: var(--body);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ── Center stage ── */
+    .center-stage {
+      grid-column: 1;
+      grid-row: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding-bottom: 20px;
+    }
+
+    /* Breathing circle */
+    .breath-wrapper {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .breath-ring {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(91,141,184,0.10);
+      animation: breathRing 11s ease-in-out infinite;
+    }
+    .breath-ring-1 { width: 200px; height: 200px; animation-delay: 0s; opacity: 0.4; }
+    .breath-ring-2 { width: 180px; height: 180px; animation-delay: 0.5s; opacity: 0.25; }
+
+    @keyframes breathRing {
+      0%,100% { transform: scale(0.85); }
+      50%      { transform: scale(1.10); }
+    }
+
+    .breath-circle {
+      position: relative;
+      z-index: 2;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, var(--light-blue), var(--steel));
+      box-shadow: 0 0 0 0 rgba(91,141,184,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      animation: breathe 11s ease-in-out infinite;
+      transition: box-shadow 0.3s ease;
+    }
+
+    @keyframes breathe {
+      0%,100% {
+        width: 80px; height: 80px;
+        box-shadow: 0 0 0 4px rgba(91,141,184,0.15), 0 0 24px rgba(91,141,184,0.2);
+      }
+      50% {
+        width: 160px; height: 160px;
+        box-shadow: 0 0 0 8px rgba(91,141,184,0.2), 0 0 48px rgba(91,141,184,0.35);
+      }
+    }
+
+    .breath-text {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #fff;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.3;
+      pointer-events: none;
+      user-select: none;
+    }
+    .breath-phase-label {
+      position: absolute;
+      bottom: -28px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--steel);
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* Waveform canvas */
+    .waveform-wrapper {
+      width: 100%;
+      max-width: 460px;
+    }
+    .waveform-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--body);
+      margin-bottom: 8px;
+    }
+    .waveform-canvas {
+      width: 100%;
+      height: 80px;
+      border-radius: 10px;
+      background: var(--mid);
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    /* ── Bottom controls ── */
+    .controls {
+      grid-column: 1 / 3;
+      padding: 24px 0 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+    }
+    .timer-display {
+      font-size: 32px;
+      font-weight: 300;
+      color: var(--dark);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+      min-width: 90px;
+    }
+    .timer-sub {
+      font-size: 10px;
+      color: var(--body);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary {
+      background: var(--steel);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #4a7aa5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(91,141,184,0.3); }
+    .btn-secondary {
+      background: var(--mid);
+      color: var(--dark);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-calm {
+      background: rgba(91,141,184,0.12);
+      color: var(--steel);
+      border: 1px solid rgba(91,141,184,0.25);
+    }
+    .btn-calm:hover { background: rgba(91,141,184,0.2); }
+    .btn-calm.active {
+      background: var(--steel);
+      color: #fff;
+      border-color: var(--steel);
+    }
+    .btn-stress {
+      background: rgba(205,100,80,0.10);
+      color: #c05a46;
+      border: 1px solid rgba(205,100,80,0.2);
+    }
+    .btn-stress:hover { background: rgba(205,100,80,0.18); }
+    .btn-stress.active {
+      background: #c05a46;
+      color: #fff;
+      border-color: #c05a46;
+    }
+    .spacer { flex: 1; }
+    .disclaimer {
+      font-size: 11px;
+      color: var(--body);
+      opacity: 0.65;
+      font-style: italic;
+      text-align: right;
+    }
+
+    /* State pulse on breath circle */
+    .breath-circle.relaxed {
+      background: radial-gradient(circle at 35% 35%, #7fcca0, #3d9e6e);
+    }
+
+    /* Session running indicator */
+    .session-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--steel);
+      margin-right: 8px;
+      animation: pulseDot 1.5s ease-in-out infinite;
+    }
+    @keyframes pulseDot {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: 0.4; transform: scale(0.75); }
+    }
+    .session-indicator {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--steel);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .session-indicator.hidden { visibility: hidden; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <div>
+    <div class="header-badge">Lucid Voice Studio</div>
+    <div class="header-title">PROTOTYPE 1: Resonance Breath Guide</div>
+  </div>
+  <div class="session-indicator hidden" id="sessionIndicator">
+    <span class="session-dot"></span>Session Running
+  </div>
+  <div class="header-tag">Breathing Pacer + Vocal Feedback</div>
+</header>
+
+<!-- ── App body ── -->
+<div class="app-body">
+
+  <!-- Framing -->
+  <div class="framing">
+    <h2>Guide your voice to a calmer state.</h2>
+    <p>Watch your vocal biomarkers shift in real-time as you breathe. Match the circle's rhythm.</p>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-card">
+      <h3>Live Biomarkers</h3>
+
+      <div class="gauge-row">
+        <div class="gauge-label">
+          <span class="gauge-name">Vocal Steadiness</span>
+          <span class="gauge-value" id="val-jitter">35%</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill" id="bar-jitter" style="width:35%"></div>
+        </div>
+        <div class="gauge-sub">Jitter inverse</div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-label">
+          <span class="gauge-name">Voice Clarity</span>
+          <span class="gauge-value" id="val-hnr">40%</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill" id="bar-hnr" style="width:40%"></div>
+        </div>
+        <div class="gauge-sub">HNR (harmonics-to-noise)</div>
+      </div>
+
+      <div class="gauge-row">
+        <div class="gauge-label">
+          <span class="gauge-name">Tone Stability</span>
+          <span class="gauge-value" id="val-f0">45%</span>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill" id="bar-f0" style="width:45%"></div>
+        </div>
+        <div class="gauge-sub">F0 variance inverse</div>
+      </div>
+    </div>
+
+    <div class="sidebar-card" style="background:rgba(91,141,184,0.05); border-color:rgba(91,141,184,0.2);">
+      <h3>Breath Phase</h3>
+      <div style="text-align:center; padding: 8px 0;">
+        <div id="phaseLabel" style="font-size:13px; font-weight:700; color:var(--steel); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;">BREATHE IN</div>
+        <div style="font-size:11px; color:var(--body);">5.5s inhale · 5.5s exhale</div>
+        <div style="margin-top:12px;">
+          <div style="font-size:10px; color:var(--body); margin-bottom:6px; text-transform:uppercase; letter-spacing:0.06em;">Cycle progress</div>
+          <div style="height:4px; background:var(--border); border-radius:100px; overflow:hidden;">
+            <div id="cycleBar" style="height:100%; width:0%; background:var(--steel); border-radius:100px; transition:width 0.1s linear;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center stage -->
+  <div class="center-stage">
+    <!-- Breathing circle -->
+    <div style="position:relative; margin-bottom: 40px;">
+      <div class="breath-wrapper">
+        <div class="breath-ring breath-ring-1"></div>
+        <div class="breath-ring breath-ring-2"></div>
+        <div class="breath-circle" id="breathCircle">
+          <div class="breath-text" id="breathText">BREATHE<br>IN</div>
+        </div>
+      </div>
+      <div class="breath-phase-label" id="breathHint">Inhale slowly through your nose</div>
+    </div>
+
+    <!-- Waveform -->
+    <div class="waveform-wrapper">
+      <div class="waveform-label">Vocal Waveform — Real-time Estimate</div>
+      <canvas class="waveform-canvas" id="waveCanvas" width="920" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div>
+      <div class="timer-display" id="timerDisplay">3:00</div>
+      <div class="timer-sub" id="timerSub">Session timer</div>
+    </div>
+    <div class="divider"></div>
+    <button class="btn btn-primary" id="beginBtn">Begin Session</button>
+    <button class="btn btn-calm" id="calmBtn" onclick="simulateRelaxing()">Simulate Relaxing</button>
+    <button class="btn btn-stress" id="stressBtn" onclick="simulateStress()">Simulate Stress</button>
+    <div class="spacer"></div>
+    <div class="disclaimer">Real-time estimates.<br>Full analysis runs in background.</div>
+  </div>
+
+</div>
+
+<script>
+  // ── Sim State ──────────────────────────────────────────────────────────────
+  const SimState = {
+    isRelaxed: false,
+    jitter:    0.35,
+    hnr:       0.40,
+    f0variance:0.45,
+    transitionId: null,
+  };
+
+  // ── Biomarker animation ────────────────────────────────────────────────────
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  function animateTo(targets, durationMs) {
+    clearInterval(SimState.transitionId);
+    const start = performance.now();
+    const from = { jitter: SimState.jitter, hnr: SimState.hnr, f0variance: SimState.f0variance };
+    SimState.transitionId = setInterval(() => {
+      const elapsed = performance.now() - start;
+      const t = Math.min(elapsed / durationMs, 1);
+      const ease = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      SimState.jitter     = lerp(from.jitter,     targets.jitter,     ease);
+      SimState.hnr        = lerp(from.hnr,         targets.hnr,         ease);
+      SimState.f0variance = lerp(from.f0variance,  targets.f0variance,  ease);
+      updateGauges();
+      if (t >= 1) clearInterval(SimState.transitionId);
+    }, 30);
+  }
+
+  function updateGauges() {
+    const pct = v => Math.round(v * 100);
+    document.getElementById('val-jitter').textContent = pct(SimState.jitter) + '%';
+    document.getElementById('val-hnr').textContent    = pct(SimState.hnr)    + '%';
+    document.getElementById('val-f0').textContent     = pct(SimState.f0variance) + '%';
+    document.getElementById('bar-jitter').style.width = pct(SimState.jitter) + '%';
+    document.getElementById('bar-hnr').style.width    = pct(SimState.hnr)    + '%';
+    document.getElementById('bar-f0').style.width     = pct(SimState.f0variance) + '%';
+  }
+
+  function simulateRelaxing() {
+    SimState.isRelaxed = true;
+    document.getElementById('calmBtn').classList.add('active');
+    document.getElementById('stressBtn').classList.remove('active');
+    animateTo({ jitter: 0.80, hnr: 0.78, f0variance: 0.82 }, 3000);
+  }
+
+  function simulateStress() {
+    SimState.isRelaxed = false;
+    document.getElementById('stressBtn').classList.add('active');
+    document.getElementById('calmBtn').classList.remove('active');
+    animateTo({ jitter: 0.28, hnr: 0.30, f0variance: 0.27 }, 3000);
+  }
+
+  // ── Breathing pacer ────────────────────────────────────────────────────────
+  const BREATH_CYCLE = 11000; // 5.5s in + 5.5s out
+  let breathStart = performance.now();
+
+  const phaseLabel = document.getElementById('phaseLabel');
+  const breathText = document.getElementById('breathText');
+  const breathHint = document.getElementById('breathHint');
+  const cycleBar   = document.getElementById('cycleBar');
+
+  function tickBreath() {
+    const elapsed = (performance.now() - breathStart) % BREATH_CYCLE;
+    const progress = elapsed / BREATH_CYCLE; // 0-1
+    const isInhale = elapsed < BREATH_CYCLE / 2;
+
+    if (isInhale) {
+      phaseLabel.textContent = 'BREATHE IN';
+      breathText.textContent = 'BREATHE\nIN';
+      breathHint.textContent = 'Inhale slowly through your nose';
+    } else {
+      phaseLabel.textContent = 'BREATHE OUT... HUM';
+      breathText.textContent = 'BREATHE\nOUT... HUM';
+      breathHint.textContent = 'Exhale through pursed lips, hum softly';
+    }
+
+    cycleBar.style.width = (progress * 100).toFixed(1) + '%';
+    requestAnimationFrame(tickBreath);
+  }
+  tickBreath();
+
+  // ── Waveform canvas ────────────────────────────────────────────────────────
+  const canvas = document.getElementById('waveCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const BUFFER_SIZE = 200;
+  const wavePoints = new Float32Array(BUFFER_SIZE).fill(H / 2);
+  let wavePhase = 0;
+  let lastWaveTime = 0;
+
+  function addWavePoint() {
+    const calm = (SimState.jitter + SimState.hnr + SimState.f0variance) / 3;
+    wavePhase += 0.065 + (SimState.isRelaxed ? 0 : (Math.random() - 0.5) * 0.06);
+    const amp   = SimState.isRelaxed ? 15 : 25;
+    const noise = SimState.isRelaxed
+      ? (Math.random() - 0.5) * 4
+      : (Math.random() - 0.5) * 20;
+    const y = H / 2 + Math.sin(wavePhase) * amp + noise;
+    // shift buffer
+    wavePoints.copyWithin(0, 1);
+    wavePoints[BUFFER_SIZE - 1] = y;
+  }
+
+  function drawWave() {
+    const now = performance.now();
+    if (now - lastWaveTime > 50) {
+      addWavePoint();
+      lastWaveTime = now;
+    }
+
+    ctx.clearRect(0, 0, W, H);
+
+    // grid lines
+    ctx.strokeStyle = '#e4e8ec';
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const y = (H / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(W, y);
+      ctx.stroke();
+    }
+
+    // center baseline
+    ctx.strokeStyle = 'rgba(91,141,184,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(0, H / 2);
+    ctx.lineTo(W, H / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // wave line
+    const calm = (SimState.jitter + SimState.hnr + SimState.f0variance) / 3;
+    const alpha = 0.5 + calm * 0.5;
+    ctx.strokeStyle = `rgba(91,141,184,${alpha.toFixed(2)})`;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.lineCap  = 'round';
+
+    // glow
+    ctx.shadowColor = 'rgba(91,141,184,0.4)';
+    ctx.shadowBlur  = SimState.isRelaxed ? 6 : 2;
+
+    ctx.beginPath();
+    const step = W / (BUFFER_SIZE - 1);
+    for (let i = 0; i < BUFFER_SIZE; i++) {
+      const x = i * step;
+      const y = wavePoints[i];
+      if (i === 0) ctx.moveTo(x, y);
+      else         ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    requestAnimationFrame(drawWave);
+  }
+  drawWave();
+
+  // ── Session timer ──────────────────────────────────────────────────────────
+  let sessionRunning = false;
+  let sessionSeconds = 180;
+  let sessionInterval = null;
+
+  const timerDisplay = document.getElementById('timerDisplay');
+  const timerSub     = document.getElementById('timerSub');
+  const beginBtn     = document.getElementById('beginBtn');
+  const sessionIndicator = document.getElementById('sessionIndicator');
+
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  }
+
+  beginBtn.addEventListener('click', () => {
+    if (!sessionRunning) {
+      sessionRunning = true;
+      beginBtn.textContent = 'End Session';
+      beginBtn.style.background = '#c05a46';
+      sessionIndicator.classList.remove('hidden');
+      breathStart = performance.now();
+      sessionInterval = setInterval(() => {
+        sessionSeconds--;
+        timerDisplay.textContent = formatTime(sessionSeconds);
+        if (sessionSeconds <= 0) {
+          clearInterval(sessionInterval);
+          sessionRunning = false;
+          timerSub.textContent = 'Session complete';
+          timerDisplay.style.color = '#3d9e6e';
+          beginBtn.textContent = 'Begin Session';
+          beginBtn.style.background = '';
+          sessionIndicator.classList.add('hidden');
+        }
+      }, 1000);
+    } else {
+      clearInterval(sessionInterval);
+      sessionRunning = false;
+      sessionSeconds = 180;
+      timerDisplay.textContent = '3:00';
+      timerDisplay.style.color = '';
+      timerSub.textContent = 'Session timer';
+      beginBtn.textContent = 'Begin Session';
+      beginBtn.style.background = '';
+      sessionIndicator.classList.add('hidden');
+    }
+  });
+
+  // ── Auto-cycle demo: stress → calm → stress ────────────────────────────────
+  setTimeout(() => {
+    simulateStress();
+    setTimeout(() => {
+      simulateRelaxing();
+      setTimeout(() => {
+        simulateStress();
+      }, 8000);
+    }, 5000);
+  }, 2000);
+</script>
+</body>
+</html>

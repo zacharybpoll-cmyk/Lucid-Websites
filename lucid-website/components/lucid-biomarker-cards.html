@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucid — Mental Biomarkers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #f0f2f4;
+    --border: #e4e8ec;
+    --steel: #5B8DB8;
+    --steel-light: #d4e4f2;
+    --steel-dark: #3d6a8f;
+    --dark: #1a1d21;
+    --body: #5a6270;
+    --optimal: #22a06b;
+    --optimal-bg: #e3f5ee;
+    --elevated: #d97706;
+    --elevated-bg: #fef3c7;
+    --below: #c0392b;
+    --below-bg: #fde8e8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+    padding: 60px 24px;
+  }
+
+  /* ── Section Header ── */
+  .section-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .section-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.15;
+    margin-bottom: 12px;
+  }
+  .section-header p {
+    font-size: 1rem;
+    color: var(--body);
+    max-width: 480px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+  }
+
+  /* ── Marquee ── */
+  .marquee-wrapper {
+    overflow: hidden;
+    width: 100%;
+    margin-bottom: 48px;
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 16px;
+    width: max-content;
+    animation: marquee 22s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; }
+  }
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .marquee-chip {
+    padding: 6px 16px;
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--body);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+  .marquee-chip.active {
+    border-color: var(--steel);
+    color: var(--steel);
+    background: var(--steel-light);
+  }
+
+  /* ── Card Grid ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  @media (max-width: 700px) {
+    .card-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  }
+  @media (max-width: 420px) {
+    .card-grid { grid-template-columns: 1fr; }
+  }
+
+  .biomarker-card {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 20px 18px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .biomarker-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--steel-light) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    border-radius: 16px;
+  }
+  .biomarker-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(91, 141, 184, 0.14);
+    border-color: var(--steel);
+  }
+  .biomarker-card:hover::before { opacity: 1; }
+
+  .card-num {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--steel);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .card-name {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--dark);
+    margin-bottom: 14px;
+    line-height: 1.3;
+    position: relative;
+  }
+  .card-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .card-value span {
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: var(--body);
+    font-family: 'Inter', sans-serif;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .status-badge.optimal  { background: var(--optimal-bg);  color: var(--optimal); }
+  .status-badge.elevated { background: var(--elevated-bg); color: var(--elevated); }
+  .status-badge.below    { background: var(--below-bg);    color: var(--below); }
+  .status-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Mini sparkline */
+  .sparkline-wrap {
+    position: relative;
+    height: 32px;
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 29, 33, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: white;
+    border-radius: 24px 24px 0 0;
+    padding: 32px 32px 40px;
+    width: 100%;
+    max-width: 680px;
+    transform: translateY(40px);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  @media (min-width: 720px) {
+    .modal-overlay { align-items: center; }
+    .modal { border-radius: 24px; }
+  }
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+  .modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.2;
+  }
+  .modal-value {
+    font-size: 0.9rem;
+    color: var(--body);
+    margin-top: 4px;
+  }
+  .modal-close {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: var(--bg);
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--body);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, color 0.15s;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--steel); color: white; border-color: var(--steel); }
+
+  /* Range zone chart */
+  .chart-section { margin-bottom: 32px; }
+  .chart-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--body);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+  .range-chart {
+    position: relative;
+    height: 160px;
+    border-radius: 12px;
+    overflow: visible;
+  }
+
+  /* Bell curve section */
+  .bell-section { margin-top: 28px; }
+  .bell-chart {
+    position: relative;
+    height: 120px;
+  }
+  .percentile-label {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.88rem;
+    color: var(--body);
+  }
+  .percentile-label strong {
+    color: var(--steel);
+    font-weight: 600;
+  }
+
+  /* X-axis dates */
+  .x-axis {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 8px 0;
+  }
+  .x-axis span {
+    font-size: 0.7rem;
+    color: var(--body);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- Section Header -->
+<div class="section-header">
+  <h1>Your Mental Biomarkers</h1>
+  <p>Six acoustic signals. Every voice session, decoded into biomarkers your doctor doesn't measure yet.</p>
+</div>
+
+<!-- Scrolling Marquee -->
+<div class="marquee-wrapper">
+  <div class="marquee-track" id="marqueeTrack"></div>
+</div>
+
+<!-- Card Grid -->
+<div class="card-grid" id="cardGrid"></div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" role="dialog" aria-modal="true">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-value" id="modalSub"></div>
+      </div>
+      <button class="modal-close" id="modalClose" aria-label="Close">×</button>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-label">Session History</div>
+      <svg id="rangeChart" class="range-chart" width="100%" viewBox="0 0 600 160" preserveAspectRatio="none"></svg>
+      <div class="x-axis">
+        <span>Jan 28</span><span>Feb 4</span><span>Feb 18</span><span>Mar 5</span>
+      </div>
+    </div>
+
+    <div class="bell-section">
+      <div class="chart-label">Population Distribution</div>
+      <svg id="bellChart" class="bell-chart" width="100%" viewBox="0 0 600 120" preserveAspectRatio="xMidYMid meet"></svg>
+      <div class="percentile-label" id="percentileLabel"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BIOMARKERS = [
+  {
+    num: '01', name: 'Stress', value: 34, unit: '',
+    status: 'optimal', statusText: 'Optimal',
+    optLow: 0, optHigh: 45, absMin: 0, absMax: 100,
+    history: [28, 41, 37, 34],
+    description: 'Acoustic stress markers in your voice pattern',
+    percentile: 68
+  },
+  {
+    num: '02', name: 'Calmness', value: 71, unit: '',
+    status: 'elevated', statusText: 'Elevated',
+    optLow: 30, optHigh: 65, absMin: 0, absMax: 100,
+    history: [52, 60, 68, 71],
+    description: 'Calm tone and composure in your voice pattern',
+    percentile: 82
+  },
+  {
+    num: '03', name: 'Recovery Index', value: 58, unit: '',
+    status: 'optimal', statusText: 'Optimal',
+    optLow: 50, optHigh: 80, absMin: 0, absMax: 100,
+    history: [44, 51, 55, 58],
+    description: 'Vocal resilience and recovery speed',
+    percentile: 54
+  },
+  {
+    num: '04', name: 'Mood Clarity', value: 82, unit: '',
+    status: 'optimal', statusText: 'Optimal',
+    optLow: 60, optHigh: 90, absMin: 0, absMax: 100,
+    history: [74, 78, 80, 82],
+    description: 'Emotional coherence in acoustic signature',
+    percentile: 71
+  },
+  {
+    num: '05', name: 'Focus State', value: 29, unit: '',
+    status: 'below', statusText: 'Below Baseline',
+    optLow: 40, optHigh: 75, absMin: 0, absMax: 100,
+    history: [55, 48, 38, 29],
+    description: 'Cognitive focus encoded in speech patterns',
+    percentile: 22
+  },
+  {
+    num: '06', name: 'Well-being', value: 74, unit: '',
+    status: 'optimal', statusText: 'Optimal',
+    optLow: 60, optHigh: 90, absMin: 0, absMax: 100,
+    history: [62, 68, 71, 74],
+    description: 'Overall vocal well-being composite score',
+    percentile: 63
+  },
+];
+
+const MARQUEE_LABELS = [
+  'Stress','Calmness','Recovery Index','Mood Clarity','Focus State',
+  'Well-being','Pitch Variance','Jitter Index','Shimmer','Speaking Rate',
+  'Fundamental Freq','Breathiness','Vocal Fatigue','Resonance','Formant Ratio',
+  'Prosody Score','Temporal Entropy','Pause Frequency','Vocal Tremor','Intensity Curve',
+];
+
+// Build marquee (duplicate for seamless loop)
+const track = document.getElementById('marqueeTrack');
+const allChips = [...MARQUEE_LABELS, ...MARQUEE_LABELS];
+allChips.forEach((label, i) => {
+  const chip = document.createElement('div');
+  chip.className = 'marquee-chip' + (i % MARQUEE_LABELS.length < 6 ? ' active' : '');
+  chip.textContent = label;
+  track.appendChild(chip);
+});
+
+// Build cards
+const grid = document.getElementById('cardGrid');
+BIOMARKERS.forEach((b, idx) => {
+  const card = document.createElement('div');
+  card.className = 'biomarker-card';
+  card.innerHTML = `
+    <div class="card-num">${b.num}</div>
+    <div class="card-name">${b.name}</div>
+    <div class="card-value">${b.value}</div>
+    <div class="status-badge ${b.status}">${b.statusText}</div>
+    <div class="sparkline-wrap">
+      <svg width="100%" height="32" viewBox="0 0 120 32" preserveAspectRatio="none">
+        ${buildSparkline(b)}
+      </svg>
+    </div>
+  `;
+  card.addEventListener('click', () => openModal(idx));
+  grid.appendChild(card);
+});
+
+function buildSparkline(b) {
+  const pts = b.history;
+  const range = b.absMax - b.absMin;
+  const xs = [10, 40, 80, 110];
+  const ys = pts.map(v => 28 - ((v - b.absMin) / range) * 24);
+  const path = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
+  const colorMap = { optimal: '#22a06b', elevated: '#d97706', below: '#c0392b' };
+  const col = colorMap[b.status];
+  const dots = xs.map((x, i) => `<circle cx="${x}" cy="${ys[i]}" r="3" fill="${col}"/>`).join('');
+  return `
+    <path d="${path}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+    ${dots}
+  `;
+}
+
+// Modal logic
+let currentBiomarker = null;
+const overlay = document.getElementById('modalOverlay');
+const modalClose = document.getElementById('modalClose');
+
+function openModal(idx) {
+  const b = BIOMARKERS[idx];
+  currentBiomarker = b;
+  document.getElementById('modalTitle').textContent = b.name;
+  document.getElementById('modalSub').innerHTML = `Current value: <strong>${b.value}</strong> &nbsp;·&nbsp; ${b.description}`;
+  drawRangeChart(b);
+  drawBellCurve(b);
+  document.getElementById('percentileLabel').innerHTML = `Better than <strong>${b.percentile}%</strong> of users in your cohort`;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+modalClose.addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+function drawRangeChart(b) {
+  const svg = document.getElementById('rangeChart');
+  svg.innerHTML = '';
+  const W = 600, H = 160;
+  const padL = 8, padR = 8, padT = 14, padB = 24;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+
+  const toY = v => padT + chartH - ((v - b.absMin) / (b.absMax - b.absMin)) * chartH;
+
+  // Zone bands
+  const zones = [
+    { label: 'ABOVE OPTIMAL', yTop: b.absMin, yBot: b.optLow, fill: '#fde8e8', textColor: '#c0392b' },
+    { label: 'OPTIMAL RANGE',  yTop: b.optLow, yBot: b.optHigh, fill: '#e3f5ee', textColor: '#22a06b' },
+    { label: 'ELEVATED',       yTop: b.optHigh, yBot: b.absMax, fill: '#fef3c7', textColor: '#d97706' },
+  ];
+
+  zones.forEach(z => {
+    const y1 = toY(z.yBot), y2 = toY(z.yTop);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', padL);
+    rect.setAttribute('y', y1);
+    rect.setAttribute('width', chartW);
+    rect.setAttribute('height', Math.abs(y2 - y1));
+    rect.setAttribute('fill', z.fill);
+    svg.appendChild(rect);
+
+    const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    txt.setAttribute('x', padL + 8);
+    txt.setAttribute('y', y1 + 14);
+    txt.setAttribute('fill', z.textColor);
+    txt.setAttribute('font-size', '9');
+    txt.setAttribute('font-family', 'Inter, sans-serif');
+    txt.setAttribute('font-weight', '600');
+    txt.setAttribute('letter-spacing', '0.08em');
+    txt.textContent = z.label;
+    svg.appendChild(txt);
+  });
+
+  // Data line + dots
+  const pts = b.history;
+  const xs = [0.1, 0.35, 0.65, 0.9].map(t => padL + t * chartW);
+  const ys = pts.map(v => toY(v));
+
+  // Line
+  const pathD = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  line.setAttribute('d', pathD);
+  line.setAttribute('fill', 'none');
+  line.setAttribute('stroke', '#5B8DB8');
+  line.setAttribute('stroke-width', '2.5');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('stroke-linejoin', 'round');
+  line.setAttribute('stroke-dasharray', '1000');
+  line.setAttribute('stroke-dashoffset', '1000');
+  svg.appendChild(line);
+
+  // Animate line
+  const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  anim.setAttribute('attributeName', 'stroke-dashoffset');
+  anim.setAttribute('from', '1000');
+  anim.setAttribute('to', '0');
+  anim.setAttribute('dur', '0.9s');
+  anim.setAttribute('fill', 'freeze');
+  anim.setAttribute('calcMode', 'spline');
+  anim.setAttribute('keySplines', '0.4 0 0.2 1');
+  line.appendChild(anim);
+
+  // Dots (staggered)
+  xs.forEach((x, i) => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.style.opacity = '0';
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', ys[i]);
+    circle.setAttribute('r', i === pts.length - 1 ? 7 : 5);
+    circle.setAttribute('fill', 'white');
+    circle.setAttribute('stroke', '#5B8DB8');
+    circle.setAttribute('stroke-width', '2.5');
+    g.appendChild(circle);
+
+    const val = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    val.setAttribute('x', x);
+    val.setAttribute('y', ys[i] - 11);
+    val.setAttribute('text-anchor', 'middle');
+    val.setAttribute('font-size', '10');
+    val.setAttribute('font-family', 'Inter, sans-serif');
+    val.setAttribute('font-weight', '600');
+    val.setAttribute('fill', '#1a1d21');
+    val.textContent = pts[i];
+    g.appendChild(val);
+
+    svg.appendChild(g);
+
+    setTimeout(() => {
+      g.style.transition = 'opacity 0.3s ease';
+      g.style.opacity = '1';
+    }, 900 + i * 120);
+  });
+}
+
+function drawBellCurve(b) {
+  const svg = document.getElementById('bellChart');
+  svg.innerHTML = '';
+  const W = 600, H = 120;
+  const padX = 20, padY = 10;
+
+  // Gaussian function
+  function gauss(x, mu, sigma) {
+    return Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
+  }
+
+  const mu = 0.5, sigma = 0.18;
+  const steps = 200;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const x = i / steps;
+    const y = gauss(x, mu, sigma);
+    pts.push({ x, y });
+  }
+  const maxY = Math.max(...pts.map(p => p.y));
+
+  const toSvgX = x => padX + x * (W - 2 * padX);
+  const toSvgY = y => (H - padY) - (y / maxY) * (H - 2 * padY);
+
+  // Determine position on 0–1 scale
+  const norm = (b.value - b.absMin) / (b.absMax - b.absMin);
+  const optLowN = (b.optLow - b.absMin) / (b.absMax - b.absMin);
+  const optHighN = (b.optHigh - b.absMin) / (b.absMax - b.absMin);
+
+  // Zone fills
+  const zoneColors = [
+    { from: 0, to: optLowN, fill: '#fde8e8' },
+    { from: optLowN, to: optHighN, fill: '#e3f5ee' },
+    { from: optHighN, to: 1, fill: '#fef3c7' },
+  ];
+
+  zoneColors.forEach(z => {
+    const areaD = pts
+      .filter(p => p.x >= z.from - 0.005 && p.x <= z.to + 0.005)
+      .map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(Math.max(z.from, Math.min(z.to, p.x)))},${toSvgY(p.y)}`)
+      .join(' ');
+    const fromX = toSvgX(z.from), toX = toSvgX(z.to);
+    const baseY = toSvgY(0);
+    const region = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    const subPts = pts.filter(p => p.x >= z.from && p.x <= z.to);
+    if (subPts.length === 0) return;
+    const pathD = subPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x)},${toSvgY(p.y)}`).join(' ') +
+      ` L${toSvgX(z.to)},${baseY} L${toSvgX(z.from)},${baseY} Z`;
+    region.setAttribute('d', pathD);
+    region.setAttribute('fill', z.fill);
+    svg.appendChild(region);
+  });
+
+  // Main curve
+  const curvePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${toSvgX(p.x)},${toSvgY(p.y)}`).join(' ');
+  const curve = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  curve.setAttribute('d', curvePath);
+  curve.setAttribute('fill', 'none');
+  curve.setAttribute('stroke', '#5B8DB8');
+  curve.setAttribute('stroke-width', '2');
+  svg.appendChild(curve);
+
+  // User position marker
+  const markerX = toSvgX(norm);
+  const markerY = toSvgY(gauss(norm, mu, sigma));
+
+  const markerLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  markerLine.setAttribute('x1', toSvgX(0));
+  markerLine.setAttribute('y1', markerY);
+  markerLine.setAttribute('x2', toSvgX(0));
+  markerLine.setAttribute('y2', markerY);
+  markerLine.setAttribute('stroke', '#1a1d21');
+  markerLine.setAttribute('stroke-width', '1.5');
+  markerLine.setAttribute('stroke-dasharray', '3,3');
+  markerLine.setAttribute('opacity', '0.4');
+
+  const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  anim.setAttribute('attributeName', 'x2');
+  anim.setAttribute('from', toSvgX(0));
+  anim.setAttribute('to', markerX);
+  anim.setAttribute('dur', '0.7s');
+  anim.setAttribute('fill', 'freeze');
+  anim.setAttribute('begin', '0.3s');
+  markerLine.appendChild(anim);
+  svg.appendChild(markerLine);
+
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  dot.setAttribute('cx', toSvgX(0));
+  dot.setAttribute('cy', markerY);
+  dot.setAttribute('r', '6');
+  dot.setAttribute('fill', '#5B8DB8');
+  dot.setAttribute('stroke', 'white');
+  dot.setAttribute('stroke-width', '2');
+
+  const dotAnim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+  dotAnim.setAttribute('attributeName', 'cx');
+  dotAnim.setAttribute('from', toSvgX(0));
+  dotAnim.setAttribute('to', markerX);
+  dotAnim.setAttribute('dur', '0.7s');
+  dotAnim.setAttribute('fill', 'freeze');
+  dotAnim.setAttribute('begin', '0.3s');
+  dot.appendChild(dotAnim);
+  svg.appendChild(dot);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucid — Stress Timeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f8f9fa;
+    --surface: #f0f2f4;
+    --border: #e4e8ec;
+    --steel: #5B8DB8;
+    --steel-light: #d4e4f2;
+    --steel-dark: #3d6a8f;
+    --dark: #1a1d21;
+    --body: #5a6270;
+    --calm: rgba(91, 141, 184, 0.12);
+    --calm-line: #5B8DB8;
+    --steady: rgba(240, 242, 244, 0.8);
+    --tense: rgba(251, 191, 36, 0.15);
+    --stressed: rgba(239, 100, 97, 0.14);
+    --annotation-bg: white;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+    padding: 60px 24px;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .section-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+  .section-header p {
+    font-size: 1rem;
+    color: var(--body);
+    max-width: 440px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  /* ── Chart container ── */
+  .chart-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px 24px;
+    box-shadow: 0 4px 24px rgba(26, 29, 33, 0.06);
+  }
+
+  .chart-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chart-header h3 {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--body);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .date-label {
+    font-size: 0.82rem;
+    color: var(--body);
+    font-weight: 500;
+  }
+
+  /* SVG chart */
+  .svg-wrapper {
+    position: relative;
+    width: 100%;
+  }
+  #stressChart {
+    width: 100%;
+    overflow: visible;
+    display: block;
+  }
+
+  /* Y-axis labels */
+  .y-labels {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  /* Annotation callout */
+  .annotation {
+    position: absolute;
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.72rem;
+    color: var(--dark);
+    box-shadow: 0 4px 14px rgba(26,29,33,0.08);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    z-index: 10;
+  }
+  .annotation.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .annotation .ann-time {
+    font-weight: 600;
+    color: var(--body);
+    margin-bottom: 1px;
+  }
+  .annotation .ann-event {
+    font-weight: 500;
+    color: var(--dark);
+  }
+  .annotation .ann-val {
+    font-weight: 700;
+    color: var(--steel);
+    float: right;
+    margin-left: 10px;
+  }
+  .annotation::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid white;
+    filter: drop-shadow(0 1px 0 var(--border));
+  }
+
+  /* X-axis */
+  .x-axis-labels {
+    display: flex;
+    padding-left: 48px;
+    justify-content: space-between;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .x-axis-labels span {
+    font-size: 0.68rem;
+    color: var(--body);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  @media (max-width: 500px) {
+    .x-axis-labels span:nth-child(even) { display: none; }
+  }
+
+  /* Zone legend */
+  .zone-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1.5px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.75rem;
+    color: var(--body);
+    font-weight: 500;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  /* ── Summary chips ── */
+  .summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    max-width: 900px;
+    margin: 24px auto 0;
+  }
+  @media (max-width: 600px) {
+    .summary-row { grid-template-columns: 1fr 1fr; }
+    .x-axis-labels { padding-left: 36px; }
+  }
+
+  .stat-chip {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(26,29,33,0.04);
+  }
+  .stat-chip .stat-val {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+  .stat-chip .stat-label {
+    font-size: 0.73rem;
+    color: var(--body);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .stat-chip .stat-sub {
+    font-size: 0.68rem;
+    color: var(--steel);
+    font-weight: 600;
+    margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+
+<div class="section-header">
+  <h1>Stress Throughout Your Day</h1>
+  <p>See exactly when you're most drained — and when you recover fastest.</p>
+</div>
+
+<div class="chart-container">
+  <div class="chart-header">
+    <h3>Vocal Stress Index</h3>
+    <span class="date-label">March 5, 2026 &nbsp;·&nbsp; Today</span>
+  </div>
+
+  <div class="svg-wrapper" id="svgWrapper">
+    <svg id="stressChart" viewBox="0 0 840 220" preserveAspectRatio="none" height="220">
+    </svg>
+    <!-- Annotations injected by JS -->
+  </div>
+
+  <div class="x-axis-labels" id="xAxisLabels"></div>
+
+  <div class="zone-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#d4e4f2"></div>Calm (0–25)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e4e8ec"></div>Steady (25–50)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef3c7"></div>Tense (50–75)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fde8e8"></div>Stressed (75–100)</div>
+  </div>
+</div>
+
+<div class="summary-row" id="summaryRow"></div>
+
+<script>
+// ── Data ──
+const HOURS_START = 6;   // 6 AM
+const HOURS_END   = 23;  // 11 PM
+const TOTAL_HOURS = HOURS_END - HOURS_START;
+
+// Stress values at each hour (index 0 = 6AM, index 17 = 11PM)
+const stressData = [
+  22, 28, 35, 62, 58, 55, // 6,7,8,9,10,11 AM
+  24, 20, 18, 40, 68, 72, // 12,1,2,3,4,5 PM
+  45, 52, 38, 30, 24, 19  // 6,7,8,9,10,11 PM
+];
+
+const hours = stressData.map((_, i) => HOURS_START + i);
+
+// Annotations
+const ANNOTATIONS = [
+  { hour: 9, stress: 62, time: '9:30 AM', event: 'Morning standup', isHigh: true },
+  { hour: 13, stress: 20, time: '12:30 PM', event: 'Lunch break', isHigh: false },
+  { hour: 15, stress: 68, time: '3:45 PM', event: 'Budget review', isHigh: true },
+];
+
+// Summary stats
+const STATS = [
+  { val: 72, label: 'Peak stress', sub: '3:45 PM' },
+  { val: 18, label: 'Calmest moment', sub: '2:00 PM' },
+  { val: 41, label: 'Avg stress', sub: 'Today' },
+  { val: 3,  label: 'Recovery windows', sub: null },
+];
+
+// ── Chart dimensions ──
+const SVG_W = 840, SVG_H = 220;
+const PAD_L = 48, PAD_R = 16, PAD_T = 12, PAD_B = 28;
+const chartW = SVG_W - PAD_L - PAD_R;
+const chartH = SVG_H - PAD_T - PAD_B;
+
+const toX = h => PAD_L + ((h - HOURS_START) / TOTAL_HOURS) * chartW;
+const toY = v => PAD_T + chartH - (v / 100) * chartH;
+
+const svg = document.getElementById('stressChart');
+
+function svgEl(tag, attrs) {
+  const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+// ── Zone bands ──
+const zones = [
+  { from: 0, to: 25, fill: 'rgba(212,228,242,0.45)', label: 'Calm' },
+  { from: 25, to: 50, fill: 'rgba(240,242,244,0.6)', label: 'Steady' },
+  { from: 50, to: 75, fill: 'rgba(253,191,36,0.12)', label: 'Tense' },
+  { from: 75, to: 100, fill: 'rgba(252,100,97,0.12)', label: 'Stressed' },
+];
+
+zones.forEach((z, i) => {
+  const rect = svgEl('rect', {
+    x: PAD_L,
+    y: toY(z.to),
+    width: chartW,
+    height: toY(z.from) - toY(z.to),
+    fill: z.fill,
+    opacity: '0',
+  });
+  svg.appendChild(rect);
+  setTimeout(() => {
+    rect.style.transition = 'opacity 0.5s ease';
+    rect.style.opacity = '1';
+  }, i * 80);
+});
+
+// Horizontal gridlines
+[25, 50, 75].forEach(v => {
+  svg.appendChild(svgEl('line', {
+    x1: PAD_L, y1: toY(v), x2: PAD_L + chartW, y2: toY(v),
+    stroke: 'rgba(90,98,112,0.15)', 'stroke-width': '1',
+    'stroke-dasharray': '4,4'
+  }));
+});
+
+// Y-axis labels
+['Calm', 'Steady', 'Tense', 'Stressed'].forEach((label, i) => {
+  const yVals = [12.5, 37.5, 62.5, 87.5];
+  const t = svgEl('text', {
+    x: PAD_L - 6,
+    y: toY(yVals[i]) + 4,
+    'text-anchor': 'end',
+    'font-size': '9',
+    'font-family': 'Inter, sans-serif',
+    'font-weight': '500',
+    fill: '#5a6270',
+  });
+  t.textContent = label;
+  svg.appendChild(t);
+});
+
+// ── Animated line ──
+const linePoints = stressData.map((v, i) => `${toX(hours[i])},${toY(v)}`).join(' L');
+const lineD = 'M ' + linePoints;
+
+// Area fill path
+const areaD = lineD +
+  ` L${toX(HOURS_END)},${toY(0)} L${PAD_L},${toY(0)} Z`;
+const area = svgEl('path', {
+  d: areaD,
+  fill: 'url(#stressGradient)',
+  opacity: '0',
+});
+
+// Gradient def
+const defs = svgEl('defs', {});
+const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+grad.setAttribute('id', 'stressGradient');
+grad.setAttribute('x1', '0'); grad.setAttribute('y1', '0');
+grad.setAttribute('x2', '0'); grad.setAttribute('y2', '1');
+const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+stop1.setAttribute('offset', '0%'); stop1.setAttribute('stop-color', '#5B8DB8'); stop1.setAttribute('stop-opacity', '0.18');
+const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+stop2.setAttribute('offset', '100%'); stop2.setAttribute('stop-color', '#5B8DB8'); stop2.setAttribute('stop-opacity', '0.01');
+grad.appendChild(stop1); grad.appendChild(stop2);
+defs.appendChild(grad);
+svg.appendChild(defs);
+
+svg.appendChild(area);
+
+const line = svgEl('path', {
+  d: lineD,
+  fill: 'none',
+  stroke: '#5B8DB8',
+  'stroke-width': '2.5',
+  'stroke-linecap': 'round',
+  'stroke-linejoin': 'round',
+  'stroke-dasharray': '2000',
+  'stroke-dashoffset': '2000',
+});
+svg.appendChild(line);
+
+// "Now" marker (last data point = 11PM)
+const nowX = toX(HOURS_END);
+const nowLine = svgEl('line', {
+  x1: toX(HOURS_START + 9), y1: PAD_T, // ~3 PM = "now" for demo
+  x2: toX(HOURS_START + 9), y2: PAD_T + chartH,
+  stroke: '#c0392b',
+  'stroke-width': '1.5',
+  'stroke-dasharray': '4,3',
+  opacity: '0.5',
+});
+svg.appendChild(nowLine);
+
+const nowDot = svgEl('circle', {
+  cx: toX(HOURS_START + 9),
+  cy: toY(stressData[9]),
+  r: '5',
+  fill: '#c0392b',
+  opacity: '0.8',
+});
+svg.appendChild(nowDot);
+
+// Now label
+const nowLabel = svgEl('text', {
+  x: toX(HOURS_START + 9) + 6,
+  y: PAD_T + 14,
+  'font-size': '9',
+  'font-family': 'Inter, sans-serif',
+  'font-weight': '600',
+  fill: '#c0392b',
+});
+nowLabel.textContent = 'NOW';
+svg.appendChild(nowLabel);
+
+// ── Animate sequence ──
+const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function startAnimations() {
+  if (prefersReduced) {
+    line.setAttribute('stroke-dashoffset', '0');
+    area.style.opacity = '0.9';
+    showAnnotations();
+    return;
+  }
+
+  // 1. Line draws
+  setTimeout(() => {
+    line.style.transition = 'stroke-dashoffset 1.5s ease-in-out';
+    line.setAttribute('stroke-dashoffset', '0');
+  }, 400);
+
+  // 2. Area fades in
+  setTimeout(() => {
+    area.style.transition = 'opacity 0.6s ease';
+    area.style.opacity = '0.9';
+  }, 1900);
+
+  // 3. Annotations pop in
+  setTimeout(showAnnotations, 2400);
+
+  // 4. Stats count up
+  setTimeout(animateStats, 2200);
+}
+
+// ── X-axis labels ──
+const xLabels = document.getElementById('xAxisLabels');
+const labelHours = [6, 8, 10, 12, 14, 16, 18, 20, 22];
+labelHours.forEach(h => {
+  const span = document.createElement('span');
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const h12 = h > 12 ? h - 12 : h;
+  span.textContent = `${h12}${ampm}`;
+  xLabels.appendChild(span);
+});
+
+// ── Annotations ──
+function showAnnotations() {
+  const wrapper = document.getElementById('svgWrapper');
+  const svgRect = svg.getBoundingClientRect();
+  const wrapRect = wrapper.getBoundingClientRect();
+
+  ANNOTATIONS.forEach((ann, i) => {
+    const div = document.createElement('div');
+    div.className = 'annotation';
+    div.innerHTML = `
+      <span class="ann-val">${ann.stress}</span>
+      <div class="ann-time">${ann.time}</div>
+      <div class="ann-event">${ann.event}</div>
+    `;
+    wrapper.appendChild(div);
+
+    // Position
+    const svgXFrac = (toX(ann.hour) / SVG_W);
+    const svgYFrac = (toY(ann.stress) / SVG_H);
+    const pxX = svgXFrac * svgRect.width + (svgRect.left - wrapRect.left);
+    const pxY = svgYFrac * svgRect.height + (svgRect.top - wrapRect.top);
+    const annWidth = 150;
+    div.style.left = (pxX - annWidth / 2) + 'px';
+    div.style.top = (pxY - 68) + 'px';
+    div.style.width = annWidth + 'px';
+
+    setTimeout(() => div.classList.add('visible'), i * 200);
+  });
+}
+
+// ── Stats build ──
+function animateStats() {
+  const row = document.getElementById('summaryRow');
+  STATS.forEach((s, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'stat-chip';
+    chip.innerHTML = `
+      <div class="stat-val" data-target="${s.val}">0</div>
+      <div class="stat-label">${s.label}</div>
+      ${s.sub ? `<div class="stat-sub">${s.sub}</div>` : ''}
+    `;
+    row.appendChild(chip);
+
+    const el = chip.querySelector('.stat-val');
+    const target = s.val;
+    const isFloat = String(target).includes('.');
+    let start = null;
+    function count(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / 700, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = isFloat ? (target * eased).toFixed(2) : Math.round(target * eased);
+      el.textContent = current;
+      if (progress < 1) requestAnimationFrame(count);
+    }
+    setTimeout(() => requestAnimationFrame(count), i * 100);
+  });
+}
+
+// Start on load
+if (prefersReduced) {
+  startAnimations();
+  animateStats();
+} else {
+  setTimeout(startAnimations, 300);
+}
+</script>
+</body>
+</html>
