@@ -558,7 +558,7 @@ async def get_echoes():
     try:
         echoes = deps.db.get_echoes(limit=20)
         unseen = deps.db.get_unseen_echo_count()
-        deps.db.mark_echoes_seen()
+        # NOTE: do NOT call mark_echoes_seen() here — badge must persist until user opens Echoes tab
     except Exception as e:
         logger.warning("Error fetching echoes: %s", e)
         echoes = []
@@ -568,4 +568,95 @@ async def get_echoes():
         'unseen_count': unseen,
         'new': new_discoveries,
         'has_data': len(echoes) > 0,
+    }
+
+
+@router.get("/api/echoes/count")
+async def get_echo_count():
+    """Fast badge endpoint — returns unread count + eureka flag. No side effects."""
+    if deps.db is None:
+        raise DatabaseNotReady()
+    try:
+        unread_count = deps.db.get_unseen_echo_count()
+        has_eureka = False
+        if unread_count > 0:
+            unread = deps.db.get_unread_echoes(limit=20)
+            has_eureka = any(e.get('tier') == 'eureka' for e in unread)
+    except Exception as e:
+        logger.warning("Error in /api/echoes/count: %s", e)
+        unread_count = 0
+        has_eureka = False
+    return {'unread_count': unread_count, 'has_eureka': has_eureka}
+
+
+@router.post("/api/echoes/mark-seen")
+async def mark_echoes_seen():
+    """Mark all unseen echoes as seen (called when user opens Echoes tab + taps CTA)."""
+    if deps.db is None:
+        raise DatabaseNotReady()
+    try:
+        deps.db.mark_echoes_seen()
+    except Exception as e:
+        logger.warning("Error in /api/echoes/mark-seen: %s", e)
+    return {'ok': True}
+
+
+@router.get("/api/app/open")
+async def record_app_open():
+    """Record app open timestamp. Returns days since last open for re-engagement check."""
+    if deps.db is None:
+        raise DatabaseNotReady()
+    try:
+        last_open = deps.db.get_last_app_open()
+        if last_open:
+            try:
+                last_dt = datetime.fromisoformat(last_open)
+                days_since = (datetime.now() - last_dt).total_seconds() / 86400
+            except (ValueError, TypeError):
+                days_since = 0
+        else:
+            days_since = 0
+        deps.db.set_last_app_open()
+    except Exception as e:
+        logger.warning("Error in /api/app/open: %s", e)
+        days_since = 0
+    return {'days_since_last_open': round(days_since, 2)}
+
+
+@router.get("/api/echoes/progress")
+async def get_echo_progress():
+    """Anticipation teaser — how many sessions until next echo detection."""
+    if deps.db is None:
+        raise DatabaseNotReady()
+    try:
+        summaries = deps.db.get_daily_summaries(days=90)
+        total_sessions = len(summaries)
+        threshold = 7
+        sessions_completed = min(total_sessions, threshold)
+        sessions_until_next = max(0, threshold - total_sessions)
+
+        # Pick a hint based on most active recent data
+        pattern_hint = "stress response data"
+        if total_sessions >= 3:
+            recent = sorted(summaries, key=lambda s: s.get('date', ''), reverse=True)[:3]
+            avg_stress = sum(s.get('avg_stress', 50) or 50 for s in recent) / len(recent)
+            avg_mood = sum(s.get('avg_mood', 50) or 50 for s in recent) / len(recent)
+            if avg_stress > 60:
+                pattern_hint = "stress pattern data"
+            elif avg_mood > 60:
+                pattern_hint = "mood pattern data"
+            else:
+                pattern_hint = "vocal rhythm data"
+    except Exception as e:
+        logger.warning("Error in /api/echoes/progress: %s", e)
+        sessions_until_next = 7
+        sessions_completed = 0
+        threshold = 7
+        pattern_hint = "voice data"
+
+    return {
+        'sessions_until_next_echo': sessions_until_next,
+        'sessions_completed': sessions_completed,
+        'total_sessions_needed': threshold,
+        'pattern_hint': pattern_hint,
     }

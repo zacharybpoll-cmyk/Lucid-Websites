@@ -359,6 +359,17 @@
                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                 </svg>
             </button>
+            <button class="sidebar-icon" data-view="echoes" title="Echoes" aria-label="Echoes" style="position:relative;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 18V5l12-2v13"/>
+                    <circle cx="6" cy="18" r="3"/>
+                    <circle cx="18" cy="16" r="3"/>
+                </svg>
+                <div class="echo-sidebar-badge-wrap" id="echo-sidebar-badge-wrap" style="display:none;">
+                    <span class="echo-count-badge" id="echo-count-badge">0</span>
+                    <span class="echo-eureka-pill" id="echo-eureka-pill" style="display:none;">&#9679; Eureka</span>
+                </div>
+            </button>
             <button class="sidebar-icon" data-view="lab" title="Biomarker Lab" aria-label="Biomarker Lab">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11l-4 7h14l-4-7V3"/>
@@ -965,6 +976,15 @@
 
                 </div>
 
+                <!-- ECHOES VIEW -->
+                <div id="echoes-view" class="view" role="region" aria-label="Echoes">
+                    <div class="echoes-view-header">
+                        <h2 class="echoes-view-title">Echoes</h2>
+                        <p class="echoes-view-subtitle">Patterns discovered in your voice data</p>
+                    </div>
+                    <div id="echoes-list-container"></div>
+                </div>
+
                 <!-- BIOMARKER LAB VIEW -->
                 <div id="lab-view" class="view" role="region" aria-label="Lab"></div>
 
@@ -1425,6 +1445,28 @@
         </div>
         <div id="speaker-debug-stats">Waiting for data...</div>
         <div id="speaker-debug-log"></div>
+    </div>
+
+    <!-- Echo Drop Overlay — full-screen discovery moment -->
+    <div class="echo-drop-overlay" id="echo-drop-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Echo Discovered">
+        <div class="echo-drop-burst"></div>
+        <div class="echo-drop-card">
+            <p class="echo-drop-eyebrow">Echo Discovered</p>
+            <h1 class="echo-drop-title" id="echo-drop-title"></h1>
+            <hr class="echo-drop-divider">
+            <p class="echo-drop-detail" id="echo-drop-detail">Pattern detected across multiple weeks of voice data</p>
+            <button class="echo-drop-cta" id="echo-drop-cta">Tap to explore &#8594;</button>
+            <br>
+            <button class="echo-drop-skip" id="echo-drop-skip">Maybe later</button>
+        </div>
+    </div>
+
+    <!-- Re-engagement Overlay — fires on return after 2+ day absence -->
+    <div class="echo-reengagement-overlay" id="echo-reengagement-overlay" style="display:none;" role="dialog" aria-modal="true" aria-label="Welcome Back">
+        <p class="reengagement-greeting">Welcome back</p>
+        <h2 class="reengagement-headline">You missed <span id="reengagement-count">3</span> Echoes while you were away</h2>
+        <div class="locked-echoes-row" id="locked-echoes-row"></div>
+        <button class="echo-reveal-btn" id="echo-reveal-btn">Reveal your Echoes</button>
     </div>
 </body>
 </html>

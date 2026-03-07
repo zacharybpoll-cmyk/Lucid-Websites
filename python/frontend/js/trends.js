@@ -10,13 +10,15 @@ class TrendsView {
 
     async load(days = 14) {
         try {
-            const [data, summaries] = await Promise.all([
+            const [data, summaries, echoProgress] = await Promise.all([
                 API.getTrends(days),
                 API.getSummaries(35).catch(() => []),
+                API.getEchoProgress().catch(() => null),
             ]);
             this.data = data;
             this.summaries = summaries;
             this.days = days;
+            this.echoProgress = echoProgress;
             this.render();
         } catch (e) {
             console.error('Failed to load trends:', e);
@@ -31,6 +33,27 @@ class TrendsView {
         }
 
         this.container.textContent = '';
+
+        // Echo teaser card (prepend if echo is forming)
+        if (this.echoProgress && this.echoProgress.sessions_until_next_echo > 0) {
+            const ep = this.echoProgress;
+            const pct = Math.round((ep.sessions_completed / ep.total_sessions_needed) * 100);
+            const teaserDiv = document.createElement('div');
+            teaserDiv.className = 'echo-teaser-card';
+            teaserDiv.innerHTML = `
+                <div class="echo-teaser-header">
+                    <span class="echo-teaser-pulse"></span>
+                    <span class="echo-teaser-title">Echo Forming...</span>
+                </div>
+                <p class="echo-teaser-main">${ep.sessions_until_next_echo} reading${ep.sessions_until_next_echo !== 1 ? 's' : ''} away from your next Echo</p>
+                <div class="echo-teaser-bar-wrap">
+                    <div class="echo-teaser-bar-fill" style="width: ${pct}%"></div>
+                </div>
+                <p class="echo-teaser-hint">Pattern in progress... ${sanitizeHTML(ep.pattern_hint)}</p>
+                <p class="echo-teaser-footer"><em>Something is taking shape in your data.</em></p>
+            `;
+            this.container.appendChild(teaserDiv);
+        }
 
         // Day toggle
         const toggleDiv = document.createElement('div');

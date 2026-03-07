@@ -72,7 +72,8 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'dow_calmest',
                     'message': f'{day_names[calmest_dow]}s are your calmest day (avg stress {avg_stress_by_dow[calmest_dow]:.0f} vs {avg_stress_by_dow[most_stressed_dow]:.0f} on {day_names[most_stressed_dow]}s)',
-                    'detail': f'Based on {len(summaries)} days of data'
+                    'detail': f'Based on {len(summaries)} days of data',
+                    'tier': 'eureka',
                 })
 
         # Find best mood day
@@ -251,13 +252,15 @@ class PatternDetector:
                     patterns.append({
                         'pattern_type': f'eureka_burnout_trajectory_{total_weeks}w',
                         'message': f'Your stress has been climbing ~{slope:.0f} points per week for {total_weeks} weeks. This is a burnout trajectory.',
-                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}'
+                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}',
+                        'tier': 'eureka',
                     })
                 elif slope <= -3:
                     patterns.append({
                         'pattern_type': f'eureka_recovery_trajectory_{len(weeks)}w',
                         'message': f'Great trend: your stress has been dropping ~{abs(slope):.0f} points per week for {len(weeks)} weeks.',
-                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}'
+                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}',
+                        'tier': 'eureka',
                     })
 
         return patterns
@@ -317,7 +320,8 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_recovery_speed',
                     'message': f'You recover from stress spikes faster in the {faster} (avg {max(am_avg, pm_avg):.0f} point drop vs {min(am_avg, pm_avg):.0f})',
-                    'detail': f'Based on {len(am_recoveries)} AM and {len(pm_recoveries)} PM stress peaks'
+                    'detail': f'Based on {len(am_recoveries)} AM and {len(pm_recoveries)} PM stress peaks',
+                    'tier': 'eureka',
                 })
 
         return patterns
@@ -361,7 +365,8 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_morning_state',
                     'message': f'Days you start calm have {pct}% lower peak stress ({calm_peak:.0f} vs {non_calm_peak:.0f})',
-                    'detail': f'Based on {len(calm_start_days)} calm-start vs {len(non_calm_start_days)} other days'
+                    'detail': f'Based on {len(calm_start_days)} calm-start vs {len(non_calm_start_days)} other days',
+                    'tier': 'eureka',
                 })
 
         return patterns
@@ -413,7 +418,8 @@ class PatternDetector:
                     patterns.append({
                         'pattern_type': f'eureka_anomaly_{today.isoformat()}',
                         'message': f"Today's stress ({today_stress:.0f}) is unusually {direction} compared to your typical {day_names[today_dow]}s (avg {hist_mean:.0f})",
-                        'detail': f'Z-score: {z:.1f} based on {len(same_dow)} previous {day_names[today_dow]}s'
+                        'detail': f'Z-score: {z:.1f} based on {len(same_dow)} previous {day_names[today_dow]}s',
+                        'tier': 'eureka',
                     })
 
         return patterns
@@ -473,7 +479,8 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_back_to_back',
                     'message': f'Back-to-back meetings raise your stress by {pct}% compared to spaced meetings ({avg_clustered:.0f} vs {avg_isolated:.0f})',
-                    'detail': f'Based on {len(clustered_stress)} clustered vs {len(isolated_stress)} isolated meeting readings'
+                    'detail': f'Based on {len(clustered_stress)} clustered vs {len(isolated_stress)} isolated meeting readings',
+                    'tier': 'eureka',
                 })
 
         return patterns

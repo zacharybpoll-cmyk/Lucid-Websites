@@ -178,8 +178,14 @@ async function init() {
     // 4. Setup analytics tracking
     setupAnalyticsTracking();
 
+    // 4b. Initialize Echo Drop overlay handlers
+    initEchoDropOverlay();
+
     // 5. Wait for backend readiness, then load data and start polling
     await waitForBackend();
+
+    // 6. Re-engagement check (after backend ready, non-blocking)
+    checkReengagement().catch(() => {});
 }
 
 document.addEventListener('DOMContentLoaded', init);
@@ -308,6 +314,10 @@ const VIEW_MODULES = {
     reports: {
         load() { if (typeof reportsView !== 'undefined') reportsView.load(); },
         unload() { TimerRegistry.clearScope('reports'); }
+    },
+    echoes: {
+        load() { initEchoesView(); },
+        unload() {}
     },
     settings: {
         load() {},
@@ -1240,6 +1250,7 @@ async function loadFeatures() {
         updateGrove(),
         pollBeacon(),
         loadEchoesNotificationDot(),
+        applyBadgeStreakFusion(),
     ]);
 }
 
@@ -1655,57 +1666,195 @@ function drawRecoverySparkline(readings) {
     `;
 }
 
-// ========== Echoes (Feature #6) ==========
+// ========== Echoes (Feature #6) — Echo Drop System ==========
 
-// Lightweight: only update sidebar notification dot (cards now in Trends)
-async function loadEchoesNotificationDot() {
+// Update sidebar badge from /api/echoes/count (no side effects)
+async function updateEchoBadge() {
     try {
-        const data = await API.getEchoes();
-        const dotWrap = document.getElementById('echo-dot-wrap');
-        if (dotWrap) {
-            dotWrap.style.display = data.unseen_count > 0 ? 'flex' : 'none';
+        const { unread_count, has_eureka } = await API.getEchoCount();
+        const wrap = document.getElementById('echo-sidebar-badge-wrap');
+        const countEl = document.getElementById('echo-count-badge');
+        const eurekaEl = document.getElementById('echo-eureka-pill');
+        if (!wrap) return;
+        countEl.textContent = unread_count;
+        if (eurekaEl) eurekaEl.style.display = has_eureka ? 'inline-flex' : 'none';
+        wrap.style.display = unread_count > 0 ? 'flex' : 'none';
+    } catch (e) {
+        // silent
+    }
+}
+
+// Streak × Badge Fusion: apply urgency class based on streak gap
+async function applyBadgeStreakFusion() {
+    try {
+        const wrap = document.getElementById('echo-sidebar-badge-wrap');
+        if (!wrap) return;
+        const engData = await API.getEngagement();
+        const streakDays = engData.streak || 0;
+        // streak_gap: 0 = active today, 1 = missed yesterday, 2+ = FOMO state
+        const today = new Date();
+        const lastActiveDate = engData.last_active_date;
+        let streakGap = 0;
+        if (lastActiveDate) {
+            const last = new Date(lastActiveDate);
+            streakGap = Math.round((today - last) / 86400000);
+        }
+        wrap.classList.remove('echo-badge-urgent');
+        if (streakGap === 1) {
+            wrap.classList.add('echo-badge-urgent');
+        } else if (streakGap >= 2) {
+            // Hide badge — re-engagement overlay handles this state
+            wrap.style.display = 'none';
         }
     } catch (e) {
         // silent
     }
 }
 
-async function loadEchoes() {
+// Re-engagement check: fire overlay if user absent 2+ days with unseen echoes
+async function checkReengagement() {
+    try {
+        const { days_since_last_open } = await API.recordAppOpen();
+        if (days_since_last_open < 2) return;
+        const { unread_count } = await API.getEchoCount();
+        if (unread_count === 0) return;
+        showReengagementOverlay(unread_count);
+    } catch (e) {
+        // silent
+    }
+}
+
+function showReengagementOverlay(unreadCount) {
+    const overlay = document.getElementById('echo-reengagement-overlay');
+    if (!overlay) return;
+    document.getElementById('reengagement-count').textContent = unreadCount;
+
+    // Build locked echo placeholder cards
+    const row = document.getElementById('locked-echoes-row');
+    if (row) {
+        const cardCount = Math.min(unreadCount, 3);
+        let html = '';
+        for (let i = 0; i < cardCount; i++) {
+            html += `<div class="locked-echo-card"></div>`;
+        }
+        row.innerHTML = html;
+    }
+
+    overlay.style.display = 'flex';
+
+    const revealBtn = document.getElementById('echo-reveal-btn');
+    if (revealBtn) {
+        revealBtn.onclick = () => {
+            overlay.style.display = 'none';
+            switchView('echoes');
+        };
+    }
+}
+
+// Echo Drop reveal: fires when Echoes tab is opened and unseen echoes exist
+async function maybeShowEchoDrop() {
     try {
         const data = await API.getEchoes();
-        const container = document.getElementById('echoes-container');
-        const dotWrap = document.getElementById('echo-dot-wrap');
+        const unread = (data.echoes || []).filter(e => !e.seen);
+        if (unread.length === 0) return;
+        const echo = unread[0];
+        const titleEl = document.getElementById('echo-drop-title');
+        const detailEl = document.getElementById('echo-drop-detail');
+        const dropOverlay = document.getElementById('echo-drop-overlay');
+        if (!dropOverlay) return;
+        if (titleEl) titleEl.textContent = echo.message;
+        if (detailEl) detailEl.textContent = echo.detail || 'Pattern detected across multiple weeks of voice data';
+        dropOverlay.style.display = 'flex';
+    } catch (e) {
+        // silent
+    }
+}
 
-        // Show notification dot if unseen echoes
-        if (dotWrap) {
-            dotWrap.style.display = data.unseen_count > 0 ? 'flex' : 'none';
-        }
+// Initialize Echo Drop overlay button handlers (called once on page load)
+function initEchoDropOverlay() {
+    const ctaBtn = document.getElementById('echo-drop-cta');
+    const skipBtn = document.getElementById('echo-drop-skip');
+    const dropOverlay = document.getElementById('echo-drop-overlay');
+    if (ctaBtn) {
+        ctaBtn.addEventListener('click', () => {
+            if (dropOverlay) dropOverlay.style.display = 'none';
+            API.markEchoesSeen().then(() => updateEchoBadge());
+            loadEchoesListView();
+        });
+    }
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+            if (dropOverlay) dropOverlay.style.display = 'none';
+        });
+    }
+}
 
-        if (!container) return;
-
+// Load full echoes list into #echoes-list-container
+async function loadEchoesListView() {
+    const container = document.getElementById('echoes-list-container');
+    if (!container) return;
+    try {
+        const data = await API.getEchoes();
         if (!data.echoes || data.echoes.length === 0) {
             container.innerHTML = '<div class="echoes-empty">Echoes surface recurring patterns in your voice data \u2014 like stress spikes on certain days or calm streaks. They appear after 7+ days of readings.</div>';
             return;
         }
-
         let html = '';
-
-        for (const echo of data.echoes.slice(0, 5)) {
+        for (const echo of data.echoes) {
             const dateStr = new Date(echo.discovered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const eurekaClass = echo.tier === 'eureka' ? ' echo-eureka' : '';
             html += `
-                <div class="echo-item ${echo.seen ? '' : 'echo-new'}">
-                    <span class="echo-icon">\u{2728}</span>
+                <div class="echo-item${echo.seen ? '' : ' echo-new'}${eurekaClass}">
+                    <span class="echo-icon">${echo.tier === 'eureka' ? '\u2728' : '\u25cf'}</span>
                     <div class="echo-content">
                         <span class="echo-message">${sanitizeHTML(echo.message)}</span>
                         <span class="echo-date">${dateStr}</span>
                     </div>
                 </div>`;
         }
+        container.innerHTML = html;
+    } catch (e) {
+        container.innerHTML = '<div class="echoes-empty">Unable to load echoes.</div>';
+    }
+}
 
+// Echoes view init: called when user navigates to echoes tab
+async function initEchoesView() {
+    await maybeShowEchoDrop();
+    await loadEchoesListView();
+}
+
+// Legacy: load echoes in Trends view cards (does not mark seen)
+async function loadEchoes() {
+    try {
+        const data = await API.getEchoes();
+        const container = document.getElementById('echoes-container');
+        if (!container) return;
+        if (!data.echoes || data.echoes.length === 0) {
+            container.innerHTML = '<div class="echoes-empty">Echoes surface recurring patterns in your voice data \u2014 like stress spikes on certain days or calm streaks. They appear after 7+ days of readings.</div>';
+            return;
+        }
+        let html = '';
+        for (const echo of data.echoes.slice(0, 5)) {
+            const dateStr = new Date(echo.discovered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            html += `
+                <div class="echo-item ${echo.seen ? '' : 'echo-new'}">
+                    <span class="echo-icon">\u2728</span>
+                    <div class="echo-content">
+                        <span class="echo-message">${sanitizeHTML(echo.message)}</span>
+                        <span class="echo-date">${dateStr}</span>
+                    </div>
+                </div>`;
+        }
         container.innerHTML = html;
     } catch (e) {
         console.error('Failed to load echoes:', e);
     }
+}
+
+// Legacy alias kept for loadFeatures()
+async function loadEchoesNotificationDot() {
+    await updateEchoBadge();
 }
 
 // ========== Compass (Feature #7) ==========

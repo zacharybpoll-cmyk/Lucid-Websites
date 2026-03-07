@@ -96,6 +96,10 @@ const API = {
     async getWaypoints() { return await apiCall('/waypoints'); },
     async getRings() { return await apiCall('/rings'); },
     async getEchoes() { return await apiCall('/echoes'); },
+    async getEchoCount() { return await apiCall('/echoes/count'); },
+    async markEchoesSeen() { return await apiCall('/echoes/mark-seen', { method: 'POST' }); },
+    async recordAppOpen() { return await apiCall('/app/open'); },
+    async getEchoProgress() { return await apiCall('/echoes/progress'); },
     async getCompass() { return await apiCall('/compass'); },
     async setIntention(intention) {
         return await apiCall('/compass/intention', {

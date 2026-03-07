@@ -365,6 +365,8 @@ class Database:
             ("daily_summaries", "avg_depression_risk", "REAL"),
             ("daily_summaries", "avg_anxiety_risk", "REAL"),
             ("daily_summaries", "avg_emotional_stability", "REAL"),
+            # Echo Drop: tier column for eureka distinction
+            ("echoes", "tier", "TEXT DEFAULT 'standard'"),
         ]
         for table, col, coltype in migrate_columns:
             try:
@@ -1122,18 +1124,34 @@ class Database:
             self.conn.commit()
 
 
+    def get_unread_echoes(self, limit: int = 5) -> List[Dict[str, Any]]:
+        """Return unseen echoes without marking them seen."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM echoes WHERE seen = 0 ORDER BY discovered_at DESC LIMIT ?", (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_last_app_open(self) -> Optional[str]:
+        """Return ISO timestamp of last app open, or None."""
+        val = self.get_user_state('last_app_open', default='')
+        return val if val else None
+
+    def set_last_app_open(self):
+        """Record current time as last app open."""
+        self.set_user_state('last_app_open', datetime.now().isoformat())
+
     def batch_add_echoes(self, echoes: list):
         """Insert multiple echoes in a single transaction.
-        Each echo is a dict with keys: pattern_type, message, detail (optional)."""
+        Each echo is a dict with keys: pattern_type, message, detail (optional), tier (optional)."""
         if not echoes:
             return
         with self.lock:
             cursor = self.conn.cursor()
             now = datetime.now().isoformat()
             cursor.executemany("""
-                INSERT INTO echoes (pattern_type, message, detail, discovered_at)
-                VALUES (?, ?, ?, ?)
-            """, [(e['pattern_type'], e['message'], e.get('detail'), now) for e in echoes])
+                INSERT INTO echoes (pattern_type, message, detail, discovered_at, tier)
+                VALUES (?, ?, ?, ?, ?)
+            """, [(e['pattern_type'], e['message'], e.get('detail'), now, e.get('tier', 'standard')) for e in echoes])
             self.conn.commit()
 
     def mark_echoes_seen(self):
