@@ -38,3 +38,15 @@ python/bundled_models/
 
 # Screenshot directories
 screenshots/
+
+# Large media assets (not source code)
+spokesperson-videos/
+spokesperson-images/
+potential/
+Attune Steel.app/
+Attune Logo.jpg
+Attune Steel Investment Deck*.pptx
+Gemini_Generated_Image*.png
+*.mp4
+*.mov
+*.mp3
