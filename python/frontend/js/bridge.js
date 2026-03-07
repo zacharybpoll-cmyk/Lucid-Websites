@@ -248,6 +248,30 @@ const API = {
         });
     },
 
+    // Clarity Journey
+    async getClarityTracks() { return await apiCall('/clarity/tracks'); },
+    async startClarityJourney(track, targetScore) {
+        return await apiCall('/clarity/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ track, target_score: targetScore })
+        });
+    },
+    async getClarityJourney() { return await apiCall('/clarity/journey'); },
+    async getClarityProgressArc() { return await apiCall('/clarity/progress-arc'); },
+    async getClarityToday() { return await apiCall('/clarity/today'); },
+    async completeClarityAction(actionId) {
+        return await apiCall(`/clarity/action/${actionId}/complete`, { method: 'POST' });
+    },
+    async triggerClarityWeeklyCheckin() {
+        return await apiCall('/clarity/weekly-checkin', { method: 'POST' });
+    },
+    async getClarityWeeklyCheckin(week) { return await apiCall(`/clarity/weekly-checkin/${week}`); },
+    async abandonClarityJourney() {
+        return await apiCall('/clarity/abandon', { method: 'POST' });
+    },
+    async getClaritySummary() { return await apiCall('/clarity/summary'); },
+
     // Analytics — fire-and-forget (never blocks UI)
     track(eventType, payload = {}) {
         fetch(`${API_BASE}/track`, {

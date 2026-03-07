@@ -1167,3 +1167,49 @@ class InsightEngine:
             'timeline': timeline,
             'insight': insight,
         }
+
+    async def generate_clarity_weekly_checkin(self, progress: Dict[str, Any]) -> Optional[str]:
+        """Generate an AI coach weekly check-in for the Clarity Journey."""
+        if not progress:
+            return None
+
+        track = progress.get('track_name', 'wellness')
+        week = progress.get('current_week', 1)
+        baseline = progress.get('baseline_score') or 0
+        current = progress.get('current_score') or 0
+        target = progress.get('target_score') or 0
+        completion = progress.get('completion', {})
+        rate = round((completion.get('overall_rate', 0)) * 100)
+        phase = progress.get('phase', 'calibration')
+        delta = round(current - baseline, 1)
+
+        system_prompt = (
+            "You are a supportive wellness coach for a voice-based wellness app. "
+            "Write a brief, warm weekly check-in (2-3 sentences) for the user's Clarity Journey. "
+            "Reference their specific metrics. Be encouraging but honest. No emojis."
+        )
+
+        user_prompt = (
+            f"Week {week} of 12, {track} track ({phase} phase). "
+            f"Baseline: {baseline}, Current: {current}, Target: {target}. "
+            f"Change from baseline: {'+' if delta >= 0 else ''}{delta}. "
+            f"Action completion rate: {rate}%. "
+            f"Write a personalized weekly check-in."
+        )
+
+        result = await self._ollama_generate(system_prompt, user_prompt, max_chars=400)
+        if result:
+            return result
+
+        # Template fallback
+        if delta > 0:
+            return (
+                f"Week {week} check-in: Your {track.lower()} score has improved by {delta} points from your baseline. "
+                f"With {rate}% of actions completed, you're building solid habits. Keep this momentum going."
+            )
+        else:
+            return (
+                f"Week {week} check-in: Building {track.lower()} takes time. "
+                f"You've completed {rate}% of your actions so far. "
+                f"Focus on consistency this week — small daily steps compound into real change."
+            )

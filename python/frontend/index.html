@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <link rel="stylesheet" href="css/lab.css?v=1">
     <link rel="stylesheet" href="css/sculptor.css?v=1">
+    <link rel="stylesheet" href="css/clarity.css?v=1">
     <link rel="stylesheet" href="css/reports.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
@@ -401,6 +402,11 @@
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </svg>
+            </button>
+            <button class="sidebar-icon" data-view="journey" title="Clarity Journey" aria-label="Clarity Journey">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                 </svg>
             </button>
             <div class="sidebar-spacer"></div>
@@ -991,6 +997,9 @@
                 <!-- VOICE SCULPTOR VIEW -->
                 <div id="sculptor-view" class="view" role="region" aria-label="Sculptor"></div>
 
+                <!-- CLARITY JOURNEY VIEW -->
+                <div id="journey-view" class="view" role="region" aria-label="Clarity Journey"></div>
+
                 <!-- FAQ VIEW -->
                 <div id="faq-view" class="view">
                     <div class="faq-section">
@@ -1431,6 +1440,7 @@
     <script src="js/active_assessment.js?v=1"></script>
     <script src="js/lab.js?v=1"></script>
     <script src="js/sculptor.js?v=1"></script>
+    <script src="js/clarity.js?v=1"></script>
     <script src="js/reports.js?v=1"></script>
     <script src="js/settings_panel.js?v=1"></script>
     <script src="js/overlays.js?v=1"></script>

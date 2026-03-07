@@ -290,6 +290,55 @@ class Database:
             )
         """)
 
+        # Clarity Journey tables
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS clarity_journey (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                track TEXT NOT NULL,
+                target_gauge TEXT NOT NULL,
+                secondary_gauge TEXT NOT NULL,
+                baseline_score REAL,
+                target_score REAL,
+                started_at TEXT NOT NULL,
+                current_week INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'active',
+                graduated_at TEXT,
+                created_at TEXT NOT NULL
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS clarity_weekly_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                journey_id INTEGER NOT NULL REFERENCES clarity_journey(id),
+                week_number INTEGER NOT NULL,
+                avg_target_score REAL,
+                avg_secondary_score REAL,
+                actions_completed INTEGER DEFAULT 0,
+                coach_checkin_text TEXT,
+                coach_checkin_at TEXT,
+                snapshot_at TEXT NOT NULL,
+                UNIQUE(journey_id, week_number)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS clarity_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                journey_id INTEGER NOT NULL REFERENCES clarity_journey(id),
+                week_number INTEGER NOT NULL,
+                day_of_week INTEGER NOT NULL,
+                action_type TEXT NOT NULL,
+                action_title TEXT NOT NULL,
+                action_description TEXT,
+                duration_min INTEGER DEFAULT 5,
+                completed INTEGER DEFAULT 0,
+                completed_at TEXT,
+                scheduled_date TEXT NOT NULL,
+                UNIQUE(journey_id, scheduled_date)
+            )
+        """)
+
         # Migrate: add columns if missing
         migrate_columns = [
             ("readings", "depression_mapped", "REAL"),
@@ -1542,6 +1591,127 @@ class Database:
             )
             self.conn.commit()
             return cursor.rowcount > 0
+
+    # ============ Clarity Journey ============
+
+    def insert_clarity_journey(self, track: str, target_gauge: str, secondary_gauge: str,
+                                baseline: Optional[float], target: float) -> int:
+        """Create a new clarity journey. Returns journey ID."""
+        with self.lock:
+            now = datetime.now().isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO clarity_journey (track, target_gauge, secondary_gauge,
+                    baseline_score, target_score, started_at, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (track, target_gauge, secondary_gauge, baseline, target, now, now))
+            self.conn.commit()
+            return cursor.lastrowid
+
+    def get_active_clarity_journey(self) -> Optional[Dict[str, Any]]:
+        """Get the active clarity journey, if any."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT * FROM clarity_journey WHERE status = 'active' ORDER BY id DESC LIMIT 1")
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def update_clarity_journey(self, journey_id: int, **kwargs):
+        """Update journey fields."""
+        if not kwargs:
+            return
+        with self.lock:
+            sets = ', '.join(f"{k} = ?" for k in kwargs)
+            vals = list(kwargs.values()) + [journey_id]
+            cursor = self.conn.cursor()
+            cursor.execute(f"UPDATE clarity_journey SET {sets} WHERE id = ?", vals)
+            self.conn.commit()
+
+    def insert_clarity_weekly_snapshot(self, journey_id: int, week: int,
+                                       avg_target: Optional[float], avg_secondary: Optional[float],
+                                       actions_completed: int, coach_text: Optional[str]):
+        """Insert or replace a weekly snapshot."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT OR REPLACE INTO clarity_weekly_snapshots
+                    (journey_id, week_number, avg_target_score, avg_secondary_score,
+                     actions_completed, coach_checkin_text, snapshot_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (journey_id, week, avg_target, avg_secondary, actions_completed,
+                  coach_text, datetime.now().isoformat()))
+            self.conn.commit()
+
+    def get_clarity_weekly_snapshots(self, journey_id: int) -> List[Dict[str, Any]]:
+        """Get all weekly snapshots for a journey."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT * FROM clarity_weekly_snapshots
+                WHERE journey_id = ? ORDER BY week_number
+            """, (journey_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def insert_clarity_actions(self, actions: List[Dict]):
+        """Bulk insert actions for a week."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            for a in actions:
+                cursor.execute("""
+                    INSERT OR IGNORE INTO clarity_actions
+                        (journey_id, week_number, day_of_week, action_type,
+                         action_title, action_description, duration_min, scheduled_date)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (a['journey_id'], a['week_number'], a['day_of_week'],
+                      a['action_type'], a['action_title'], a.get('action_description'),
+                      a.get('duration_min', 5), a['scheduled_date']))
+            self.conn.commit()
+
+    def get_clarity_actions(self, journey_id: int, week: int = None,
+                            date_filter: str = None) -> List[Dict[str, Any]]:
+        """Get actions, optionally filtered by week or date."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            query = "SELECT * FROM clarity_actions WHERE journey_id = ?"
+            params: list = [journey_id]
+            if week is not None:
+                query += " AND week_number = ?"
+                params.append(week)
+            if date_filter is not None:
+                query += " AND scheduled_date = ?"
+                params.append(date_filter)
+            query += " ORDER BY scheduled_date, day_of_week"
+            cursor.execute(query, params)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def complete_clarity_action(self, action_id: int) -> bool:
+        """Mark an action as completed."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                UPDATE clarity_actions SET completed = 1, completed_at = ?
+                WHERE id = ? AND completed = 0
+            """, (datetime.now().isoformat(), action_id))
+            self.conn.commit()
+            return cursor.rowcount > 0
+
+    def get_clarity_action_completion_rate(self, journey_id: int) -> Dict[str, Any]:
+        """Get completion stats for a journey."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) as total,
+                       SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as done
+                FROM clarity_actions WHERE journey_id = ?
+            """, (journey_id,))
+            row = cursor.fetchone()
+            total = row['total'] or 0
+            done = row['done'] or 0
+            return {
+                'total': total,
+                'completed': done,
+                'overall_rate': round(done / total, 2) if total > 0 else 0,
+            }
 
     def close(self):
         """Close database connection with WAL checkpoint."""

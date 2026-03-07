@@ -50,6 +50,7 @@ from api.routers import dashboard as _dashboard_mod
 from api.routers import speaker as _speaker_mod
 from api.routers import active_assessment as _active_assessment_mod
 from api.routers import engagement as _engagement_mod
+from api.routers import clarity as _clarity_mod
 app.include_router(_health_mod.router)
 app.include_router(_readings_mod.router)
 app.include_router(_settings_mod.router)
@@ -61,6 +62,7 @@ app.include_router(_dashboard_mod.router)
 app.include_router(_speaker_mod.router)
 app.include_router(_active_assessment_mod.router)
 app.include_router(_engagement_mod.router)
+app.include_router(_clarity_mod.router)
 
 @app.get("/")
 async def root():

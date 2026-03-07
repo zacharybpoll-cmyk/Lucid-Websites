@@ -327,6 +327,10 @@ const VIEW_MODULES = {
         load() {},
         unload() { TimerRegistry.clearScope('engagement'); }
     },
+    journey: {
+        load() { if (typeof clarityView !== 'undefined') clarityView.load(); },
+        unload() { if (typeof clarityView !== 'undefined') clarityView.unload(); }
+    },
 };
 
 function switchView(view) {
