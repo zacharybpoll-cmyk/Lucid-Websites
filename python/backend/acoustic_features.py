@@ -29,7 +29,7 @@ class AcousticFeatureExtractor:
                 sr=self.sample_rate
             )
             return f0, voiced_flag, voiced_probs
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in pyin extraction: {e}")
             return None, None, None
 
@@ -111,7 +111,7 @@ class AcousticFeatureExtractor:
 
             return features
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error extracting features: {e}")
             return self._get_zero_features()
 
@@ -136,7 +136,7 @@ class AcousticFeatureExtractor:
             else:
                 return 0.0, 0.0
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in F0 extraction: {e}")
             return 0.0, 0.0
 
@@ -145,7 +145,7 @@ class AcousticFeatureExtractor:
         try:
             rms = librosa.feature.rms(y=audio)[0]
             return float(np.mean(rms))
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in RMS extraction: {e}")
             return 0.0
 
@@ -174,7 +174,7 @@ class AcousticFeatureExtractor:
 
             return float(rate)
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in speech rate extraction: {e}")
             return 0.0
 
@@ -183,7 +183,7 @@ class AcousticFeatureExtractor:
         try:
             centroid = librosa.feature.spectral_centroid(y=audio, sr=self.sample_rate)[0]
             return float(np.mean(centroid))
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in spectral centroid extraction: {e}")
             return 0.0
 
@@ -201,7 +201,7 @@ class AcousticFeatureExtractor:
 
             return float(np.mean(entropy))
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in spectral entropy extraction: {e}")
             return 0.0
 
@@ -210,7 +210,7 @@ class AcousticFeatureExtractor:
         try:
             zcr = librosa.feature.zero_crossing_rate(audio)[0]
             return float(np.mean(zcr))
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in ZCR extraction: {e}")
             return 0.0
 
@@ -241,7 +241,7 @@ class AcousticFeatureExtractor:
             else:
                 return 0.0
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in jitter extraction: {e}")
             return 0.0
 
@@ -299,7 +299,7 @@ class AcousticFeatureExtractor:
             shimmer = float(np.mean(np.abs(np.diff(amps))) / mean_amp)
             return shimmer
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in shimmer extraction: {e}")
             return 0.0
 
@@ -342,7 +342,7 @@ class AcousticFeatureExtractor:
 
             return breaks
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in voice breaks extraction: {e}")
             return 0
 
@@ -372,7 +372,7 @@ class AcousticFeatureExtractor:
             ratio = 10.0 * np.log10(low_energy / high_energy + 1e-10)
             return float(ratio)
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in alpha ratio extraction: {e}")
             return 0.0
 
@@ -387,7 +387,7 @@ class AcousticFeatureExtractor:
             # Index 2 = 3rd coefficient (0-indexed), averaged across frames
             return float(np.mean(mfccs[2, :]))
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in MFCC3 extraction: {e}")
             return 0.0
 
@@ -441,7 +441,7 @@ class AcousticFeatureExtractor:
 
             return float(np.median(hnr_values))
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in HNR extraction: {e}")
             return 0.0
 
@@ -509,7 +509,7 @@ class AcousticFeatureExtractor:
                     elif len(speech_freqs) == 1:
                         f1_vals.append(speech_freqs[0])
 
-                except Exception:
+                except (ValueError, IndexError, RuntimeError):
                     continue
 
             f1 = float(np.median(f1_vals)) if f1_vals else 0.0
@@ -517,7 +517,7 @@ class AcousticFeatureExtractor:
 
             return f1, f2
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in formant extraction: {e}")
             return 0.0, 0.0
 
@@ -549,7 +549,7 @@ class AcousticFeatureExtractor:
 
             return float(np.mean(flux_per_frame))
 
-        except Exception as e:
+        except (ValueError, RuntimeError, IndexError, FloatingPointError) as e:
             logger.error(f"Error in spectral flux extraction: {e}")
             return 0.0
 

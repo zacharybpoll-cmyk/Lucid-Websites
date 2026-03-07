@@ -273,7 +273,56 @@ function setupNavigation() {
     });
 }
 
+// View lifecycle registry — each view can define load/unload hooks
+const VIEW_MODULES = {
+    today: {
+        load() { startPolling(); loadTodayData(); },
+        unload() { stopPolling(); TimerRegistry.clearScope('today'); }
+    },
+    trends: {
+        load() {
+            if (typeof trendsView !== 'undefined' && trendsView) {
+                trendsView.load(14);
+                loadEchoes(); loadCompass(); loadVoiceSeason();
+                loadWeeklyWrapped(); loadTopicCorrelations(); loadMeetingImpact();
+            }
+        },
+        unload() { TimerRegistry.clearScope('trends'); }
+    },
+    waypoints: {
+        load() { loadWaypoints(); },
+        unload() { TimerRegistry.clearScope('waypoints'); }
+    },
+    voicescan: {
+        load() { if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.loadHistory(); },
+        unload() { if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.onNavigateAway(); }
+    },
+    lab: {
+        load() { if (typeof labView !== 'undefined') labView.load(); },
+        unload() { TimerRegistry.clearScope('lab'); }
+    },
+    sculptor: {
+        load() { if (typeof sculptorView !== 'undefined') sculptorView.load(); },
+        unload() { if (typeof sculptorView !== 'undefined') sculptorView.unload(); }
+    },
+    reports: {
+        load() { if (typeof reportsView !== 'undefined') reportsView.load(); },
+        unload() { TimerRegistry.clearScope('reports'); }
+    },
+    settings: {
+        load() {},
+        unload() { TimerRegistry.clearScope('settings'); }
+    },
+    engagement: {
+        load() {},
+        unload() { TimerRegistry.clearScope('engagement'); }
+    },
+};
+
 function switchView(view) {
+    // Redirect legacy view names
+    if (view === 'history') { switchView('trends'); return; }
+
     // Analytics: track view switch with time on previous view
     const timeOnPrev = Math.round((Date.now() - (AppState._viewEnterTime || Date.now())) / 1000);
     if (AppState.currentView !== view) {
@@ -285,57 +334,26 @@ function switchView(view) {
     }
     AppState._viewEnterTime = Date.now();
 
-    // Stop polling intervals when leaving the today view
-    if (AppState.currentView === 'today' && view !== 'today') {
-        stopPolling();
+    // Unload previous view
+    const prevModule = VIEW_MODULES[AppState.currentView];
+    if (prevModule && AppState.currentView !== view) {
+        prevModule.unload();
     }
 
+    // Update sidebar + view visibility
     document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
         icon.classList.toggle('active', icon.dataset.view === view);
     });
-
     document.querySelectorAll('.view').forEach(viewEl => {
         viewEl.classList.toggle('active', viewEl.id === `${view}-view`);
     });
 
+    AppState.previousView = AppState.currentView;
     AppState.currentView = view;
 
-    // Restart polling when returning to the today view
-    if (view === 'today') {
-        startPolling();
-        loadTodayData();
-    }
-
-    // Auto-cancel voice scan if navigating away during recording
-    if (AppState.previousView === 'voicescan' && view !== 'voicescan') {
-        if (typeof ActiveAssessment !== 'undefined') {
-            ActiveAssessment.onNavigateAway();
-        }
-    }
-
-    // Unload sculptor when navigating away
-    if (AppState.previousView === 'sculptor' && view !== 'sculptor') {
-        if (typeof sculptorView !== 'undefined') {
-            sculptorView.unload();
-        }
-    }
-
-    if (view === 'trends' && typeof trendsView !== 'undefined' && trendsView) {
-        trendsView.load(14);
-    } else if (view === 'history') { switchView('trends'); return;
-    } else if (view === 'waypoints') {
-        loadWaypoints();
-    } else if (view === 'voicescan' && typeof ActiveAssessment !== 'undefined') {
-        ActiveAssessment.loadHistory();
-    } else if (view === 'lab' && typeof labView !== 'undefined') {
-        labView.load();
-    } else if (view === 'sculptor' && typeof sculptorView !== 'undefined') {
-        sculptorView.load();
-    } else if (view === 'reports' && typeof reportsView !== 'undefined') {
-        reportsView.load();
-    }
-
-    AppState.previousView = view;
+    // Load new view
+    const nextModule = VIEW_MODULES[view];
+    if (nextModule) nextModule.load();
 }
 
 function updateCurrentDate() {
@@ -601,6 +619,26 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         const panel = document.getElementById('speaker-debug');
         if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Escape closes any open overlay/modal
+    if (e.key === 'Escape') {
+        const overlays = [
+            { id: 'morning-summary-overlay', dismiss: dismissMorningSummary },
+            { id: 'evening-summary-overlay', dismiss: dismissEveningSummary },
+            { id: 'readiness-overlay', dismiss: dismissReadinessOverlay },
+            { id: 'wrapped-overlay', dismiss: dismissWrappedOverlay },
+            { id: 'settings-panel', dismiss: () => { document.getElementById('settings-panel').style.display = 'none'; } },
+            { id: 'enrollment-overlay', dismiss: closeEnrollment },
+            { id: 'enhance-overlay', dismiss: closeEnhanceOverlay },
+        ];
+        for (const o of overlays) {
+            const el = document.getElementById(o.id);
+            if (el && el.style.display !== 'none' && typeof o.dismiss === 'function') {
+                o.dismiss();
+                break;
+            }
+        }
     }
 });
 
@@ -1195,17 +1233,13 @@ async function loadTodayData() {
 // ========== Load All New Features ==========
 
 async function loadFeatures() {
-    // Load features in parallel
+    // Load features in parallel (pattern cards moved to Trends view)
     Promise.allSettled([
         loadRhythmRings(),
         loadRecoveryPulse(),
-        loadEchoes(),
-        loadCompass(),
         updateGrove(),
-        loadWeeklyWrapped(),
         pollBeacon(),
-        loadTopicCorrelations(),
-        loadMeetingImpact(),
+        loadEchoesNotificationDot(),
     ]);
 }
 
@@ -1375,25 +1409,25 @@ function _updateWellnessUI(data) {
 function animateCountUp(el, target, duration, fromValue = 0) {
     const start = fromValue;
     const startTime = performance.now();
+    if (el._countUpRAF) cancelAnimationFrame(el._countUpRAF);
 
     function tick(now) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
-        // Ease out cubic
         const eased = 1 - Math.pow(1 - progress, 3);
         const current = Math.round(start + (target - start) * eased);
         el.textContent = current;
 
         if (progress < 1) {
-            requestAnimationFrame(tick);
+            el._countUpRAF = requestAnimationFrame(tick);
         } else {
+            el._countUpRAF = null;
             el.textContent = target;
-            // Add leaf particles
             addLeafParticles(el.parentElement);
         }
     }
 
-    requestAnimationFrame(tick);
+    el._countUpRAF = requestAnimationFrame(tick);
 }
 
 function addLeafParticles(container) {
@@ -1622,6 +1656,19 @@ function drawRecoverySparkline(readings) {
 }
 
 // ========== Echoes (Feature #6) ==========
+
+// Lightweight: only update sidebar notification dot (cards now in Trends)
+async function loadEchoesNotificationDot() {
+    try {
+        const data = await API.getEchoes();
+        const dotWrap = document.getElementById('echo-dot-wrap');
+        if (dotWrap) {
+            dotWrap.style.display = data.unseen_count > 0 ? 'flex' : 'none';
+        }
+    } catch (e) {
+        // silent
+    }
+}
 
 async function loadEchoes() {
     try {
@@ -2136,288 +2183,9 @@ function setupInfoButtons() {
     });
 }
 
-// ========== Settings Panel ==========
-
-function setupSettings() {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsPanel = document.getElementById('settings-panel');
-    const closeBtn = document.getElementById('settings-close-btn');
-    if (!settingsBtn || !settingsPanel || !closeBtn) return;
-
-    settingsBtn.addEventListener('click', () => {
-        settingsPanel.style.display = 'block';
-        loadNotificationSettings();
-        loadAdaptiveTiming();
-        loadSpeakerStatus();
-    });
-
-    closeBtn.addEventListener('click', () => {
-        settingsPanel.style.display = 'none';
-    });
-
-    // Wire speaker buttons eagerly (don't wait for async API call)
-    const speakerSetupBtn = document.getElementById('speaker-setup-btn');
-    const speakerDeleteBtn = document.getElementById('speaker-delete-btn');
-    if (speakerSetupBtn) {
-        speakerSetupBtn.addEventListener('click', () => startEnrollment());
-    }
-    const speakerEnhanceBtn = document.getElementById('speaker-enhance-btn');
-    if (speakerEnhanceBtn) {
-        speakerEnhanceBtn.addEventListener('click', () => openEnhanceOverlay());
-    }
-    if (speakerDeleteBtn) {
-        speakerDeleteBtn.addEventListener('click', async () => {
-            if (confirm('Delete your voice profile? Lucid will analyze all detected speech until you re-enroll.')) {
-                await API.deleteSpeakerProfile();
-                loadSpeakerStatus();
-            }
-        });
-    }
-
-    const exportReadingsBtn = document.getElementById('export-readings-btn');
-    const exportSummariesBtn = document.getElementById('export-summaries-btn');
-    const exportJsonBtn = document.getElementById('export-json-btn');
-
-    if (exportReadingsBtn) {
-        exportReadingsBtn.addEventListener('click', () => {
-            const origText = exportReadingsBtn.textContent;
-            exportReadingsBtn.textContent = 'Exporting...';
-            exportReadingsBtn.disabled = true;
-            window.location.href = `${API_BASE}/export/readings`;
-            setTimeout(() => { exportReadingsBtn.textContent = origText; exportReadingsBtn.disabled = false; }, 3000);
-        });
-    }
-
-    if (exportSummariesBtn) {
-        exportSummariesBtn.addEventListener('click', () => {
-            const origText = exportSummariesBtn.textContent;
-            exportSummariesBtn.textContent = 'Exporting...';
-            exportSummariesBtn.disabled = true;
-            window.location.href = `${API_BASE}/export/summaries?days=30`;
-            setTimeout(() => { exportSummariesBtn.textContent = origText; exportSummariesBtn.disabled = false; }, 3000);
-        });
-    }
-
-    if (exportJsonBtn) {
-        exportJsonBtn.addEventListener('click', async () => {
-            const origText = exportJsonBtn.textContent;
-            exportJsonBtn.textContent = 'Exporting...';
-            exportJsonBtn.disabled = true;
-            try {
-                const data = await API.exportJson(30);
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'lucid-export.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                console.error('JSON export failed:', e);
-            } finally {
-                exportJsonBtn.textContent = origText;
-                exportJsonBtn.disabled = false;
-            }
-        });
-    }
-
-    const exportTherapistBtn = document.getElementById('export-therapist-btn');
-    if (exportTherapistBtn) {
-        exportTherapistBtn.addEventListener('click', async () => {
-            const origText = exportTherapistBtn.textContent;
-            exportTherapistBtn.textContent = 'Generating...';
-            exportTherapistBtn.disabled = true;
-            try {
-                const data = await API.getTherapistSummary(30);
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'lucid-therapist-summary.json';
-                a.click();
-                URL.revokeObjectURL(url);
-            } catch (e) {
-                console.error('Therapist export failed:', e);
-            } finally {
-                exportTherapistBtn.textContent = origText;
-                exportTherapistBtn.disabled = false;
-            }
-        });
-    }
-
-    // Enhanced linguistic analysis toggle
-    loadLinguisticAnalysisSetting();
-    const lingToggle = document.getElementById('linguistic-enhanced-toggle');
-    if (lingToggle) {
-        lingToggle.addEventListener('change', async () => {
-            try {
-                await API.setLinguisticAnalysisSetting(lingToggle.checked);
-            } catch (e) {
-                console.error('Failed to save linguistic setting:', e);
-            }
-        });
-    }
-}
-
-async function loadLinguisticAnalysisSetting() {
-    try {
-        const data = await API.getLinguisticAnalysisSetting();
-        const toggle = document.getElementById('linguistic-enhanced-toggle');
-        if (toggle) toggle.checked = data.enabled !== false;
-    } catch (e) {
-        const toggle = document.getElementById('linguistic-enhanced-toggle');
-        if (toggle) toggle.checked = true; // default ON
-    }
-}
-
 // [Q-055] loadFirstSpark removed — first-spark-card HTML element no longer exists
 
-// ========== Weekly Wrapped ==========
-
-async function loadWeeklyWrapped() {
-    try {
-        const data = await API.getWeeklyWrapped();
-        const card = document.getElementById('weekly-wrapped-card');
-        if (!card) return;
-
-        if (!data.has_data) {
-            card.style.display = 'none';
-            return;
-        }
-
-        // Show only on Mondays or if explicitly requested
-        const today = new Date();
-        const isMonday = today.getDay() === 1;
-        // Always show the card if data exists (user can scroll past it)
-        card.style.display = 'block';
-
-        const content = card.querySelector('.wrapped-content');
-        if (!content) return;
-
-        const trendIcon = data.wellness.trend > 0 ? '\u2191' : data.wellness.trend < 0 ? '\u2193' : '\u2192';
-        const trendColor = data.wellness.trend > 0 ? 'var(--calm-color)' : data.wellness.trend < 0 ? 'var(--stressed-color)' : 'var(--gold)';
-
-        let html = `
-            <div class="wrapped-summary-line">${sanitizeHTML(data.summary_line)}</div>
-            <div class="wrapped-wellness">
-                <span class="wrapped-wellness-score">${data.wellness.avg}</span>
-                <span class="wrapped-wellness-label">Avg Health Score</span>
-                <span class="wrapped-wellness-trend" style="color: ${trendColor}">${trendIcon} ${data.wellness.trend > 0 ? '+' : ''}${data.wellness.trend}</span>
-            </div>
-            <div class="wrapped-days">
-                <div class="wrapped-day-stat wrapped-best">
-                    <span class="wrapped-day-label">Calmest</span>
-                    <span class="wrapped-day-name">${sanitizeHTML(data.best_day.label)}</span>
-                    <span class="wrapped-day-val">Stress ${data.best_day.stress}</span>
-                </div>
-                <div class="wrapped-day-stat wrapped-worst">
-                    <span class="wrapped-day-label">Toughest</span>
-                    <span class="wrapped-day-name">${sanitizeHTML(data.worst_day.label)}</span>
-                    <span class="wrapped-day-val">Stress ${data.worst_day.stress}</span>
-                </div>
-            </div>
-            <div class="wrapped-zones">`;
-
-        for (const z of ['calm', 'steady', 'tense', 'stressed']) {
-            const info = data.zones[z];
-            if (info && info.pct > 0) {
-                html += `<div class="wrapped-zone-bar" style="width: ${info.pct}%; background: ${ZONE_HEX[z]};" title="${z}: ${info.min}m (${info.pct}%)"></div>`;
-            }
-        }
-
-        html += `</div>
-            <div class="wrapped-stats">
-                <span>Rings closed: ${data.rings_closed}/7 days</span>
-                <span>Compass: ${sanitizeHTML(data.compass_direction)}</span>
-            </div>`;
-
-        if (data.top_echo) {
-            html += `<div class="wrapped-echo">Top insight: "${sanitizeHTML(data.top_echo)}"</div>`;
-        }
-
-        content.innerHTML = html;
-
-        // Apply collapsed state from localStorage
-        const isCollapsed = localStorage.getItem('wrapped-collapsed') === 'true';
-        const toggle = card.querySelector('.wrapped-toggle');
-        if (isCollapsed) {
-            content.classList.remove('wrapped-expanded');
-            if (toggle) toggle.textContent = '\u25BC';
-        } else {
-            content.classList.add('wrapped-expanded');
-            if (toggle) toggle.textContent = '\u25B2';
-        }
-
-        // Set up toggle click handler (remove old listener by replacing element)
-        if (toggle && !toggle.dataset.bound) {
-            toggle.dataset.bound = 'true';
-            toggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const expanded = content.classList.contains('wrapped-expanded');
-                content.classList.toggle('wrapped-expanded', !expanded);
-                toggle.textContent = expanded ? '\u25BC' : '\u25B2';
-                localStorage.setItem('wrapped-collapsed', expanded ? 'true' : 'false');
-            });
-        }
-
-        // Click handler for full-screen overlay
-        const sectionLabel = card.querySelector('.section-label');
-        if (sectionLabel && !sectionLabel.dataset.overlayBound) {
-            sectionLabel.dataset.overlayBound = 'true';
-            sectionLabel.style.cursor = 'pointer';
-            sectionLabel.addEventListener('click', () => showWrappedOverlay(data));
-        }
-    } catch (e) {
-        console.error('Failed to load weekly wrapped:', e);
-    }
-}
-
-// ========== Weekly Wrapped Overlay ==========
-
-function showWrappedOverlay(data) {
-    const overlay = document.getElementById('wrapped-overlay');
-    if (!overlay) return;
-
-    // Render day circles
-    const circlesEl = document.getElementById('wrapped-day-circles');
-    if (circlesEl && data.day_data) {
-        circlesEl.innerHTML = data.day_data.map(d => {
-            const cls = d.has_data ? 'wrapped-day-circle active' : 'wrapped-day-circle missed';
-            return `<div class="${cls}"><span class="wrapped-day-name">${sanitizeHTML(d.day_name)}</span></div>`;
-        }).join('');
-    }
-
-    // Render stats
-    const statsEl = document.getElementById('wrapped-overlay-stats');
-    if (statsEl) {
-        const deltaSign = (data.stress_delta || 0) > 0 ? '+' : '';
-        statsEl.innerHTML = `
-            <div class="wrapped-stat-item">
-                <span class="wrapped-stat-value">${sanitizeHTML(data.best_day ? data.best_day.label : '--')}</span>
-                <span class="wrapped-stat-label">Calmest Day</span>
-            </div>
-            <div class="wrapped-stat-item">
-                <span class="wrapped-stat-value">${Math.round(data.metrics ? data.metrics.avg_stress : 0)}</span>
-                <span class="wrapped-stat-label">Avg Stress</span>
-            </div>
-            <div class="wrapped-stat-item">
-                <span class="wrapped-stat-value">${deltaSign}${Math.round(data.stress_delta || 0)}</span>
-                <span class="wrapped-stat-label">vs Last Week</span>
-            </div>
-        `;
-    }
-
-    overlay.style.display = 'flex';
-    overlay.offsetHeight;
-    overlay.classList.add('visible');
-}
-
-function dismissWrappedOverlay() {
-    const overlay = document.getElementById('wrapped-overlay');
-    if (!overlay) return;
-    overlay.classList.remove('visible');
-    setTimeout(() => { overlay.style.display = 'none'; }, 400);
-}
+// Weekly Wrapped card + overlay moved to overlays.js
 
 // ========== The Beacon — Ambient Status Polling ==========
 
@@ -2464,1088 +2232,16 @@ function updateBeaconFavicon(zone) {
     document.title = `${zoneEmoji[zone] || ''} Lucid`;
 }
 
-// ========== Morning Summary Overlay ==========
+// Morning/Evening summaries moved to overlays.js
 
-function shouldShowMorningSummary() {
-    // Disabled — replaced by Mental Readiness flow via speak-hero
-    return false;
-}
 
-async function loadMorningSummary() {
-    if (AppState.morningSummaryShown) return;
-    try {
-        const data = await API.getMorningSummary();
-        if (data.briefing && data.briefing.has_data) {
-            renderMorningSummary(data);
-        }
-    } catch (e) {
-        console.error('Failed to load morning summary:', e);
-    }
-}
-
-function renderMorningSummary(data) {
-    const overlay = document.getElementById('morning-summary-overlay');
-    if (!overlay) return;
-
-    AppState.morningSummaryShown = true;
-
-    // Greeting
-    const hour = new Date().getHours();
-    let greeting = 'Good morning';
-    if (hour >= 12) greeting = 'Good afternoon';
-    document.getElementById('morning-greeting').textContent = greeting;
-
-    const briefing = data.briefing;
-
-    // Yesterday's date
-    if (briefing.date) {
-        const d = new Date(briefing.date + 'T12:00:00');
-        document.getElementById('morning-date').textContent =
-            'Yesterday \u2014 ' + d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-    }
-
-    // Wellness Score (center of rings)
-    const wellness = data.wellness;
-    const scoreEl = document.getElementById('morning-ring-score');
-    const verdictEl = document.getElementById('morning-ring-verdict');
-
-    if (wellness && wellness.has_data) {
-        animateMorningScore(scoreEl, wellness.score, 2500);
-        let verdict = 'Needs Attention';
-        if (wellness.score >= 80) verdict = 'Excellent';
-        else if (wellness.score >= 65) verdict = 'Good';
-        else if (wellness.score >= 50) verdict = 'Fair';
-        verdictEl.textContent = verdict;
-    } else {
-        scoreEl.textContent = '--';
-        verdictEl.textContent = '';
-    }
-
-    // Extract metric values for rings
-    const metricValues = {
-        stress: briefing.metrics?.avg_stress ? Math.round(briefing.metrics.avg_stress.value) : 0,
-        wellbeing: briefing.metrics?.avg_mood ? Math.round(briefing.metrics.avg_mood.value) : 0,
-        activation: briefing.metrics?.avg_energy ? Math.round(briefing.metrics.avg_energy.value) : 0,
-        calm: briefing.metrics?.avg_calm ? Math.round(briefing.metrics.avg_calm.value) : 0,
-    };
-
-    // Animate concentric rings
-    animateMorningRings(metricValues);
-
-    // Update ring legend values
-    const legendCalm = document.getElementById('morning-legend-calm');
-    const legendWellbeing = document.getElementById('morning-legend-wellbeing');
-    const legendActivation = document.getElementById('morning-legend-activation');
-    const legendStress = document.getElementById('morning-legend-stress');
-    if (legendCalm) legendCalm.textContent = metricValues.calm;
-    if (legendWellbeing) legendWellbeing.textContent = metricValues.wellbeing;
-    if (legendActivation) legendActivation.textContent = metricValues.activation;
-    if (legendStress) legendStress.textContent = metricValues.stress;
-
-    // Metric bars (right column)
-    const barsEl = document.getElementById('morning-bars');
-    if (barsEl && briefing.metrics) {
-        const barConfig = [
-            { key: 'avg_stress', label: 'Stress', color: '#c4584c' },
-            { key: 'avg_mood', label: 'Wellbeing', color: '#7BA7C9' },
-            { key: 'avg_energy', label: 'Activation', color: '#8C96A0' },
-            { key: 'avg_calm', label: 'Calm', color: '#5B8DB8' },
-        ];
-        let barsHtml = '';
-        for (const bar of barConfig) {
-            const m = briefing.metrics[bar.key];
-            if (!m) continue;
-            const value = Math.round(m.value);
-            const max = m.max || 100;
-            barsHtml += `<div class="morning-bar-item">
-                <div class="morning-bar-header">
-                    <span class="morning-bar-label">${bar.label}</span>
-                    <span class="morning-bar-value">${value}</span>
-                </div>
-                <div class="morning-bar-track">
-                    <div class="morning-bar-fill" data-width="${(value / max) * 100}" style="background: ${bar.color};"></div>
-                </div>
-            </div>`;
-        }
-        barsEl.innerHTML = barsHtml;
-
-        // Animate bar fills after DOM insertion
-        requestAnimationFrame(() => {
-            barsEl.querySelectorAll('.morning-bar-fill').forEach(fill => {
-                fill.style.width = fill.dataset.width + '%';
-            });
-        });
-    }
-
-    // Zone timeline bar
-    const timelineBar = document.getElementById('morning-timeline-bar');
-    if (timelineBar && briefing.zones) {
-        let barHtml = '';
-        for (const z of ['calm', 'steady', 'tense', 'stressed']) {
-            const info = briefing.zones[z];
-            if (!info || info.pct === 0) continue;
-            barHtml += `<div style="width: ${info.pct}%; background: ${ZONE_HEX[z]};" title="${z}: ${info.minutes}m (${info.pct}%)"></div>`;
-        }
-        timelineBar.innerHTML = barHtml;
-    }
-
-    // Highlights
-    const highlightsList = document.getElementById('morning-highlights-list');
-    if (highlightsList && briefing.highlights && briefing.highlights.length > 0) {
-        highlightsList.innerHTML = briefing.highlights.map(h => `<li>${sanitizeHTML(h)}</li>`).join('');
-    }
-
-    // Coach note
-    const coachText = document.getElementById('morning-coach-text');
-    if (coachText && briefing.coach_note) {
-        coachText.textContent = briefing.coach_note;
-    }
-
-    // Voice Weather
-    const weatherSection = document.getElementById('morning-weather');
-    const weatherContent = document.getElementById('morning-weather-content');
-    if (weatherSection && weatherContent && data.voice_weather) {
-        const vw = data.voice_weather;
-        const color = ZONE_HEX[vw.zone] || ZONE_HEX.idle;
-        weatherContent.innerHTML = `
-            <span class="morning-weather-zone" style="background: ${color};"></span>
-            <span>${vw.zone.charAt(0).toUpperCase() + vw.zone.slice(1)} \u00B7 Stress ${vw.stress}</span>`;
-        weatherSection.style.display = 'block';
-    }
-
-    // Show overlay
-    overlay.style.display = 'flex';
-}
-
-function animateMorningRings(values) {
-    const rings = [
-        { id: 'morning-ring-calm', value: values.calm, circumference: 973.9 },
-        { id: 'morning-ring-wellbeing', value: values.wellbeing, circumference: 816.8 },
-        { id: 'morning-ring-activation', value: values.activation, circumference: 659.7 },
-        { id: 'morning-ring-stress', value: values.stress, circumference: 471.2 },
-    ];
-
-    rings.forEach((ring, index) => {
-        const el = document.getElementById(ring.id);
-        if (!el) return;
-        const targetOffset = ring.circumference - (ring.value / 100) * ring.circumference;
-        // Stagger: each ring animates 200ms after the previous
-        setTimeout(() => {
-            el.style.strokeDashoffset = targetOffset;
-        }, 300 + index * 200);
-    });
-}
-
-function animateMorningScore(el, target, duration) {
-    const startTime = performance.now();
-    function tick(now) {
-        const elapsed = now - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(target * eased);
-        if (progress < 1) {
-            requestAnimationFrame(tick);
-        } else {
-            el.textContent = target;
-        }
-    }
-    requestAnimationFrame(tick);
-}
-
-function dismissMorningSummary() {
-    const overlay = document.getElementById('morning-summary-overlay');
-    if (!overlay) return;
-
-    overlay.classList.add('fade-out');
-    setTimeout(() => {
-        overlay.style.display = 'none';
-        overlay.classList.remove('fade-out');
-    }, 500);
-
-    // Set localStorage flag
-    const todayKey = `lucid_morning_seen_${new Date().toISOString().slice(0, 10)}`;
-    localStorage.setItem(todayKey, '1');
-
-    // Cleanup old keys (keep last 7 days)
-    const now = new Date();
-    for (let i = 8; i < 30; i++) {
-        const old = new Date(now);
-        old.setDate(old.getDate() - i);
-        const oldKey = `lucid_morning_seen_${old.toISOString().slice(0, 10)}`;
-        localStorage.removeItem(oldKey);
-    }
-}
-
-// ========== Evening Summary Overlay ==========
-
-function shouldShowEveningSummary() {
-    const hour = new Date().getHours();
-    if (hour < 20) return false; // Only 8 PM or later
-
-    const todayKey = `lucid_evening_seen_${new Date().toISOString().slice(0, 10)}`;
-    if (localStorage.getItem(todayKey)) return false;
-
-    return true;
-}
-
-async function loadEveningSummary() {
-    if (AppState.eveningSummaryShown) return;
-    try {
-        const data = await API.getEveningSummary();
-        if (data.has_data) {
-            renderEveningSummary(data);
-        }
-    } catch (e) {
-        console.error('Failed to load evening summary:', e);
-    }
-}
-
-function renderEveningSummary(data) {
-    const overlay = document.getElementById('evening-summary-overlay');
-    if (!overlay) return;
-    AppState.eveningSummaryShown = true;
-
-    // Date header
-    const now = new Date();
-    document.getElementById('evening-date').textContent =
-        now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-
-    // Wellness ring + score
-    const wellness = data.wellness;
-    const scoreEl = document.getElementById('evening-wellness-score');
-    const verdictEl = document.getElementById('evening-wellness-verdict');
-    const arcEl = document.getElementById('evening-ring-arc');
-    const deltaEl = document.getElementById('evening-wellness-delta');
-
-    if (wellness && wellness.has_data) {
-        const score = Math.round(wellness.score);
-        animateEveningScore(scoreEl, score, 2000);
-        // Animate arc (circumference = 2π × 110 ≈ 691.2)
-        const offset = 691.2 * (1 - score / 100);
-        setTimeout(() => { arcEl.style.strokeDashoffset = offset; }, 200);
-        // Verdict
-        let verdict = 'Needs Attention';
-        if (score >= 80) verdict = 'Excellent';
-        else if (score >= 65) verdict = 'Good';
-        else if (score >= 50) verdict = 'Fair';
-        verdictEl.textContent = verdict;
-        // Delta vs yesterday
-        if (data.wellness_delta != null) {
-            deltaEl.style.display = 'block';
-            const sign = data.wellness_delta >= 0 ? '+' : '';
-            deltaEl.textContent = `${sign}${data.wellness_delta} pts vs yesterday`;
-            deltaEl.className = 'evening-wellness-delta ' +
-                (data.wellness_delta > 0 ? 'positive' : data.wellness_delta < 0 ? 'negative' : 'neutral');
-        }
-    } else {
-        scoreEl.textContent = '--';
-        verdictEl.textContent = 'Not enough data';
-    }
-
-    // Stats row 1
-    const calmMin = data.time_in_calm_min || 0;
-    const calmH = Math.floor(calmMin / 60);
-    const calmM = calmMin % 60;
-    document.getElementById('evening-calm-time').textContent =
-        calmH > 0 ? `${calmH}h ${calmM}m` : `${calmM}m`;
-
-    const avgStressEl = document.getElementById('evening-avg-stress');
-    avgStressEl.textContent = data.avg_stress != null ? data.avg_stress : '--';
-
-    const stressDeltaEl = document.getElementById('evening-stress-delta');
-    if (data.stress_delta != null) {
-        const sign = data.stress_delta >= 0 ? '+' : '';
-        stressDeltaEl.textContent = `${sign}${data.stress_delta}`;
-        // Lower stress = better (green if negative delta)
-        stressDeltaEl.className = 'evening-stat-value ' +
-            (data.stress_delta < 0 ? 'positive' : data.stress_delta > 0 ? 'negative' : '');
-    } else {
-        stressDeltaEl.textContent = '—';
-    }
-
-    // Stats row 2
-    const speechMin = data.total_speech_min || 0;
-    const speechH = Math.floor(speechMin / 60);
-    const speechM = speechMin % 60;
-    document.getElementById('evening-voice-time').textContent =
-        speechH > 0 ? `${speechH}h ${speechM}m` : `${speechM}m`;
-
-    document.getElementById('evening-peak-hour').textContent = data.peak_stress_hour || '—';
-    document.getElementById('evening-reading-count').textContent = data.reading_count || '—';
-
-    // Mini timeline SVG
-    renderEveningTimeline(data.timeline || []);
-
-    // Insight
-    const insightEl = document.getElementById('evening-insight');
-    if (data.insight) {
-        insightEl.textContent = `"${data.insight}"`;
-        insightEl.style.display = 'block';
-    }
-
-    overlay.style.display = 'flex';
-
-    // Mark seen
-    const todayKey = `lucid_evening_seen_${new Date().toISOString().slice(0, 10)}`;
-    localStorage.setItem(todayKey, '1');
-
-    // Clean up old keys (>7 days)
-    for (let i = 8; i <= 30; i++) {
-        const old = new Date();
-        old.setDate(old.getDate() - i);
-        localStorage.removeItem(`lucid_evening_seen_${old.toISOString().slice(0, 10)}`);
-    }
-}
-
-function animateEveningScore(el, target, duration) {
-    const start = Date.now();
-    const tick = () => {
-        const progress = Math.min((Date.now() - start) / duration, 1);
-        const ease = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(ease * target);
-        if (progress < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-}
-
-function renderEveningTimeline(timeline) {
-    const svg = document.getElementById('evening-timeline-svg');
-    if (!svg) return;
-    while (svg.firstChild) svg.removeChild(svg.firstChild);
-
-    const W = 520, H = 70;
-    const pad = { left: 10, right: 10, top: 12, bottom: 12 };
-    const innerW = W - pad.left - pad.right;
-    const innerH = H - pad.top - pad.bottom;
-
-    // Baseline
-    svg.appendChild(svgEl('line', {
-        x1: pad.left, x2: W - pad.right,
-        y1: H - pad.bottom, y2: H - pad.bottom,
-        stroke: 'rgba(255,255,255,0.1)', 'stroke-width': '1'
-    }));
-
-    if (!timeline.length) return;
-
-    // Connect dots with a soft polyline (behind dots)
-    if (timeline.length >= 2) {
-        const pts = timeline.map(pt => {
-            const x = pad.left + ((pt.hour - 6) / 14) * innerW;
-            const y = pad.top + innerH * (1 - pt.stress / 100);
-            return `${x},${y}`;
-        }).join(' ');
-        svg.appendChild(svgEl('polyline', {
-            points: pts, fill: 'none',
-            stroke: 'rgba(255,255,255,0.15)', 'stroke-width': '1.5',
-            'stroke-linecap': 'round', 'stroke-linejoin': 'round'
-        }));
-    }
-
-    // Dots on top
-    timeline.forEach(pt => {
-        const x = pad.left + ((pt.hour - 6) / 14) * innerW;
-        const y = pad.top + innerH * (1 - pt.stress / 100);
-        svg.appendChild(svgEl('circle', {
-            cx: x, cy: y, r: 5,
-            fill: ZONE_HEX[pt.zone] || ZONE_HEX.steady,
-            opacity: '0.9'
-        }));
-    });
-}
-
-function dismissEveningSummary() {
-    const overlay = document.getElementById('evening-summary-overlay');
-    if (!overlay) return;
-    overlay.classList.add('fade-out');
-    setTimeout(() => {
-        overlay.style.display = 'none';
-        overlay.classList.remove('fade-out');
-    }, 500);
-}
-
-// ========== Notification Settings ==========
-
-async function loadNotificationSettings() {
-    const container = document.getElementById('notification-settings');
-    if (!container) return;
-
-    try {
-        const prefs = await API.getNotifPrefs();
-
-        const types = [
-            { key: 'notifications_enabled', label: 'Enable Notifications' },
-            { key: 'notif_voice_weather', label: 'Voice Weather (Morning)' },
-            { key: 'notif_curtain_call', label: 'Curtain Call (End of Day)' },
-            { key: 'notif_transition', label: 'Zone Transitions' },
-            { key: 'notif_threshold', label: 'Stress Alerts' },
-            { key: 'notif_milestone', label: 'Milestones' },
-            { key: 'notif_echo', label: 'Pattern Discoveries' },
-            { key: 'notif_weekly_wrapped', label: 'Weekly Wrapped' },
-        ];
-
-        let html = '';
-        for (const t of types) {
-            const checked = (prefs[t.key] || 'true') === 'true' ? 'checked' : '';
-            const isMaster = t.key === 'notifications_enabled';
-            html += `<label class="notif-toggle ${isMaster ? 'notif-master' : ''}">
-                <input type="checkbox" ${checked} data-pref="${t.key}" onchange="toggleNotifPref(this)">
-                <span>${t.label}</span>
-            </label>`;
-        }
-
-        const qStart = parseInt(prefs.quiet_start || 20);
-        const qEnd = parseInt(prefs.quiet_end || 6);
-        html += `<div class="notif-quiet-hours">
-            <label>Quiet Hours:</label>
-            <div class="quiet-hours-row">
-                <select id="quiet-start" onchange="saveQuietHours()">
-                    ${buildHourOptions(qStart)}
-                </select>
-                <span>to</span>
-                <select id="quiet-end" onchange="saveQuietHours()">
-                    ${buildHourOptions(qEnd)}
-                </select>
-            </div>
-        </div>`;
-
-        container.innerHTML = html;
-    } catch (e) {
-        console.error('Failed to load notification settings:', e);
-    }
-}
-
-async function toggleNotifPref(checkbox) {
-    const key = checkbox.dataset.pref;
-    const value = checkbox.checked ? 'true' : 'false';
-    try {
-        await API.setNotifPref(key, value);
-    } catch (e) {
-        console.error('Failed to save pref:', e);
-    }
-}
-
-function buildHourOptions(selectedHour) {
-    let html = '';
-    for (let h = 0; h < 24; h++) {
-        const ampm = h < 12 ? 'AM' : 'PM';
-        const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
-        const label = `${display} ${ampm}`;
-        const selected = h === selectedHour ? 'selected' : '';
-        html += `<option value="${h}" ${selected}>${label}</option>`;
-    }
-    return html;
-}
-
-async function saveQuietHours() {
-    const start = document.getElementById('quiet-start');
-    const end = document.getElementById('quiet-end');
-    if (start && end) {
-        try {
-            await Promise.all([
-                API.setNotifPref('quiet_start', start.value),
-                API.setNotifPref('quiet_end', end.value),
-            ]);
-        } catch (e) {
-            console.error('Failed to save quiet hours:', e);
-        }
-    }
-}
-
-
-// ========== Adaptive Notification Timing ==========
-
-async function loadAdaptiveTiming() {
-    try {
-        const data = await API.getNotificationTiming();
-        const toggle = document.getElementById('adaptive-timing-toggle');
-        const heatmapContainer = document.getElementById('adaptive-heatmap');
-
-        if (toggle) {
-            toggle.checked = data.adaptive_enabled || false;
-            toggle.onchange = async () => {
-                await API.setAdaptiveTiming(toggle.checked);
-                loadAdaptiveTiming();
-            };
-        }
-
-        if (data.has_data && data.histogram && heatmapContainer) {
-            heatmapContainer.style.display = 'block';
-            renderAdaptiveHeatmap(data.histogram, data.peak_start, data.peak_end);
-
-            const peakLabel = document.getElementById('adaptive-peak-label');
-            if (peakLabel) {
-                peakLabel.textContent = `Peak window: ${data.peak_start}:00\u2013${data.peak_end}:00`;
-            }
-        }
-    } catch (e) {
-        console.error('Failed to load adaptive timing:', e);
-    }
-}
-
-function renderAdaptiveHeatmap(histogram, peakStart, peakEnd) {
-    const grid = document.getElementById('adaptive-heatmap-grid');
-    if (!grid) return;
-
-    const maxVal = Math.max(...histogram, 1);
-    const hours = [];
-    for (let h = 6; h <= 20; h++) {
-        const val = histogram[h] || 0;
-        const intensity = val / maxVal;
-        const isPeak = h >= peakStart && h < peakEnd;
-        hours.push(`<div class="heatmap-cell ${isPeak ? 'heatmap-peak' : ''}"
-            style="opacity: ${0.15 + intensity * 0.85}"
-            title="${h}:00 \u2014 ${val} opens">
-            <span class="heatmap-hour">${h}</span>
-        </div>`);
-    }
-    grid.innerHTML = hours.join('');
-}
-
-// ========== Speaker Verification — Voice Profile ==========
-
-async function loadSpeakerStatus() {
-    const badge = document.getElementById('speaker-status-badge');
-    const setupBtn = document.getElementById('speaker-setup-btn');
-    const enhanceBtn = document.getElementById('speaker-enhance-btn');
-    const deleteBtn = document.getElementById('speaker-delete-btn');
-    if (!badge) return;
-
-    try {
-        const status = await API.getSpeakerStatus();
-        if (status.enrolled) {
-            badge.textContent = 'Active';
-            badge.className = 'speaker-badge speaker-badge-active';
-            setupBtn.textContent = 'Re-enroll Voice Profile';
-            if (enhanceBtn) enhanceBtn.style.display = 'block';
-            deleteBtn.style.display = 'block';
-        } else {
-            badge.textContent = 'Not Set Up';
-            badge.className = 'speaker-badge speaker-badge-inactive';
-            setupBtn.textContent = 'Set Up Voice Profile';
-            if (enhanceBtn) enhanceBtn.style.display = 'none';
-            deleteBtn.style.display = 'none';
-        }
-
-    } catch (e) {
-        console.error('Failed to load speaker status:', e);
-        badge.textContent = 'Unavailable';
-        badge.className = 'speaker-badge speaker-badge-inactive';
-    }
-}
-
-// Enrollment state
-let enrollmentState = {
-    currentStep: 1,
-    totalSteps: 5,
-    moodLabels: ['neutral', 'animated', 'calm', 'reading', 'on_a_call'],
-    mediaRecorder: null,
-    audioStream: null,
-    audioContext: null,
-    analyserNode: null,
-    animFrameId: null,
-    chunks: [],
-    isRecording: false,
-    isListening: false,
-    speechStartTime: null,
-    smoothedRms: 0,
-};
-
-async function startEnrollment() {
-    const overlay = document.getElementById('enrollment-overlay');
-    overlay.style.display = 'flex';
-
-    // Reset state
-    enrollmentState.currentStep = 1;
-    enrollmentState.chunks = [];
-    enrollmentState.isRecording = false;
-
-    // Reset enrollment on server
-    try {
-        await API.resetSpeakerEnrollment();
-    } catch (e) {
-        console.error('Failed to reset enrollment:', e);
-    }
-
-    updateEnrollmentUI();
-
-    // Wire up buttons
-    document.getElementById('enrollment-close-btn').onclick = closeEnrollment;
-    document.getElementById('enrollment-finish-btn').onclick = () => {
-        closeEnrollment();
-        loadSpeakerStatus();
-    };
-}
-
-function closeEnrollment() {
-    const overlay = document.getElementById('enrollment-overlay');
-    overlay.style.display = 'none';
-    stopRecordingCleanup();
-}
-
-function updateEnrollmentUI() {
-    const step = enrollmentState.currentStep;
-    const total = enrollmentState.totalSteps;
-
-    // Update step dots
-    document.querySelectorAll('.step-dot').forEach(dot => {
-        const s = parseInt(dot.dataset.step);
-        dot.className = 'step-dot';
-        if (s < step) dot.classList.add('complete');
-        else if (s === step) dot.classList.add('active');
-    });
-
-    // Show correct step content
-    for (let i = 1; i <= total; i++) {
-        const el = document.getElementById(`enrollment-step-${i}`);
-        if (el) el.classList.toggle('active', i === step);
-    }
-
-    // Reset recorder UI
-    const countdown = document.getElementById('enrollment-countdown');
-    const statusLabel = document.getElementById('enrollment-status-label');
-    countdown.className = 'enrollment-countdown';
-    countdown.textContent = '10';
-    if (statusLabel) statusLabel.textContent = 'Preparing microphone...';
-
-    // Reset level bars
-    document.querySelectorAll('#enrollment-level-bars .level-bar').forEach(bar => {
-        bar.classList.remove('active');
-        bar.style.height = '4px';
-    });
-
-    // Show recorder, hide processing/done
-    document.getElementById('enrollment-recorder').style.display = 'block';
-    document.getElementById('enrollment-processing').style.display = 'none';
-    document.getElementById('enrollment-done').style.display = 'none';
-    document.getElementById('enrollment-steps').querySelector('.step-indicators').style.display = 'flex';
-
-    // Auto-start listening for this step
-    startListening();
-}
-
-async function startListening() {
-    if (enrollmentState.isListening || enrollmentState.isRecording) return;
-
-    const statusLabel = document.getElementById('enrollment-status-label');
-
-    try {
-        // Request microphone access
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                sampleRate: 16000,
-                channelCount: 1,
-                echoCancellation: true,
-                noiseSuppression: true,
-            }
-        });
-        enrollmentState.audioStream = stream;
-
-        // Set up audio context
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-        enrollmentState.audioContext = audioCtx;
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        enrollmentState.analyserNode = analyser;
-
-        // Use ScriptProcessorNode to capture raw PCM at 16kHz
-        const bufferSize = 4096;
-        const scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-        enrollmentState.chunks = [];
-
-        scriptNode.onaudioprocess = (e) => {
-            if (!enrollmentState.isRecording) return; // Only capture during recording phase
-            const channelData = e.inputBuffer.getChannelData(0);
-            const int16 = new Int16Array(channelData.length);
-            for (let i = 0; i < channelData.length; i++) {
-                const s = Math.max(-1, Math.min(1, channelData[i]));
-                int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            enrollmentState.chunks.push(int16);
-        };
-
-        source.connect(scriptNode);
-        scriptNode.connect(audioCtx.destination);
-        enrollmentState.scriptNode = scriptNode;
-        enrollmentState.sourceNode = source;
-
-        enrollmentState.isListening = true;
-        enrollmentState.speechStartTime = null;
-        enrollmentState.smoothedRms = 0;
-
-        if (statusLabel) statusLabel.textContent = 'Start speaking when ready...';
-
-        // Start level bar animation (runs during both listening and recording)
-        drawEnrollmentLevelBars();
-
-    } catch (e) {
-        console.error('Microphone access denied:', e);
-        if (statusLabel) statusLabel.textContent = 'Microphone access required';
-    }
-}
-
-function beginRecording() {
-    if (enrollmentState.isRecording) return;
-
-    const countdown = document.getElementById('enrollment-countdown');
-    const statusLabel = document.getElementById('enrollment-status-label');
-
-    enrollmentState.isRecording = true;
-    enrollmentState.isListening = false;
-    enrollmentState.chunks = [];
-
-    if (statusLabel) statusLabel.textContent = 'Recording...';
-    countdown.className = 'enrollment-countdown active';
-
-    // Countdown timer
-    let remaining = 10;
-    countdown.textContent = remaining;
-
-    const countdownInterval = setInterval(() => {
-        remaining--;
-        countdown.textContent = remaining;
-        if (remaining <= 0) {
-            clearInterval(countdownInterval);
-            finishRecordingStep();
-        }
-    }, 1000);
-
-    enrollmentState.countdownInterval = countdownInterval;
-}
-
-async function finishRecordingStep() {
-    enrollmentState.isRecording = false;
-
-    // Stop waveform animation
-    if (enrollmentState.animFrameId) {
-        cancelAnimationFrame(enrollmentState.animFrameId);
-        enrollmentState.animFrameId = null;
-    }
-
-    // Combine PCM chunks into single buffer
-    const totalLength = enrollmentState.chunks.reduce((acc, c) => acc + c.length, 0);
-    const combined = new Int16Array(totalLength);
-    let offset = 0;
-    for (const chunk of enrollmentState.chunks) {
-        combined.set(chunk, offset);
-        offset += chunk.length;
-    }
-
-    // Stop audio stream
-    stopRecordingCleanup();
-
-    const step = enrollmentState.currentStep;
-    const moodLabel = enrollmentState.moodLabels[step - 1];
-    const statusLabel = document.getElementById('enrollment-status-label');
-
-    if (statusLabel) statusLabel.textContent = 'Uploading...';
-
-    try {
-        // Send raw PCM bytes to server
-        const result = await Promise.race([
-            API.enrollSpeakerSample(combined.buffer, moodLabel),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
-        ]);
-
-        if (step < enrollmentState.totalSteps) {
-            // Move to next step
-            enrollmentState.currentStep = step + 1;
-            updateEnrollmentUI();
-        } else {
-            // All samples collected — compute centroid
-            showEnrollmentProcessing();
-            const enrollResult = await Promise.race([
-                API.completeSpeakerEnrollment(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 30000))
-            ]);
-            showEnrollmentDone();
-            // Hide enrollment-required banner
-            const banner = document.getElementById('enrollment-required-banner');
-            if (banner) banner.style.display = 'none';
-        }
-    } catch (e) {
-        console.error('Enrollment step failed:', e);
-        const isLoading = e.status === 503 || (e.message && e.message.includes('loading'));
-        if (isLoading) {
-            if (statusLabel) {
-                statusLabel.textContent = 'Models still loading — please wait...';
-                statusLabel.removeAttribute('data-retry');
-            }
-            setTimeout(() => startListening(), 3000);
-            return;
-        }
-        const msg = e.message === 'timeout'
-            ? 'Request timed out — tap to retry'
-            : 'Failed — tap to retry';
-        if (statusLabel) {
-            statusLabel.textContent = msg;
-            statusLabel.setAttribute('data-retry', 'true');
-            statusLabel.onclick = () => {
-                statusLabel.onclick = null;
-                statusLabel.removeAttribute('data-retry');
-                startListening();
-            };
-        }
-    }
-}
-
-function stopRecordingCleanup() {
-    enrollmentState.isRecording = false;
-    enrollmentState.isListening = false;
-    enrollmentState.speechStartTime = null;
-    enrollmentState.smoothedRms = 0;
-
-    if (enrollmentState.countdownInterval) {
-        clearInterval(enrollmentState.countdownInterval);
-        enrollmentState.countdownInterval = null;
-    }
-
-    if (enrollmentState.animFrameId) {
-        cancelAnimationFrame(enrollmentState.animFrameId);
-        enrollmentState.animFrameId = null;
-    }
-
-    if (enrollmentState.scriptNode) {
-        try { enrollmentState.scriptNode.disconnect(); } catch (e) {}
-        enrollmentState.scriptNode = null;
-    }
-    if (enrollmentState.sourceNode) {
-        try { enrollmentState.sourceNode.disconnect(); } catch (e) {}
-        enrollmentState.sourceNode = null;
-    }
-
-    if (enrollmentState.audioContext) {
-        try { enrollmentState.audioContext.close(); } catch (e) {}
-        enrollmentState.audioContext = null;
-    }
-
-    if (enrollmentState.audioStream) {
-        enrollmentState.audioStream.getTracks().forEach(t => t.stop());
-        enrollmentState.audioStream = null;
-    }
-}
-
-function showEnrollmentProcessing() {
-    document.getElementById('enrollment-recorder').style.display = 'none';
-    document.getElementById('enrollment-processing').style.display = 'block';
-    // Hide step content
-    for (let i = 1; i <= 3; i++) {
-        const el = document.getElementById(`enrollment-step-${i}`);
-        if (el) el.classList.remove('active');
-    }
-}
-
-function showEnrollmentDone() {
-    document.getElementById('enrollment-processing').style.display = 'none';
-    document.getElementById('enrollment-done').style.display = 'block';
-    document.getElementById('enrollment-steps').querySelector('.step-indicators').style.display = 'none';
-}
-
-// ========== Enhance Voice Profile ==========
-
-const enhancePrompts = [
-    "Speak as if you're on a video call — slightly louder and clearer than normal.",
-    "Talk softly, as if someone is sleeping nearby.",
-    "Describe what you had for lunch today, with natural energy.",
-    "Read this aloud in a tired, end-of-day voice: 'I'm wrapping up for today and heading out soon.'",
-    "Say something with enthusiasm, like telling a friend exciting news.",
-];
-
-let enhanceState = {
-    isRecording: false,
-    chunks: [],
-    audioStream: null,
-    audioContext: null,
-    analyserNode: null,
-    scriptNode: null,
-    sourceNode: null,
-    animFrameId: null,
-    countdownInterval: null,
-    sampleCount: 0,
-};
-
-function openEnhanceOverlay() {
-    const overlay = document.getElementById('enhance-overlay');
-    overlay.style.display = 'flex';
-    enhanceState.sampleCount = 0;
-    prepareEnhanceSample();
-
-    document.getElementById('enhance-close-btn').onclick = closeEnhanceOverlay;
-    document.getElementById('enhance-record-btn').onclick = startEnhanceRecording;
-    document.getElementById('enhance-another-btn').onclick = () => {
-        enhanceState.sampleCount++;
-        prepareEnhanceSample();
-    };
-    document.getElementById('enhance-finish-btn').onclick = closeEnhanceOverlay;
-}
-
-function prepareEnhanceSample() {
-    const prompt = enhancePrompts[enhanceState.sampleCount % enhancePrompts.length];
-    document.getElementById('enhance-prompt').textContent = prompt;
-    document.getElementById('enhance-recorder').style.display = 'block';
-    document.getElementById('enhance-processing').style.display = 'none';
-    document.getElementById('enhance-done').style.display = 'none';
-    const btn = document.getElementById('enhance-record-btn');
-    btn.textContent = 'Start Recording';
-    btn.disabled = false;
-    btn.classList.remove('recording');
-    document.getElementById('enhance-countdown').textContent = '10';
-    document.getElementById('enhance-countdown').className = 'enrollment-countdown';
-}
-
-async function startEnhanceRecording() {
-    if (enhanceState.isRecording) return;
-    const btn = document.getElementById('enhance-record-btn');
-    const countdown = document.getElementById('enhance-countdown');
-
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
-        });
-        enhanceState.audioStream = stream;
-
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-        enhanceState.audioContext = audioCtx;
-        const source = audioCtx.createMediaStreamSource(stream);
-        const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-        enhanceState.analyserNode = analyser;
-
-        // Waveform animation
-        drawEnhanceWaveform();
-
-        const bufferSize = 4096;
-        const scriptNode = audioCtx.createScriptProcessor(bufferSize, 1, 1);
-        enhanceState.chunks = [];
-        scriptNode.onaudioprocess = (e) => {
-            if (!enhanceState.isRecording) return;
-            const channelData = e.inputBuffer.getChannelData(0);
-            const int16 = new Int16Array(channelData.length);
-            for (let i = 0; i < channelData.length; i++) {
-                const s = Math.max(-1, Math.min(1, channelData[i]));
-                int16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            enhanceState.chunks.push(int16);
-        };
-        source.connect(scriptNode);
-        scriptNode.connect(audioCtx.destination);
-        enhanceState.scriptNode = scriptNode;
-        enhanceState.sourceNode = source;
-
-        enhanceState.isRecording = true;
-        btn.textContent = 'Recording...';
-        btn.classList.add('recording');
-        btn.disabled = true;
-        countdown.className = 'enrollment-countdown active';
-
-        let remaining = 10;
-        countdown.textContent = remaining;
-        enhanceState.countdownInterval = setInterval(() => {
-            remaining--;
-            countdown.textContent = remaining;
-            if (remaining <= 0) {
-                clearInterval(enhanceState.countdownInterval);
-                finishEnhanceRecording();
-            }
-        }, 1000);
-    } catch (e) {
-        console.error('Microphone access denied:', e);
-        btn.textContent = 'Microphone Access Required';
-        btn.disabled = true;
-    }
-}
+// Speaker enrollment/enhance code moved to speaker_enrollment.js
 
 // ========== Voice Wellness Report (PDF) ==========
 
 function downloadReport() {
     // Open the PDF endpoint in a new tab to trigger download
     window.open('/api/report/pdf?days=90', '_blank');
-}
-
-async function finishEnhanceRecording() {
-    enhanceState.isRecording = false;
-    if (enhanceState.animFrameId) {
-        cancelAnimationFrame(enhanceState.animFrameId);
-        enhanceState.animFrameId = null;
-    }
-
-    const totalLength = enhanceState.chunks.reduce((acc, c) => acc + c.length, 0);
-    const combined = new Int16Array(totalLength);
-    let offset = 0;
-    for (const chunk of enhanceState.chunks) {
-        combined.set(chunk, offset);
-        offset += chunk.length;
-    }
-
-    cleanupEnhanceAudio();
-
-    document.getElementById('enhance-recorder').style.display = 'none';
-    document.getElementById('enhance-processing').style.display = 'block';
-
-    try {
-        const moodLabel = `enhance_${enhanceState.sampleCount}`;
-        await API.enrollSpeakerSample(combined.buffer, moodLabel);
-        await API.completeSpeakerEnrollment();
-        document.getElementById('enhance-processing').style.display = 'none';
-        document.getElementById('enhance-done').style.display = 'block';
-    } catch (e) {
-        console.error('Enhance sample failed:', e);
-        document.getElementById('enhance-processing').style.display = 'none';
-        document.getElementById('enhance-recorder').style.display = 'block';
-        const btn = document.getElementById('enhance-record-btn');
-        btn.textContent = 'Failed — Try Again';
-        btn.disabled = false;
-        btn.classList.remove('recording');
-    }
-}
-
-function cleanupEnhanceAudio() {
-    if (enhanceState.countdownInterval) { clearInterval(enhanceState.countdownInterval); enhanceState.countdownInterval = null; }
-    if (enhanceState.animFrameId) { cancelAnimationFrame(enhanceState.animFrameId); enhanceState.animFrameId = null; }
-    if (enhanceState.scriptNode) { try { enhanceState.scriptNode.disconnect(); } catch(e){} enhanceState.scriptNode = null; }
-    if (enhanceState.sourceNode) { try { enhanceState.sourceNode.disconnect(); } catch(e){} enhanceState.sourceNode = null; }
-    if (enhanceState.audioContext) { try { enhanceState.audioContext.close(); } catch(e){} enhanceState.audioContext = null; }
-    if (enhanceState.audioStream) { enhanceState.audioStream.getTracks().forEach(t => t.stop()); enhanceState.audioStream = null; }
-}
-
-function closeEnhanceOverlay() {
-    cleanupEnhanceAudio();
-    document.getElementById('enhance-overlay').style.display = 'none';
-    loadSpeakerStatus();
-}
-
-function drawEnhanceWaveform() {
-    const canvas = document.getElementById('enhance-canvas');
-    if (!canvas || !enhanceState.analyserNode) return;
-    const ctx = canvas.getContext('2d');
-    const analyser = enhanceState.analyserNode;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        if (!enhanceState.isRecording) return;
-        enhanceState.animFrameId = requestAnimationFrame(draw);
-        analyser.getByteTimeDomainData(dataArray);
-        ctx.fillStyle = 'rgba(248, 249, 250, 0.3)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = '#5a6270';
-        ctx.beginPath();
-        const sliceWidth = canvas.width / bufferLength;
-        let x = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            const v = dataArray[i] / 128.0;
-            const y = v * canvas.height / 2;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-            x += sliceWidth;
-        }
-        ctx.lineTo(canvas.width, canvas.height / 2);
-        ctx.stroke();
-    }
-    draw();
 }
 
 // ========== Science Modal (Rec #2) ==========
@@ -3609,69 +2305,6 @@ document.addEventListener('keydown', (e) => {
     // Science modal (lowest priority)
     closeScienceModal();
 });
-
-function drawEnrollmentLevelBars() {
-    const barsContainer = document.getElementById('enrollment-level-bars');
-    if (!barsContainer || !enrollmentState.analyserNode) return;
-
-    const bars = barsContainer.querySelectorAll('.level-bar');
-    const analyser = enrollmentState.analyserNode;
-    const bufferLength = analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-        if (!enrollmentState.isListening && !enrollmentState.isRecording) return;
-        enrollmentState.animFrameId = requestAnimationFrame(draw);
-
-        analyser.getByteTimeDomainData(dataArray);
-
-        // Compute RMS
-        let sumSq = 0;
-        for (let i = 0; i < bufferLength; i++) {
-            const v = (dataArray[i] - 128) / 128.0;
-            sumSq += v * v;
-        }
-        const rms = Math.sqrt(sumSq / bufferLength);
-
-        // Smooth RMS with EMA
-        enrollmentState.smoothedRms = 0.3 * rms + 0.7 * enrollmentState.smoothedRms;
-        const smoothed = enrollmentState.smoothedRms;
-
-        // Log-scale mapping
-        const normalizedLevel = Math.min(1, Math.max(0, (Math.log10(smoothed + 0.001) + 2) / 2));
-
-        // Map to active bar count (0 to 20)
-        const activeBars = Math.round(normalizedLevel * bars.length);
-
-        bars.forEach((bar, i) => {
-            if (i < activeBars) {
-                bar.classList.add('active');
-                // Gradient height: 8px to 44px across bars
-                const t = i / (bars.length - 1);
-                const height = 8 + t * 36;
-                bar.style.height = height + 'px';
-            } else {
-                bar.classList.remove('active');
-                bar.style.height = '4px';
-            }
-        });
-
-        // Speech detection — only during listening phase
-        if (enrollmentState.isListening && !enrollmentState.isRecording) {
-            if (rms > 0.02) {
-                if (!enrollmentState.speechStartTime) {
-                    enrollmentState.speechStartTime = performance.now();
-                } else if (performance.now() - enrollmentState.speechStartTime >= 200) {
-                    beginRecording();
-                }
-            } else {
-                enrollmentState.speechStartTime = null;
-            }
-        }
-    }
-
-    draw();
-}
 
 // ========== First Light — Removed ==========
 // Stub functions kept for any residual calls
@@ -3831,9 +2464,9 @@ function showSelfAssessmentModal(readingId) {
 }
 
 // Check for self-assessment prompt every 30 minutes
-setInterval(checkSelfAssessmentPrompt, 30 * 60 * 1000);
+TimerRegistry.setInterval('global', checkSelfAssessmentPrompt, 30 * 60 * 1000);
 // Also check 60 seconds after startup
-setTimeout(checkSelfAssessmentPrompt, 60 * 1000);
+TimerRegistry.setTimeout('global', checkSelfAssessmentPrompt, 60 * 1000);
 
 // ========== Topic Correlations (Phase 2) ==========
 

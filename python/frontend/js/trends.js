@@ -4,19 +4,17 @@
 
 class TrendsView {
     constructor() {
-        this.container = document.getElementById('trends-view');
+        this.container = document.getElementById('trends-dynamic-content');
         this.data = null;
     }
 
     async load(days = 14) {
         try {
-            const [data, seasonData, summaries] = await Promise.all([
+            const [data, summaries] = await Promise.all([
                 API.getTrends(days),
-                API.getVoiceSeason().catch(() => null),
                 API.getSummaries(35).catch(() => []),
             ]);
             this.data = data;
-            this.seasonData = seasonData;
             this.summaries = summaries;
             this.days = days;
             this.render();
@@ -47,9 +45,6 @@ class TrendsView {
             });
         });
         this.container.appendChild(toggleDiv);
-
-        // Voice Season
-        this.renderVoiceSeason();
 
         // Score Trends (Plotly) — moved up
         this.renderScoreTrends();
@@ -308,35 +303,6 @@ class TrendsView {
         });
 
         this.container.appendChild(breakdownContainer);
-    }
-
-    renderVoiceSeason() {
-        if (!this.seasonData || !this.seasonData.has_data) return;
-        const d = this.seasonData;
-        const seasonLabel = d.season_number > 1 ? `Season ${d.season_number}` : '';
-        const section = document.createElement('div');
-        section.className = 'trends-voice-season glass-card';
-        section.innerHTML = `
-            <h3 class="section-label">VOICE SEASON ${sanitizeHTML(seasonLabel)}</h3>
-            <div class="voice-season-content">
-                <div class="voice-season-day">
-                    <span class="voice-season-day-num">${d.day}</span>
-                    <span class="voice-season-day-label">of 90 days</span>
-                </div>
-                <div class="voice-season-phase">${sanitizeHTML(d.phase)}</div>
-                <div class="voice-season-progress">
-                    <div class="voice-season-progress-track">
-                        <div class="voice-season-progress-fill" style="width: ${d.progress_pct}%"></div>
-                    </div>
-                    <div class="voice-season-phase-labels">
-                        <span class="voice-season-phase-dot ${d.phase === 'Discovery' ? 'active' : ''}">Discovery</span>
-                        <span class="voice-season-phase-dot ${d.phase === 'Patterns' ? 'active' : ''}">Patterns</span>
-                        <span class="voice-season-phase-dot ${d.phase === 'Prediction' ? 'active' : ''}">Prediction</span>
-                    </div>
-                </div>
-            </div>
-        `;
-        this.container.appendChild(section);
     }
 
     renderZoneLegend() {

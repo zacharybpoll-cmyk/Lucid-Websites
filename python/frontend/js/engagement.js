@@ -21,7 +21,6 @@ class EngagementView {
         if (!this.data) return;
 
         this.renderStreak();
-        this.renderMilestones();
     }
 
     renderStreak() {
@@ -30,10 +29,6 @@ class EngagementView {
             streakEl.textContent = `${this.data.streak} day${this.data.streak !== 1 ? 's' : ''}`;
             streakEl.style.display = 'inline-block';
         }
-    }
-
-    renderMilestones() {
-        // Milestones section removed from UI
     }
 }
 

@@ -258,6 +258,15 @@ class TagResponse(BaseModel):
 class MeetingToggleRequest(BaseModel):
     active: bool
 
+class IntentionRequest(BaseModel):
+    intention: str
+
+class ReviveRequest(BaseModel):
+    date: str
+
+class LayoutRequest(BaseModel):
+    cards: List[str]
+
 class SelfAssessmentRequest(BaseModel):
     zone: str  # 'calm', 'steady', 'tense', 'stressed'
     reading_id: Optional[int] = None  # Link to nearest reading if available

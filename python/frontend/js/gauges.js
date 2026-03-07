@@ -8,6 +8,7 @@
 let gaugesAreAnalyzing = false;
 let prevCircleScores = {};
 const ALL_METRICS = ['wellbeing','calm','activation','stress','depression','anxiety','emotional-stability'];
+const _circleRAFs = {};
 
 function startGaugeProgress() {
     if (gaugesAreAnalyzing) return;
@@ -32,19 +33,22 @@ function animateCircle(metric, value, duration) {
         circle.style.strokeDashoffset = circumference; // reset to empty
         circle.setAttribute('stroke', targetColor);
     }
+    if (_circleRAFs[metric]) cancelAnimationFrame(_circleRAFs[metric]);
     const startTime = performance.now();
     function tick(now) {
         const progress = Math.min((now - startTime) / duration, 1);
         const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
         if (circle) circle.style.strokeDashoffset = circumference - (clamped / 100) * circumference * eased;
         if (valueEl) valueEl.textContent = Math.round(clamped * eased);
-        if (progress < 1) requestAnimationFrame(tick);
-        else {
+        if (progress < 1) {
+            _circleRAFs[metric] = requestAnimationFrame(tick);
+        } else {
+            _circleRAFs[metric] = null;
             if (circle) circle.setAttribute('stroke-dashoffset', targetOffset);
             if (valueEl) valueEl.textContent = Math.round(clamped);
         }
     }
-    requestAnimationFrame(tick);
+    _circleRAFs[metric] = requestAnimationFrame(tick);
 }
 
 // ============ Score Circles (Oura-style) — legacy hidden elements ============

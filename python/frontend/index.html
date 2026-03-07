@@ -21,6 +21,8 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
 </head>
 <body>
+    <a href="#view-container" class="skip-link">Skip to main content</a>
+
     <!-- Background layer -->
     <div class="bg-layer"></div>
 
@@ -100,7 +102,7 @@
     </div>
 
     <!-- Morning Summary Overlay -->
-    <div id="morning-summary-overlay" class="morning-summary-overlay" style="display: none;">
+    <div id="morning-summary-overlay" class="morning-summary-overlay" role="dialog" aria-modal="true" aria-label="Morning Summary" style="display: none;">
         <div class="morning-summary-content">
             <div class="morning-greeting" id="morning-greeting">Good morning</div>
 
@@ -166,7 +168,7 @@
     </div>
 
     <!-- Mental Readiness Overlay -->
-    <div id="readiness-overlay" class="readiness-overlay" style="display: none;">
+    <div id="readiness-overlay" class="readiness-overlay" role="dialog" aria-modal="true" aria-label="Mental Readiness" style="display: none;">
         <div class="readiness-content">
 
             <!-- State A: Analyzing -->
@@ -230,7 +232,7 @@
     </div>
 
     <!-- Weekly Wrapped Full-Screen Overlay -->
-    <div id="wrapped-overlay" class="wrapped-overlay" style="display: none;">
+    <div id="wrapped-overlay" class="wrapped-overlay" role="dialog" aria-modal="true" aria-label="Weekly Wrapped" style="display: none;">
         <div class="wrapped-overlay-content">
             <h2 class="wrapped-overlay-title">Your Week in Voice</h2>
             <div class="wrapped-day-circles" id="wrapped-day-circles"></div>
@@ -261,7 +263,7 @@
     </div>
 
     <!-- Evening Summary Overlay -->
-    <div id="evening-summary-overlay" class="evening-summary-overlay" style="display: none;">
+    <div id="evening-summary-overlay" class="evening-summary-overlay" role="dialog" aria-modal="true" aria-label="Evening Summary" style="display: none;">
         <div class="evening-summary-card">
             <!-- Header -->
             <div class="evening-header">
@@ -345,7 +347,7 @@
     <!-- App layout -->
     <div class="app-layout">
         <!-- Sidebar -->
-        <nav class="sidebar">
+        <nav class="sidebar" role="navigation" aria-label="Main navigation">
             <button class="sidebar-icon active" data-view="today" title="Dashboard" aria-label="Dashboard">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
@@ -419,9 +421,9 @@
         </nav>
 
         <!-- Main content -->
-        <main class="main-content">
+        <main class="main-content" role="main">
             <!-- Header -->
-            <header class="app-header">
+            <header class="app-header" role="banner">
                 <h1>Lucid</h1>
                 <div class="header-right">
                     <span id="current-date"></span>
@@ -454,7 +456,7 @@
             <div id="view-container">
 
                 <!-- TODAY VIEW -->
-                <div id="today-view" class="view active">
+                <div id="today-view" class="view active" role="region" aria-label="Today">
 
                     <!-- Speak Hero Card (first-open-of-day experience) -->
                     <div id="speak-hero" class="speak-hero" style="display: none;">
@@ -718,95 +720,6 @@
                         </div>
                     </div>
 
-                    <!-- Echoes (Feature #6) -->
-                    <div class="dashboard-card" data-card-id="echoes">
-                        <div class="echoes-section glass-card">
-                            <h3 class="section-label" style="position: relative;">ECHOES
-                                <button class="info-btn" data-info="echoes">i</button>
-                                <div class="info-popover" id="info-echoes">Pattern discoveries found in your data over time. New insights appear as Lucid learns your vocal habits.</div>
-                            </h3>
-                            <div id="echoes-container" class="echoes-list">
-                                <div class="echoes-empty">Patterns will appear after 7+ days of data</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Compass (Feature #7) -->
-                    <div class="dashboard-card" data-card-id="compass">
-                        <div class="compass-section glass-card">
-                            <h3 class="section-label" style="position: relative;">COMPASS
-                                <button class="info-btn" data-info="compass">i</button>
-                                <div class="info-popover" id="info-compass">Your weekly wellness direction — ascending, holding, or descending. Set a personal intention to stay on track.</div>
-                            </h3>
-                            <div id="compass-container" class="compass-content">
-                                <div class="compass-empty">Weekly direction updates on Mondays</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Streak Insurance -->
-                    <!-- Voice Season (90-Day Arc) -->
-                    <div id="voice-season-card" class="dashboard-card" data-card-id="voice-season" style="display: none;">
-                        <div class="voice-season-section glass-card">
-                            <h3 class="section-label">VOICE SEASON <span class="voice-season-number" id="voice-season-number"></span></h3>
-                            <div class="voice-season-content">
-                                <div class="voice-season-day">
-                                    <span class="voice-season-day-num" id="voice-season-day">1</span>
-                                    <span class="voice-season-day-label">of 90 days</span>
-                                </div>
-                                <div class="voice-season-phase" id="voice-season-phase">Discovery</div>
-                                <div class="voice-season-progress">
-                                    <div class="voice-season-progress-track">
-                                        <div class="voice-season-progress-fill" id="voice-season-fill" style="width: 0%"></div>
-                                    </div>
-                                    <div class="voice-season-phase-labels">
-                                        <span class="voice-season-phase-dot" data-phase="Discovery">Discovery</span>
-                                        <span class="voice-season-phase-dot" data-phase="Patterns">Patterns</span>
-                                        <span class="voice-season-phase-dot" data-phase="Prediction">Prediction</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Weekly Wrapped (Your Week in Voice) -->
-                    <div id="weekly-wrapped-card" class="dashboard-card" data-card-id="wrapped" style="display: none;">
-                        <div class="wrapped-section glass-card">
-                            <h3 class="section-label" style="position: relative;">YOUR WEEK IN VOICE
-                                <button class="info-btn" data-info="wrapped">i</button>
-                                <div class="info-popover" id="info-wrapped">A weekly summary of your voice wellness data. Updated every Monday with last week's highlights.</div>
-                                <button class="wrapped-toggle" title="Collapse/Expand">&#9650;</button>
-                            </h3>
-                            <div class="wrapped-content wrapped-expanded"></div>
-                        </div>
-                    </div>
-
-                    <!-- Topic Correlations (Phase 2) -->
-                    <div class="dashboard-card" data-card-id="topic-correlations">
-                        <div class="echoes-section glass-card">
-                            <h3 class="section-label" style="position: relative;">TOPIC CORRELATIONS
-                                <button class="info-btn" data-info="topic-correlations">i</button>
-                                <div class="info-popover" id="info-topic-correlations">Shows how stress varies when you're talking about work, relationships, or health. Based on language patterns detected in your speech.</div>
-                            </h3>
-                            <div id="topic-correlations-container" class="echoes-list">
-                                <div class="echoes-empty">Topic patterns appear after 7+ days of readings</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Meeting Impact (Phase 1) -->
-                    <div class="dashboard-card" data-card-id="meeting-impact">
-                        <div class="echoes-section glass-card">
-                            <h3 class="section-label" style="position: relative;">MEETING IMPACT
-                                <button class="info-btn" data-info="meeting-impact">i</button>
-                                <div class="info-popover" id="info-meeting-impact">Compares your average stress during meetings vs. non-meeting time over the last 30 days.</div>
-                            </h3>
-                            <div id="meeting-impact-container" class="echoes-list">
-                                <div class="echoes-empty" style="font-size: 12px;">Appears after 3+ meeting readings</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Zone Summary (compact) -->
                     <div class="dashboard-card" data-card-id="zones">
                         <div class="zones-summary glass-card">
@@ -839,19 +752,111 @@
                 </div>
 
                 <!-- REPORTS VIEW -->
-                <div id="reports-view" class="view"></div>
+                <div id="reports-view" class="view" role="region" aria-label="Reports"></div>
 
                 <!-- TRENDS VIEW -->
-                <div id="trends-view" class="view"></div>
+                <div id="trends-view" class="view" role="region" aria-label="Trends">
+                    <div id="trends-dynamic-content"></div>
+
+                    <h3 class="section-label" style="margin: 24px 16px 12px;">PATTERNS & INSIGHTS</h3>
+
+                    <!-- Echoes (moved from Dashboard) -->
+                    <div class="dashboard-card" data-card-id="echoes">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">ECHOES
+                                <button class="info-btn" data-info="echoes">i</button>
+                                <div class="info-popover" id="info-echoes">Pattern discoveries found in your data over time. New insights appear as Lucid learns your vocal habits.</div>
+                            </h3>
+                            <div id="echoes-container" class="echoes-list">
+                                <div class="echoes-empty">Patterns will appear after 7+ days of data</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Compass (moved from Dashboard) -->
+                    <div class="dashboard-card" data-card-id="compass">
+                        <div class="compass-section glass-card">
+                            <h3 class="section-label" style="position: relative;">COMPASS
+                                <button class="info-btn" data-info="compass">i</button>
+                                <div class="info-popover" id="info-compass">Your weekly wellness direction — ascending, holding, or descending. Set a personal intention to stay on track.</div>
+                            </h3>
+                            <div id="compass-container" class="compass-content">
+                                <div class="compass-empty">Weekly direction updates on Mondays</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Voice Season (90-Day Arc, moved from Dashboard) -->
+                    <div id="voice-season-card" class="dashboard-card" data-card-id="voice-season" style="display: none;">
+                        <div class="voice-season-section glass-card">
+                            <h3 class="section-label">VOICE SEASON <span class="voice-season-number" id="voice-season-number"></span></h3>
+                            <div class="voice-season-content">
+                                <div class="voice-season-day">
+                                    <span class="voice-season-day-num" id="voice-season-day">1</span>
+                                    <span class="voice-season-day-label">of 90 days</span>
+                                </div>
+                                <div class="voice-season-phase" id="voice-season-phase">Discovery</div>
+                                <div class="voice-season-progress">
+                                    <div class="voice-season-progress-track">
+                                        <div class="voice-season-progress-fill" id="voice-season-fill" style="width: 0%"></div>
+                                    </div>
+                                    <div class="voice-season-phase-labels">
+                                        <span class="voice-season-phase-dot" data-phase="Discovery">Discovery</span>
+                                        <span class="voice-season-phase-dot" data-phase="Patterns">Patterns</span>
+                                        <span class="voice-season-phase-dot" data-phase="Prediction">Prediction</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Wrapped (moved from Dashboard) -->
+                    <div id="weekly-wrapped-card" class="dashboard-card" data-card-id="wrapped" style="display: none;">
+                        <div class="wrapped-section glass-card">
+                            <h3 class="section-label" style="position: relative;">YOUR WEEK IN VOICE
+                                <button class="info-btn" data-info="wrapped">i</button>
+                                <div class="info-popover" id="info-wrapped">A weekly summary of your voice wellness data. Updated every Monday with last week's highlights.</div>
+                                <button class="wrapped-toggle" title="Collapse/Expand">&#9650;</button>
+                            </h3>
+                            <div class="wrapped-content wrapped-expanded"></div>
+                        </div>
+                    </div>
+
+                    <!-- Topic Correlations (moved from Dashboard) -->
+                    <div class="dashboard-card" data-card-id="topic-correlations">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">TOPIC CORRELATIONS
+                                <button class="info-btn" data-info="topic-correlations">i</button>
+                                <div class="info-popover" id="info-topic-correlations">Shows how stress varies when you're talking about work, relationships, or health. Based on language patterns detected in your speech.</div>
+                            </h3>
+                            <div id="topic-correlations-container" class="echoes-list">
+                                <div class="echoes-empty">Topic patterns appear after 7+ days of readings</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Meeting Impact (moved from Dashboard) -->
+                    <div class="dashboard-card" data-card-id="meeting-impact">
+                        <div class="echoes-section glass-card">
+                            <h3 class="section-label" style="position: relative;">MEETING IMPACT
+                                <button class="info-btn" data-info="meeting-impact">i</button>
+                                <div class="info-popover" id="info-meeting-impact">Compares your average stress during meetings vs. non-meeting time over the last 30 days.</div>
+                            </h3>
+                            <div id="meeting-impact-container" class="echoes-list">
+                                <div class="echoes-empty" style="font-size: 12px;">Appears after 3+ meeting readings</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- HISTORY VIEW -->
                 <div id="history-view" class="view"></div>
 
                 <!-- WAYPOINTS VIEW -->
-                <div id="waypoints-view" class="view"></div>
+                <div id="waypoints-view" class="view" role="region" aria-label="Waypoints"></div>
 
                 <!-- VOICE SCAN VIEW -->
-                <div id="voicescan-view" class="view">
+                <div id="voicescan-view" class="view" role="region" aria-label="Voice Scan">
                     <div class="vs-title">Voice Scan</div>
                     <div class="vs-subtitle">Focused voice assessment for mental health insights</div>
 
@@ -961,10 +966,10 @@
                 </div>
 
                 <!-- BIOMARKER LAB VIEW -->
-                <div id="lab-view" class="view"></div>
+                <div id="lab-view" class="view" role="region" aria-label="Lab"></div>
 
                 <!-- VOICE SCULPTOR VIEW -->
-                <div id="sculptor-view" class="view"></div>
+                <div id="sculptor-view" class="view" role="region" aria-label="Sculptor"></div>
 
                 <!-- FAQ VIEW -->
                 <div id="faq-view" class="view">
@@ -1113,7 +1118,7 @@
     <div id="tooltip" class="tooltip" style="display: none;"></div>
 
     <!-- Settings Panel -->
-    <div id="settings-panel" class="settings-panel" style="display: none;">
+    <div id="settings-panel" class="settings-panel" role="dialog" aria-modal="true" aria-label="Settings" style="display: none;">
         <div class="settings-content">
             <div class="settings-header">
                 <h2>Settings</h2>
@@ -1182,7 +1187,7 @@
         </div>
     </div>
     <!-- Speaker Enrollment Overlay -->
-    <div id="enrollment-overlay" class="enrollment-overlay" style="display: none;">
+    <div id="enrollment-overlay" class="enrollment-overlay" role="dialog" aria-modal="true" aria-label="Voice Profile Enrollment" style="display: none;">
         <div class="enrollment-modal">
             <div class="enrollment-header">
                 <h2>Voice Profile Setup</h2>
@@ -1267,7 +1272,7 @@
     </div>
 
     <!-- Speaker Enhance Overlay -->
-    <div id="enhance-overlay" class="enrollment-overlay" style="display: none;">
+    <div id="enhance-overlay" class="enrollment-overlay" role="dialog" aria-modal="true" aria-label="Enhance Voice Profile" style="display: none;">
         <div class="enrollment-modal" style="max-width: 420px;">
             <div class="enrollment-header">
                 <h2>Enhance Voice Profile</h2>
@@ -1394,6 +1399,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="js/timer_registry.js?v=1"></script>
     <script src="js/bridge.js?v=17"></script>
     <script src="js/gauges.js?v=16"></script>
     <script src="js/anxiety_timeline.js?v=15"></script>
@@ -1406,7 +1412,10 @@
     <script src="js/lab.js?v=1"></script>
     <script src="js/sculptor.js?v=1"></script>
     <script src="js/reports.js?v=1"></script>
-    <script src="js/app.js?v=30"></script>
+    <script src="js/settings_panel.js?v=1"></script>
+    <script src="js/overlays.js?v=1"></script>
+    <script src="js/speaker_enrollment.js?v=1"></script>
+    <script src="js/app.js?v=31"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
     <div id="speaker-debug" class="speaker-debug" style="display:none;">

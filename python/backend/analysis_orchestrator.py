@@ -175,7 +175,7 @@ class AnalysisOrchestrator:
             try:
                 self.dam_analyzer = DAMAnalyzer()
                 break
-            except Exception as e:
+            except (RuntimeError, ImportError, OSError) as e:
                 delay = 2 ** attempt  # 1s, 2s, 4s
                 if attempt < 2:
                     logger.warning(f"DAM model load attempt {attempt + 1}/3 failed: {e}. Retrying in {delay}s...")
@@ -195,7 +195,7 @@ class AnalysisOrchestrator:
                 self._init_speaker_gate()
                 # Load bootstrap state
                 self._bootstrap_done = self.db.get_user_state('speaker_bootstrap_done', '0') == '1'
-        except Exception as e:
+        except (RuntimeError, ImportError, OSError) as e:
             logger.warning(f"Speaker verifier failed to load (non-fatal): {e}")
             self.speaker_verifier = None
 
@@ -368,7 +368,7 @@ class AnalysisOrchestrator:
                         self._bootstrap_done = True
                         self.db.set_user_state('speaker_bootstrap_done', '1')
                         logger.info(f"Bootstrap enrollment complete (similarity={similarity:.3f})")
-                    except Exception as be:
+                    except (RuntimeError, ValueError, OSError) as be:
                         logger.warning(f"Bootstrap enrollment failed (non-fatal): {be}")
 
                 # Morning profile enhancement (first reading of the day)
@@ -381,7 +381,7 @@ class AnalysisOrchestrator:
                             result = self.speaker_verifier.enhance_profile(speech_audio)
                             if result.get('enhanced'):
                                 logger.info(f"Morning profile enhancement applied")
-                        except Exception as me:
+                        except (RuntimeError, ValueError) as me:
                             logger.warning(f"Morning enhance failed (non-fatal): {me}")
 
             # Run DAM analysis
@@ -478,7 +478,7 @@ class AnalysisOrchestrator:
             if self.notification_manager:
                 try:
                     self.notification_manager.on_new_reading(reading)
-                except Exception as ne:
+                except (RuntimeError, ValueError, OSError) as ne:
                     logger.error(f"Notification error: {ne}")
 
             # Analytics: track voice reading
@@ -490,7 +490,7 @@ class AnalysisOrchestrator:
                         'speech_duration_sec': round(duration_sec, 1),
                         'zone': scores.get('zone', ''),
                     })
-                except Exception as ae:
+                except (RuntimeError, ValueError) as ae:
                     logger.debug(f"Analytics tracking error (non-fatal): {ae}")
 
             # Success — update shared state under lock
@@ -499,7 +499,7 @@ class AnalysisOrchestrator:
                 self._last_analysis_time = datetime.now().isoformat()
                 self._analysis_success_count += 1
 
-        except Exception as e:
+        except (RuntimeError, ValueError, OSError) as e:
             with self._state_lock:
                 self._last_analysis_error = f"Analysis error: {str(e)}"
             logger.error(f"Error during analysis: {e}")
@@ -556,7 +556,7 @@ class AnalysisOrchestrator:
 
             stability = 100.0 - (0.60 * norm_rolling_std + 0.40 * acoustic_cv)
             return float(np.clip(stability, 0, 100))
-        except Exception as e:
+        except (ValueError, RuntimeError, ZeroDivisionError) as e:
             logger.error(f"Error computing emotional stability: {e}")
             return 75.0
 

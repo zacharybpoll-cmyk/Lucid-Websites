@@ -47,7 +47,7 @@ class Database:
                 self.conn.backup(backup_conn)
                 backup_conn.close()
                 logger.info(f"Auto-backup created ({db_size // 1024}KB)")
-        except Exception as e:
+        except (OSError, sqlite3.Error) as e:
             logger.warning(f"Auto-backup on startup failed (non-fatal): {e}")
 
         # Readings table - individual analysis points
@@ -467,7 +467,7 @@ class Database:
                     )
                     self.conn.commit()
                     logger.info("Migration %d complete", version)
-                except Exception as e:
+                except sqlite3.Error as e:
                     self.conn.rollback()
                     logger.exception("Migration %d failed: %s", version, desc)
                     raise
@@ -480,6 +480,18 @@ class Database:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_grove_date ON grove(date)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_echoes_discovered_at ON echoes(discovered_at)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_echoes_seen ON echoes(seen)")
+
+        # Phase 2 indices — frequently queried columns
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_tags_timestamp ON tags(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_self_assessments_timestamp ON self_assessments(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_enrollment_samples_profile ON enrollment_samples(profile_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_speaker_profiles_name ON speaker_profiles(name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_compass_week ON compass_entries(week_start)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_wellness_scores_date ON wellness_scores(date)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_user_state_key ON user_state(key)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_webhooks_active ON webhooks(active)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_goals_week ON goals(week_start)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_baselines_metric ON baselines(metric)")
 
     def _migration_002_enrollment_fk(self, cursor):
         """Recreate enrollment_samples with FK constraint on speaker_profiles."""
@@ -534,7 +546,7 @@ class Database:
             with self.lock:
                 self.conn.execute("SELECT 1")
             return True
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.debug("Health check failed: %s", e)
             return False
 
@@ -553,7 +565,7 @@ class Database:
                 os.rename(str(self.db_path), corrupt_path)
                 self._init_db()
                 return False
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"Integrity check failed: {e}")
             return True  # assume OK if check itself fails
 
@@ -1192,7 +1204,7 @@ class Database:
                         VALUES (?, ?, ?)
                     """, (item['card_id'], item.get('sort_order', 0), item.get('visible', 1)))
                 self.conn.commit()
-            except Exception as e:
+            except sqlite3.Error as e:
                 self.conn.rollback()
                 logger.error("Failed to save dashboard layout: %s", e)
                 raise
@@ -1390,7 +1402,7 @@ class Database:
                 backup_conn.close()
             logger.info(f"Database backed up to {dest_path}")
             return True
-        except Exception as e:
+        except (OSError, sqlite3.Error) as e:
             logger.error(f"Database backup failed: {e}")
             return False
 
@@ -1407,7 +1419,7 @@ class Database:
             else:
                 logger.error(f"Database integrity check failed: {result}")
                 return False
-        except Exception as e:
+        except sqlite3.Error as e:
             logger.error(f"Database integrity check error: {e}")
             return False
 
@@ -1424,7 +1436,7 @@ class Database:
             self._init_db()
             logger.info("Database restored from backup")
             return True
-        except Exception as e:
+        except (OSError, sqlite3.Error) as e:
             logger.error(f"Database restore failed: {e}")
             return False
 
@@ -1519,10 +1531,10 @@ class Database:
             if self.conn:
                 try:
                     self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                except Exception as e:
+                except sqlite3.Error as e:
                     logger.warning("WAL checkpoint on close failed: %s", e)
                 try:
                     self.conn.close()
-                except Exception as e:
+                except sqlite3.Error as e:
                     logger.warning("Database close failed: %s", e)
                 self.conn = None
