@@ -22,6 +22,7 @@ class NotificationManager:
         # In-memory rate limit tracking (reset on restart is fine)
         self._recent_sends: List[float] = []
         self.MAX_PER_HOUR = 4
+        self.MAX_ECHO_PER_DAY = 3  # Max echo-category notifications per day
         # Shutdown event for clean teardown
         self._shutdown_event = threading.Event()
         # Scheduled timer for curtain call
@@ -103,6 +104,15 @@ class NotificationManager:
                 hour = now.hour
                 if not (peak['peak_start'] <= hour < peak['peak_end']):
                     return False
+
+        # Echo-specific daily cap
+        if notif_type == 'echo':
+            try:
+                echo_today = self.db.get_notification_count_today('echo')
+                if echo_today >= self.MAX_ECHO_PER_DAY:
+                    return False
+            except Exception:
+                pass  # Non-fatal — fall through if DB unavailable
 
         return True
 

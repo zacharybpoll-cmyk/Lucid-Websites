@@ -8,22 +8,63 @@ import math
 import statistics
 
 
+# ── Daily budget constants ────────────────────────────────────────────────────
+DAILY_CAP = 5          # Global maximum echoes per day across all tiers
+COOLDOWN_DAYS = 7      # Days before the same pattern base can re-fire
+
+TIER_CAPS = {          # Maximum echoes per tier per day
+    'positive': 1,
+    'eureka': 1,
+    'standard': 2,
+}
+
+TIER_PRIORITY = {      # Lower = higher priority when budget is tight
+    'positive': 0,
+    'eureka': 1,
+    'standard': 2,
+}
+
+# Patterns tagged 'alert' are capped at 1/day regardless of tier
+_ALERT_BASES = frozenset({
+    'eureka_burnout_trajectory',
+    'trend_stress_up',
+})
+
+# Patterns in the 'positive' tier
+_POSITIVE_BASES = frozenset({
+    'milestone',
+    'dow_calmest',
+    'dow_best_mood',
+    'trend_stress_down',
+    'trend_calm_up',
+    'meeting_impact_positive',
+    'eureka_recovery_trajectory',
+    'eureka_recovery_speed',
+    'eureka_morning_state',
+})
+
+
 class PatternDetector:
     """Detects patterns in voice data for the Echoes feature."""
 
     def __init__(self, db):
         self.db = db
 
+    # ── Public API ────────────────────────────────────────────────────────────
+
     def detect_patterns(self) -> List[Dict[str, Any]]:
-        """Run all pattern detectors. Returns list of new discoveries."""
+        """Run all pattern detectors with daily caps and 7-day cooldowns.
+        Returns list of newly stored discoveries (may be empty if budget exhausted)."""
         summaries = self.db.get_daily_summaries(days=90)
         if len(summaries) < 7:
             return []
 
-        discoveries = []
-        existing = {e['pattern_type'] for e in self.db.get_echoes(limit=200)}
+        # ── Early exit if global daily cap already reached ────────────────────
+        today_count = self.db.get_echoes_today_count()
+        if today_count >= DAILY_CAP:
+            return []
 
-        # Collect candidates from all detectors
+        # ── Collect candidates from all detectors ─────────────────────────────
         all_candidates = []
         all_candidates.extend(self._detect_day_of_week(summaries))        # 1. Day-of-week
         all_candidates.extend(self._detect_trends(summaries))              # 2. Trends
@@ -36,15 +77,114 @@ class PatternDetector:
         all_candidates.extend(self._detect_anomalies(summaries))           # 9. Eureka: Anomaly detection
         all_candidates.extend(self._detect_back_to_back_meetings())        # 10. Eureka: Back-to-back meetings
 
-        # Filter to only new discoveries
+        # ── Annotate with tier and base ───────────────────────────────────────
         for p in all_candidates:
-            if p['pattern_type'] not in existing:
-                discoveries.append(p)
+            base = self._get_pattern_base(p['pattern_type'])
+            p['_base'] = base
+            p['tier'] = self._get_pattern_tier(base)
+            p['_is_alert'] = base in _ALERT_BASES
 
-        # Batch-insert all new echoes in a single transaction
+        # ── Filter 1: deduplicate by exact pattern_type (all-time) ────────────
+        existing_types = {e['pattern_type'] for e in self.db.get_echoes(limit=500)}
+        new_candidates = [p for p in all_candidates if p['pattern_type'] not in existing_types]
+
+        # ── Filter 2: 7-day cooldown per pattern base ─────────────────────────
+        today = date.today()
+        eligible = []
+        for p in new_candidates:
+            base = p['_base']
+            if base == 'milestone':
+                # Each milestone is unique — no cooldown needed
+                eligible.append(p)
+                continue
+            last_seen = self.db.get_echo_last_seen(base)
+            if last_seen is None:
+                eligible.append(p)
+            elif (today - date.fromisoformat(last_seen[:10])).days >= COOLDOWN_DAYS:
+                eligible.append(p)
+
+        # ── Prioritize: positive → eureka → standard ──────────────────────────
+        eligible.sort(key=lambda p: TIER_PRIORITY.get(p['tier'], 2))
+
+        # ── Apply tier and alert caps ─────────────────────────────────────────
+        today_by_tier = {
+            'positive': self.db.get_echoes_today_by_tier('positive'),
+            'eureka': self.db.get_echoes_today_by_tier('eureka'),
+            'standard': self.db.get_echoes_today_by_tier('standard'),
+        }
+
+        # Count today's alert echoes already in DB
+        today_iso = today.isoformat()
+        today_echoes = self.db.get_echoes(limit=100)
+        existing_alerts = sum(
+            1 for e in today_echoes
+            if e.get('discovered_at', '')[:10] == today_iso
+            and self._get_pattern_base(e['pattern_type']) in _ALERT_BASES
+        )
+
+        discoveries = []
+        current_total = today_count
+        current_by_tier = dict(today_by_tier)
+        current_alerts = existing_alerts
+
+        for p in eligible:
+            tier = p['tier']
+            is_alert = p['_is_alert']
+
+            if current_total >= DAILY_CAP:
+                break
+            if current_by_tier.get(tier, 0) >= TIER_CAPS.get(tier, 2):
+                continue
+            if is_alert and current_alerts >= 1:
+                continue
+
+            discoveries.append(p)
+            current_total += 1
+            current_by_tier[tier] = current_by_tier.get(tier, 0) + 1
+            if is_alert:
+                current_alerts += 1
+
+        # ── Batch-insert all discoveries in a single transaction ──────────────
         self.db.batch_add_echoes(discoveries)
 
         return discoveries
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_pattern_base(pattern_type: str) -> str:
+        """Extract the stable base prefix from a pattern type for cooldown/tier lookups.
+
+        Examples:
+          'trend_stress_down_90'         -> 'trend_stress_down'
+          'milestone_100_readings'       -> 'milestone'
+          'eureka_burnout_trajectory_4w' -> 'eureka_burnout_trajectory'
+          'eureka_anomaly_2026-03-08'    -> 'eureka_anomaly'
+          'dow_calmest'                  -> 'dow_calmest'
+        """
+        parts = pattern_type.split('_')
+        base_parts = []
+        for part in parts:
+            # Stop at numeric segments, week suffixes (e.g. '4w'), date strings, or 'readings'
+            if part == 'readings':
+                break
+            if part.isdigit():
+                break
+            if len(part) >= 2 and part[-1] == 'w' and part[:-1].isdigit():
+                break
+            if len(part) == 10 and part[4:5] == '-' and part[7:8] == '-':
+                break  # ISO date like 2026-03-08
+            base_parts.append(part)
+        return '_'.join(base_parts) if base_parts else pattern_type
+
+    @staticmethod
+    def _get_pattern_tier(pattern_base: str) -> str:
+        """Classify a pattern base into a budget tier."""
+        if pattern_base.startswith('eureka_'):
+            return 'eureka'
+        if pattern_base in _POSITIVE_BASES:
+            return 'positive'
+        return 'standard'
 
     def _detect_day_of_week(self, summaries: List[Dict]) -> List[Dict]:
         """Find which day of week is calmest/most stressed."""
@@ -72,8 +212,7 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'dow_calmest',
                     'message': f'{day_names[calmest_dow]}s are your calmest day (avg stress {avg_stress_by_dow[calmest_dow]:.0f} vs {avg_stress_by_dow[most_stressed_dow]:.0f} on {day_names[most_stressed_dow]}s)',
-                    'detail': f'Based on {len(summaries)} days of data',
-                    'tier': 'eureka',
+                    'detail': f'Based on {len(summaries)} days of data'
                 })
 
         # Find best mood day
@@ -252,15 +391,13 @@ class PatternDetector:
                     patterns.append({
                         'pattern_type': f'eureka_burnout_trajectory_{total_weeks}w',
                         'message': f'Your stress has been climbing ~{slope:.0f} points per week for {total_weeks} weeks. This is a burnout trajectory.',
-                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}',
-                        'tier': 'eureka',
+                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}'
                     })
                 elif slope <= -3:
                     patterns.append({
                         'pattern_type': f'eureka_recovery_trajectory_{len(weeks)}w',
                         'message': f'Great trend: your stress has been dropping ~{abs(slope):.0f} points per week for {len(weeks)} weeks.',
-                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}',
-                        'tier': 'eureka',
+                        'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}'
                     })
 
         return patterns
@@ -320,8 +457,7 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_recovery_speed',
                     'message': f'You recover from stress spikes faster in the {faster} (avg {max(am_avg, pm_avg):.0f} point drop vs {min(am_avg, pm_avg):.0f})',
-                    'detail': f'Based on {len(am_recoveries)} AM and {len(pm_recoveries)} PM stress peaks',
-                    'tier': 'eureka',
+                    'detail': f'Based on {len(am_recoveries)} AM and {len(pm_recoveries)} PM stress peaks'
                 })
 
         return patterns
@@ -365,8 +501,7 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_morning_state',
                     'message': f'Days you start calm have {pct}% lower peak stress ({calm_peak:.0f} vs {non_calm_peak:.0f})',
-                    'detail': f'Based on {len(calm_start_days)} calm-start vs {len(non_calm_start_days)} other days',
-                    'tier': 'eureka',
+                    'detail': f'Based on {len(calm_start_days)} calm-start vs {len(non_calm_start_days)} other days'
                 })
 
         return patterns
@@ -418,8 +553,7 @@ class PatternDetector:
                     patterns.append({
                         'pattern_type': f'eureka_anomaly_{today.isoformat()}',
                         'message': f"Today's stress ({today_stress:.0f}) is unusually {direction} compared to your typical {day_names[today_dow]}s (avg {hist_mean:.0f})",
-                        'detail': f'Z-score: {z:.1f} based on {len(same_dow)} previous {day_names[today_dow]}s',
-                        'tier': 'eureka',
+                        'detail': f'Z-score: {z:.1f} based on {len(same_dow)} previous {day_names[today_dow]}s'
                     })
 
         return patterns
@@ -479,8 +613,7 @@ class PatternDetector:
                 patterns.append({
                     'pattern_type': 'eureka_back_to_back',
                     'message': f'Back-to-back meetings raise your stress by {pct}% compared to spaced meetings ({avg_clustered:.0f} vs {avg_isolated:.0f})',
-                    'detail': f'Based on {len(clustered_stress)} clustered vs {len(isolated_stress)} isolated meeting readings',
-                    'tier': 'eureka',
+                    'detail': f'Based on {len(clustered_stress)} clustered vs {len(isolated_stress)} isolated meeting readings'
                 })
 
         return patterns

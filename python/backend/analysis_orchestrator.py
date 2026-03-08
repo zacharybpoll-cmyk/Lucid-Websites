@@ -481,6 +481,22 @@ class AnalysisOrchestrator:
                         self.db.update_reading_echo(reading_id, echo_text)
                         self._last_linguistic_echo = echo_text
                         logger.info(f"Linguistic echo: {echo_text[:80]}...")
+                        # Persist voice echo to echoes table (for badge + Echoes tab)
+                        # Cap: 1 voice echo per day (dedup by tier count, not text)
+                        try:
+                            voice_today = self.db.get_echoes_today_by_tier('voice')
+                            if voice_today < 1:
+                                self.db.add_echo_with_tier(
+                                    pattern_type='voice_echo',
+                                    message=echo_text,
+                                    detail=f"Reading #{reading_id}",
+                                    tier='voice'
+                                )
+                                logger.info("Voice echo persisted to echoes table")
+                            else:
+                                logger.debug("Voice echo suppressed: daily cap reached (1/day)")
+                        except (RuntimeError, ValueError, OSError) as ve:
+                            logger.warning(f"Voice echo persist failed (non-fatal): {ve}")
                 except Exception as e:
                     logger.warning(f"Echo generation failed (non-fatal): {e}")
 

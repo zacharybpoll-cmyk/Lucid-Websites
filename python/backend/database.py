@@ -1215,11 +1215,77 @@ class Database:
             """, [(e['pattern_type'], e['message'], e.get('detail'), now, e.get('tier', 'standard')) for e in echoes])
             self.conn.commit()
 
+    def add_echo_with_tier(self, pattern_type: str, message: str, detail: str = None, tier: str = 'standard'):
+        """Insert an echo with an explicit tier value (e.g. 'voice', 'standard', 'eureka')."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                INSERT INTO echoes (pattern_type, message, detail, discovered_at, seen, tier)
+                VALUES (?, ?, ?, ?, 0, ?)
+            """, (pattern_type, message, detail, datetime.now().isoformat(), tier))
+            self.conn.commit()
+
+    def get_voice_echoes_today(self, date_str: str) -> List[str]:
+        """Return today's voice-tier echo messages (for dedup)."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                SELECT message FROM echoes
+                WHERE tier = 'voice' AND discovered_at LIKE ?
+            """, (date_str + '%',))
+            return [row['message'] for row in cursor.fetchall()]
+
     def mark_echoes_seen(self):
         with self.lock:
             cursor = self.conn.cursor()
             cursor.execute("UPDATE echoes SET seen = 1 WHERE seen = 0")
             self.conn.commit()
+
+    def get_echoes_today_count(self) -> int:
+        """Return total number of echoes stored today."""
+        with self.lock:
+            today = date.today().isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM echoes WHERE discovered_at >= ?",
+                (today,)
+            )
+            return cursor.fetchone()['cnt']
+
+    def get_echoes_today_by_tier(self, tier: str) -> int:
+        """Return count of echoes stored today for a given tier."""
+        with self.lock:
+            today = date.today().isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM echoes WHERE discovered_at >= ? AND tier = ?",
+                (today, tier)
+            )
+            return cursor.fetchone()['cnt']
+
+    def get_echo_last_seen(self, pattern_prefix: str) -> Optional[str]:
+        """Return the most recent discovered_at for patterns matching the given prefix.
+        Used for 7-day cooldown checks. Returns None if never seen."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT MAX(discovered_at) as last FROM echoes WHERE pattern_type LIKE ?",
+                (f"{pattern_prefix}%",)
+            )
+            row = cursor.fetchone()
+            return row['last'] if row and row['last'] else None
+
+    def get_notification_count_today(self, notif_type: str) -> int:
+        """Return count of notifications of a given type sent today."""
+        with self.lock:
+            today = date.today().isoformat()
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "SELECT COUNT(*) as cnt FROM notification_log WHERE type = ? AND sent_at >= ?",
+                (notif_type, today)
+            )
+            row = cursor.fetchone()
+            return row['cnt'] if row else 0
 
     # ============ Compass Methods ============
 
