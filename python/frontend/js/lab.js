@@ -65,15 +65,15 @@ const labView = (() => {
         if (!container) return;
 
         container.innerHTML = `
-            <div class="lab-tabs" role="tablist" aria-label="Biomarker categories">
-                ${renderTabs()}
-            </div>
             <div class="lab-top-category-title" id="lab-category-title">${getCategoryTitle(_currentCat)}</div>
             <div class="lab-header">
                 <div class="lab-title">What Your Voice Reveals</div>
                 <div class="lab-subtitle">Every reading, every biomarker — your complete voice fingerprint.</div>
             </div>
             ${renderFingerprint(fpData)}
+            <div class="lab-tabs" role="tablist" aria-label="Biomarker categories">
+                ${renderTabs()}
+            </div>
             <div class="lab-cards-grid" id="lab-cards-grid" role="list">
                 ${renderCards(bioData, _currentCat)}
             </div>
@@ -610,11 +610,50 @@ const labView = (() => {
                     <div>${sanitizeHTML(sciSummary)}</div>
                     ${sciCitation ? `<div class="lab-science-citation">${sanitizeHTML(sciCitation)}</div>` : ''}
                 </div>
+                <button class="lab-trend-toggle" id="lab-trend-toggle" onclick="event.stopPropagation()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                    <span>Score over time</span>
+                </button>
+                <div class="lab-trend-section" id="lab-trend-section" style="display:none;">
+                    <div class="lab-trend-period-toggles">
+                        <button class="lab-trend-period active" data-days="30">30 Days</button>
+                        <button class="lab-trend-period" data-days="90">90 Days</button>
+                    </div>
+                    <div id="lab-trend-chart" style="width:100%;height:220px;"></div>
+                </div>
             </div>
         `;
 
         modal.addEventListener('click', () => closeBellCurve());
         document.body.appendChild(modal);
+
+        // Trend toggle button
+        const trendToggle = document.getElementById('lab-trend-toggle');
+        const trendSection = document.getElementById('lab-trend-section');
+        const bellContent = modal.querySelector('.lab-bell-content');
+        if (trendToggle && trendSection) {
+            trendToggle.addEventListener('click', () => {
+                const isHidden = trendSection.style.display === 'none';
+                trendSection.style.display = isHidden ? 'block' : 'none';
+                if (bellContent) {
+                    bellContent.style.maxWidth = isHidden ? '640px' : '480px';
+                }
+                if (isHidden) {
+                    _loadTrendChart(matchKey, 30, popMean);
+                }
+            });
+        }
+
+        // Period toggle buttons
+        modal.querySelectorAll('.lab-trend-period').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modal.querySelectorAll('.lab-trend-period').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const days = parseInt(btn.dataset.days, 10);
+                _loadTrendChart(matchKey, days, popMean);
+            });
+        });
 
         // Escape key handler
         const escHandler = (e) => {
@@ -774,11 +813,111 @@ const labView = (() => {
         }
     }
 
+    async function _loadTrendChart(column, days, populationMean) {
+        const chartEl = document.getElementById('lab-trend-chart');
+        if (!chartEl) return;
+
+        try {
+            const res = await fetch(`/api/lab/biomarker-history?column=${encodeURIComponent(column)}&days=${days}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            const dates = data.dates || [];
+            const values = data.daily_averages || [];
+
+            // Check for at least 2 non-null data points
+            const nonNull = values.filter(v => v !== null && v !== undefined);
+            if (nonNull.length < 2) {
+                chartEl.innerHTML = '<div class="lab-trend-empty">Not enough data yet.<br>Keep recording to see your trend.</div>';
+                chartEl.style.height = 'auto';
+                return;
+            }
+
+            chartEl.style.height = '220px';
+            chartEl.innerHTML = '';
+
+            const isNight = document.documentElement.getAttribute('data-theme') === 'night';
+            const textColor = isNight ? 'rgba(255,255,255,0.5)' : '#8C96A0';
+            const gridColor = isNight ? 'rgba(255,255,255,0.06)' : '#f0f2f4';
+            const bgColor = isNight ? '#0c141c' : 'white';
+
+            const traces = [{
+                x: dates,
+                y: values,
+                type: 'scatter',
+                mode: 'lines+markers',
+                line: { shape: 'spline', color: '#5B8DB8', width: 2 },
+                marker: { size: 5, color: '#5B8DB8' },
+                name: 'Your score',
+                connectgaps: false,
+            }];
+
+            const shapes = [];
+            const annotations = [];
+
+            if (populationMean !== null && populationMean !== undefined && !isNaN(populationMean)) {
+                shapes.push({
+                    type: 'line',
+                    x0: dates[0],
+                    x1: dates[dates.length - 1],
+                    y0: populationMean,
+                    y1: populationMean,
+                    line: { color: '#8C96A0', width: 1.5, dash: 'dash' },
+                });
+                annotations.push({
+                    x: dates[dates.length - 1],
+                    y: populationMean,
+                    text: 'Pop. avg',
+                    showarrow: false,
+                    xanchor: 'left',
+                    xshift: 6,
+                    font: { size: 10, color: textColor },
+                });
+            }
+
+            const layout = {
+                paper_bgcolor: bgColor,
+                plot_bgcolor: bgColor,
+                margin: { l: 40, r: 55, t: 10, b: 30 },
+                xaxis: {
+                    type: 'date',
+                    tickfont: { size: 10, color: textColor },
+                    gridcolor: gridColor,
+                    linecolor: gridColor,
+                    tickformat: '%b %d',
+                    nticks: 6,
+                },
+                yaxis: {
+                    tickfont: { size: 10, color: textColor },
+                    gridcolor: gridColor,
+                    linecolor: gridColor,
+                },
+                shapes,
+                annotations,
+                showlegend: false,
+            };
+
+            Plotly.newPlot(chartEl, traces, layout, {
+                displayModeBar: false,
+                responsive: true,
+            });
+        } catch (err) {
+            console.warn('[lab] Failed to load trend chart:', err);
+            chartEl.innerHTML = '<div class="lab-trend-empty">Failed to load trend data.</div>';
+            chartEl.style.height = 'auto';
+        }
+    }
+
     function closeBellCurve() {
         const modal = document.getElementById('lab-bell-modal');
         if (modal) {
             if (modal._escHandler) {
                 document.removeEventListener('keydown', modal._escHandler);
+            }
+            // Purge Plotly chart to prevent memory leaks
+            const trendChart = document.getElementById('lab-trend-chart');
+            if (trendChart && typeof Plotly !== 'undefined') {
+                try { Plotly.purge(trendChart); } catch (_) {}
             }
             modal.remove();
         }
