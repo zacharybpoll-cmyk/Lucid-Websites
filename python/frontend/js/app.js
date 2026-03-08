@@ -1813,13 +1813,30 @@ function initEchoDropOverlay() {
 }
 
 // Render a single echo item with tier-aware icon
-function renderEchoItem(echo) {
+function renderEchoItem(echo, variant) {
     const dateStr = new Date(echo.discovered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     const tierClass = echo.tier === 'eureka' ? ' echo-eureka' : (echo.tier === 'voice' ? ' echo-voice' : '');
     const newClass = echo.seen ? '' : ' echo-new';
     let icon = '\u25cf'; // standard dot
     if (echo.tier === 'eureka') icon = '\u2728'; // sparkle
     else if (echo.tier === 'voice') icon = '\ud83c\udfa4'; // microphone
+    else if (echo.tier === 'milestone') icon = '\u25cf'; // dot for milestone
+
+    // Pattern card variant: type label above bold message
+    if (variant === 'pattern') {
+        const typeLabel = echo.tier === 'eureka' ? 'Eureka' : (echo.tier === 'milestone' ? 'Milestone' : 'Pattern');
+        return `
+        <div class="echo-item${newClass}${tierClass}">
+            <span class="echo-icon">${icon}</span>
+            <div class="echo-content">
+                <div class="echo-type-label">${typeLabel}</div>
+                <span class="echo-message">${sanitizeHTML(echo.message)}</span>
+                <span class="echo-date">${dateStr}</span>
+            </div>
+        </div>`;
+    }
+
+    // Voice echo variant: message + date on same line
     return `
         <div class="echo-item${newClass}${tierClass}">
             <span class="echo-icon">${icon}</span>
@@ -1830,12 +1847,15 @@ function renderEchoItem(echo) {
         </div>`;
 }
 
-// Load full echoes list into #echoes-list-container (split by tier)
+// Load full echoes list into #echoes-list-container (60/40 two-column layout)
 async function loadEchoesListView() {
     const container = document.getElementById('echoes-list-container');
     if (!container) return;
     try {
-        const data = await API.getEchoes();
+        const [data, progressData] = await Promise.all([
+            API.getEchoes(),
+            API.getEchoProgress().catch(() => null)
+        ]);
         if (!data.echoes || data.echoes.length === 0) {
             container.innerHTML = '<div class="echoes-empty">Echoes surface recurring patterns in your voice data \u2014 like stress spikes on certain days or calm streaks. They appear after 7+ days of readings.</div>';
             return;
@@ -1844,23 +1864,42 @@ async function loadEchoesListView() {
         const voiceEchoes = data.echoes.filter(e => e.tier === 'voice');
         const patternEchoes = data.echoes.filter(e => e.tier !== 'voice');
 
-        let html = '';
-
+        // Left column: Voice Echoes
+        let leftHtml = '<div class="echoes-column-left">';
+        leftHtml += '<div class="echoes-section-header">Voice Echoes</div>';
         if (voiceEchoes.length > 0) {
-            html += '<div class="echoes-section-header">Voice Echoes</div>';
             for (const echo of voiceEchoes) {
-                html += renderEchoItem(echo);
+                leftHtml += renderEchoItem(echo, 'voice');
             }
+        } else {
+            leftHtml += '<div class="echoes-empty" style="font-size:13px;color:#5a6270;">No voice echoes yet. Keep recording to surface insights.</div>';
         }
+        leftHtml += '</div>';
 
+        // Right column: Patterns
+        let rightHtml = '<div class="echoes-column-right">';
+        rightHtml += '<div class="echoes-section-header">Patterns</div>';
         if (patternEchoes.length > 0) {
-            html += '<div class="echoes-section-header">Patterns</div>';
-            for (const echo of patternEchoes) {
-                html += renderEchoItem(echo);
+            // Sort: eureka first, then milestone, then standard
+            const tierOrder = { eureka: 0, milestone: 1 };
+            const sorted = [...patternEchoes].sort((a, b) => (tierOrder[a.tier] ?? 2) - (tierOrder[b.tier] ?? 2));
+            for (const echo of sorted) {
+                rightHtml += renderEchoItem(echo, 'pattern');
             }
+        } else {
+            rightHtml += '<div class="echoes-empty" style="font-size:13px;color:#5a6270;">Patterns emerge after consistent recordings over time.</div>';
         }
 
-        container.innerHTML = html;
+        // Progress teaser
+        if (progressData && progressData.sessions_until_next_echo > 0) {
+            rightHtml += `<div class="echoes-progress-teaser"><strong>${progressData.sessions_until_next_echo}</strong> more sessions until next pattern</div>`;
+        } else if (progressData && progressData.pattern_hint) {
+            rightHtml += `<div class="echoes-progress-teaser">Analyzing <strong>${sanitizeHTML(progressData.pattern_hint)}</strong> for new patterns</div>`;
+        }
+
+        rightHtml += '</div>';
+
+        container.innerHTML = leftHtml + rightHtml;
     } catch (e) {
         container.innerHTML = '<div class="echoes-empty">Unable to load echoes.</div>';
     }

@@ -2666,12 +2666,155 @@
 
 #echoes-list-container {
     padding: 0 24px 24px;
+    display: grid;
+    grid-template-columns: 3fr 2fr;
+    gap: 0;
+    min-height: 0;
+}
+
+/* Left column: scrollable voice echoes */
+.echoes-column-left {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    padding-right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Right column: sticky patterns panel */
+.echoes-column-right {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    border-left: 1px solid var(--void-light, #e4e8ec);
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+}
+
+/* Responsive: stack vertically on narrow screens */
+@media (max-width: 768px) {
+    #echoes-list-container {
+        grid-template-columns: 1fr;
+    }
+    .echoes-column-left {
+        max-height: none;
+        padding-right: 0;
+        margin-bottom: 16px;
+    }
+    .echoes-column-right {
+        position: static;
+        border-left: none;
+        border-top: 1px solid var(--void-light, #e4e8ec);
+        padding-left: 0;
+        padding-top: 16px;
+        max-height: none;
+    }
+}
+
+/* Voice echo compact card: message + date on one line */
+.echo-item.echo-voice .echo-content {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.echo-item.echo-voice .echo-message {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.echo-item.echo-voice .echo-date {
+    flex-shrink: 0;
+    white-space: nowrap;
+    min-width: 50px;
+    text-align: right;
 }
 
 /* Eureka echo item variant */
 .echo-item.echo-eureka {
-    border-left: 2px solid #E8A820;
+    border-left: 3px solid #E8A820;
     background: rgba(232, 168, 32, 0.04);
+    padding: 16px 18px;
+}
+
+.echo-item.echo-eureka .echo-message {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+/* Voice echo item variant */
+.echo-item.echo-voice {
+    border-left: 2px solid var(--steel, #5B8DB8);
+    background: rgba(91, 141, 184, 0.04);
+}
+
+/* Pattern cards in right column: more visual weight */
+.echoes-column-right .echo-item {
+    padding: 16px 18px;
+}
+
+.echoes-column-right .echo-item .echo-message {
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Pattern type label above message */
+.echo-type-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #E8A820;
+    margin-bottom: 2px;
+}
+
+/* Milestone card variant */
+.echo-item.echo-milestone {
+    border-left: 3px solid #E8A820;
+    background: rgba(232, 168, 32, 0.03);
+}
+
+/* Progress teaser bar at bottom of right column */
+.echoes-progress-teaser {
+    background: rgba(232, 168, 32, 0.08);
+    border: 1px solid rgba(232, 168, 32, 0.2);
+    border-radius: var(--radius-lg, 12px);
+    padding: 14px 16px;
+    font-size: 12px;
+    color: var(--text-secondary, #5a6270);
+    text-align: center;
+    margin-top: 4px;
+}
+
+.echoes-progress-teaser strong {
+    color: var(--text-primary, #1a1d21);
+}
+
+/* Echoes section headers (Voice Echoes / Patterns) */
+.echoes-section-header {
+    font-family: var(--font-body, 'Inter', sans-serif);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted, #5a6270);
+    padding: 0 0 6px;
+    margin: 0;
+}
+
+/* Empty state spans full width */
+#echoes-list-container .echoes-empty {
+    grid-column: 1 / -1;
 }
 
 /* Anticipation Teaser Card (Trends view) */
