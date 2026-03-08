@@ -198,7 +198,7 @@ async def get_briefing(type: str = "morning", force: bool = False):
             yesterday_readings = deps.db.get_readings_for_date(yesterday)
             content = await _safe_insight_call(
                 deps.insight_engine.generate_morning_briefing,
-                yesterday_str, yesterday_readings, yesterday_summary
+                yesterday_str, yesterday_readings, yesterday_summary, deps.db
             )
         else:  # evening
             today_summary = deps.db.compute_daily_summary()
@@ -266,7 +266,7 @@ async def get_morning_summary():
             yesterday_summary = deps.db.get_summary_for_date(yesterday)
             yesterday_readings = deps.db.get_readings_for_date(yesterday)
             briefing_data = await deps.insight_engine.generate_morning_briefing(
-                yesterday_str, yesterday_readings, yesterday_summary
+                yesterday_str, yesterday_readings, yesterday_summary, db=deps.db
             )
             if isinstance(briefing_data, dict) and briefing_data.get('has_data'):
                 deps.db.insert_briefing(today_str, 'morning', json.dumps(briefing_data))

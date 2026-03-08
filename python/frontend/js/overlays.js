@@ -205,10 +205,9 @@
 
         if (wellness && wellness.has_data) {
             animateMorningScore(scoreEl, wellness.score, 2500);
-            let verdict = 'Needs Attention';
-            if (wellness.score >= 80) verdict = 'Excellent';
-            else if (wellness.score >= 65) verdict = 'Good';
-            else if (wellness.score >= 50) verdict = 'Fair';
+            let verdict = 'Pay Attention';
+            if (wellness.score >= 85) verdict = 'Optimal';
+            else if (wellness.score >= 70) verdict = 'Good';
             verdictEl.textContent = verdict;
         } else {
             scoreEl.textContent = '--';

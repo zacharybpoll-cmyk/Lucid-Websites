@@ -206,7 +206,7 @@ class InsightEngine:
 
         return f"{observation} {tip}"
 
-    async def generate_morning_briefing(self, yesterday_date: str, readings: List[Dict], summary: Optional[Dict]) -> Dict[str, Any]:
+    async def generate_morning_briefing(self, yesterday_date: str, readings: List[Dict], summary: Optional[Dict], db=None) -> Dict[str, Any]:
         """
         Generate a structured morning briefing from yesterday's data.
         Returns a rich dict with structured morning briefing data.
@@ -232,16 +232,14 @@ class InsightEngine:
         total_meetings = summary.get('total_meetings', 0) or 0
 
         # --- Overall mental health score (0-100) — aligned with Wellness formula ---
-        score = self._compute_wellness_components(summary)
+        score = self._compute_wellness_components(summary, db=db)
 
         if score >= 85:
             score_label = "Optimal"
         elif score >= 70:
             score_label = "Good"
-        elif score >= 55:
-            score_label = "Fair"
         else:
-            score_label = "Needs Attention"
+            score_label = "Pay Attention"
 
         # --- Interpretation helpers ---
         def interp_stress(v):
@@ -469,36 +467,108 @@ class InsightEngine:
 
     # ============ Wellness Score (Feature #1) ============
 
-    def _compute_wellness_components(self, s: Dict) -> float:
+    def _get_daily_baselines(self, db) -> Dict[str, Dict[str, float]]:
+        """Compute per-component mean/std from last 30 daily summaries for z-score wellness."""
+        summaries = db.get_daily_summaries(days=30) if db else []
+
+        keys = ['avg_stress', 'avg_wellbeing', 'avg_activation', 'avg_calm',
+                'avg_depression_risk', 'avg_anxiety_risk', 'avg_emotional_stability']
+
+        baselines = {}
+        for key in keys:
+            vals = [s[key] for s in summaries if s.get(key) is not None]
+            if len(vals) >= 2:
+                mean = sum(vals) / len(vals)
+                std = (sum((v - mean) ** 2 for v in vals) / len(vals)) ** 0.5
+                baselines[key] = {'mean': mean, 'std': max(std, 1.0)}  # floor std at 1.0
+            else:
+                baselines[key] = None  # not enough data
+        return baselines
+
+    def _compute_wellness_components(self, s: Dict, db=None) -> float:
         """
-        Shared Wellness Score formula: 7 voice scores + recovery, weighted by validity.
-        Missing new scores (depression_risk, anxiety_risk, emotional_stability) get their
-        weight redistributed proportionally to the remaining components.
+        Oura-style Wellness Score: anchor at 80, adjust via z-score deviations.
+        Falls back to weighted-average + power curve when <7 daily summaries exist.
         Returns score in [0, 100].
         """
-        # Define components: (key, weight, inverted?)
+        # Extract raw values (None = missing)
+        raw = {}
+        raw['avg_stress'] = s.get('avg_stress')
+        raw['avg_wellbeing'] = s.get('avg_wellbeing') or s.get('avg_mood')
+        raw['avg_activation'] = s.get('avg_activation') or s.get('avg_energy')
+        raw['avg_calm'] = s.get('avg_calm')
+        raw['avg_depression_risk'] = s.get('avg_depression_risk')
+        raw['avg_anxiety_risk'] = s.get('avg_anxiety_risk')
+        raw['avg_emotional_stability'] = s.get('avg_emotional_stability')
+
+        # Check if we have enough history for z-score approach
+        summaries = db.get_daily_summaries(days=30) if db else []
+        use_zscore = len(summaries) >= 7
+
+        if not use_zscore:
+            return self._compute_wellness_legacy(s, raw)
+
+        # --- Oura-style z-score anchor ---
+        ANCHOR = 80
+
+        # Component sensitivities: how much 1 std deviation moves the score
+        # (db_key, sensitivity, inverted?)
         components = [
-            ('stress',              0.15, True),
-            ('wellbeing',           0.13, False),
-            ('depression_risk',     0.13, True),
-            ('activation',          0.13, False),
-            ('calm',                0.12, False),
-            ('anxiety_risk',        0.12, True),
-            ('emotional_stability', 0.12, False),
+            ('avg_stress',              1.5,  True),   # lower stress = better
+            ('avg_wellbeing',           1.2,  False),
+            ('avg_activation',          1.0,  False),
+            ('avg_calm',               1.2,  False),
+            ('avg_depression_risk',     0.8,  True),   # lower = better
+            ('avg_anxiety_risk',        0.8,  True),   # lower = better
+            ('avg_emotional_stability', 1.0,  False),
         ]
 
-        # Extract raw values (None = missing)
-        # Use `or` for fallbacks so 0/None values fall through to legacy keys
-        raw = {}
-        raw['stress'] = s.get('avg_stress')
-        raw['wellbeing'] = s.get('avg_wellbeing') or s.get('avg_mood')
-        raw['activation'] = s.get('avg_activation') or s.get('avg_energy')
-        raw['calm'] = s.get('avg_calm')
-        raw['depression_risk'] = s.get('avg_depression_risk')
-        raw['anxiety_risk'] = s.get('avg_anxiety_risk')
-        raw['emotional_stability'] = s.get('avg_emotional_stability')
+        baselines = self._get_daily_baselines(db)
 
-        # Recovery: calm-time ratio (always available from zone minutes)
+        total_adjustment = 0.0
+        components_used = 0
+        for key, sensitivity, inverted in components:
+            val = raw.get(key)
+            bl = baselines.get(key)
+            if val is None or bl is None:
+                continue
+
+            z = (val - bl['mean']) / bl['std']
+            if inverted:
+                z = -z  # lower stress → positive adjustment
+            total_adjustment += z * sensitivity
+            components_used += 1
+
+        # Scale adjustment: normalize by number of components so total impact
+        # is consistent regardless of how many components are available
+        if components_used > 0:
+            total_adjustment = total_adjustment / components_used * 4  # ~4 pts per std dev avg
+
+        # Recovery: calm + steady time ratio, ±2.5 pts max
+        calm_min = s.get('time_in_calm_min', 0) or 0
+        steady_min = s.get('time_in_steady_min', 0) or 0
+        total_min = (calm_min + steady_min
+                     + (s.get('time_in_tense_min', 0) or 0)
+                     + (s.get('time_in_stressed_min', 0) or 0))
+        recovery_pct = ((calm_min + steady_min * 0.5) / total_min * 100) if total_min > 0 else 50
+        recovery_adj = (recovery_pct - 50) / 50 * 2.5
+
+        score = ANCHOR + total_adjustment + recovery_adj
+        return max(0, min(100, round(score)))
+
+    def _compute_wellness_legacy(self, s: Dict, raw: Dict) -> float:
+        """Legacy wellness formula: weighted average + power curve. Used when <7 daily summaries."""
+        components = [
+            ('avg_stress',              0.15, True),
+            ('avg_wellbeing',           0.13, False),
+            ('avg_depression_risk',     0.13, True),
+            ('avg_activation',          0.13, False),
+            ('avg_calm',                0.12, False),
+            ('avg_anxiety_risk',        0.12, True),
+            ('avg_emotional_stability', 0.12, False),
+        ]
+
+        # Recovery
         calm_min = s.get('time_in_calm_min', 0) or 0
         total_min = (calm_min
                      + (s.get('time_in_steady_min', 0) or 0)
@@ -507,7 +577,6 @@ class InsightEngine:
         recovery = (calm_min / total_min * 100) if total_min > 0 else 50
         recovery_weight = 0.10
 
-        # Determine which voice components are present
         present = []
         missing_weight = 0.0
         for key, weight, inverted in components:
@@ -517,15 +586,12 @@ class InsightEngine:
             else:
                 missing_weight += weight
 
-        # Redistribute missing weight proportionally
         total_present_weight = sum(w for _, w, _ in present)
         if total_present_weight <= 0:
-            # No voice scores at all — return recovery only, scaled to 100
             return max(0, min(100, round(recovery)))
 
         redistribution_factor = (total_present_weight + missing_weight) / total_present_weight
 
-        # Compute weighted sum
         score = 0.0
         for key, weight, inverted in present:
             val = min(100, max(0, raw[key] or 0))
@@ -533,15 +599,9 @@ class InsightEngine:
                 val = 100 - val
             score += weight * redistribution_factor * val
 
-        # Add recovery
         score += recovery_weight * recovery
-
-        # Oura-style normalization: power curve maps raw average (~59) → ~75
-        # so a typical healthy user on a typical day lands in the "Good" zone.
-        # Bounds 0 and 100 are preserved. Great/terrible days compress naturally.
         score = max(0, min(100, score))
         score = round(100 * (score / 100) ** 0.55)
-
         return score
 
     def compute_wellness_score(self, db, yesterday_summary: Dict) -> Dict[str, Any]:
@@ -555,7 +615,7 @@ class InsightEngine:
         # Fixed weights — daily resilience + recovery score
         profile_name = 'Daily Wellness'
 
-        score = self._compute_wellness_components(yesterday_summary)
+        score = self._compute_wellness_components(yesterday_summary, db=db)
 
         # Store in DB
         db.set_wellness_score(today.isoformat(), score, dow, profile_name)
@@ -584,7 +644,7 @@ class InsightEngine:
         if not today_summary:
             return {'has_data': False, 'reading_count': reading_count, 'readings_needed': 0}
 
-        score = self._compute_wellness_components(today_summary)
+        score = self._compute_wellness_components(today_summary, db=db)
 
         return {
             'score': score,

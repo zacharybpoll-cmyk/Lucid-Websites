@@ -587,7 +587,7 @@ class ScoreEngine:
                 return 'tense'
             elif anxiety_mapped >= 7 or stress_score > 55:
                 return 'steady'  # Escalated single-signal → steady (not tense)
-            elif calm_score >= 62 and stress_score < 45:
+            elif calm_score >= 57 and stress_score < 45:
                 return 'calm'
             else:
                 return 'steady'
@@ -599,7 +599,7 @@ class ScoreEngine:
                 return 'tense'  # Single signal elevated → tense (not stressed)
             elif anxiety_mapped >= 5 and stress_score > 35:
                 return 'tense'
-            elif calm_score >= 57 and stress_score < 45:
+            elif calm_score >= 52 and stress_score < 45:
                 return 'calm'
             else:
                 return 'steady'
