@@ -85,6 +85,7 @@ async def get_today():
             'score_inconsistency': latest.get('score_inconsistency', 0),
             'vad_confidence': latest.get('vad_confidence'),
             'low_confidence': latest.get('low_confidence', 0),
+            'linguistic_echo': latest.get('linguistic_echo'),
         }
 
     # Get daily summary (cached if reading count unchanged)

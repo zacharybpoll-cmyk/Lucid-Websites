@@ -23,7 +23,7 @@
 /* Track selection cards */
 .clarity-tracks-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 20px;
 }
 
@@ -34,7 +34,7 @@
     padding: 24px 20px;
     text-align: center;
     transition: border-color 0.2s, box-shadow 0.2s;
-    overflow: visible;
+    overflow: hidden;
 }
 
 .clarity-track-card:hover {
@@ -75,7 +75,7 @@
 }
 
 .clarity-score-value {
-    font-size: 1.6rem;
+    font-size: min(1.6rem, 28px);
     font-weight: 600;
     color: #8C96A0;
 }
@@ -85,6 +85,7 @@
     align-items: center;
     gap: 8px;
     margin-bottom: 16px;
+    min-width: 0;
 }
 
 .clarity-target-row label {
@@ -99,6 +100,7 @@
     flex: 1;
     accent-color: #8C96A0;
     height: 4px;
+    min-width: 0;
 }
 
 .clarity-target-display {
@@ -387,6 +389,13 @@
 
 .clarity-widget-progress strong {
     color: #8C96A0;
+}
+
+/* Mobile fallback */
+@media (max-width: 520px) {
+    .clarity-tracks-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Dark theme support */

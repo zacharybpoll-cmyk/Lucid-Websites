@@ -3053,3 +3053,49 @@ body {
     background: rgba(168, 192, 208, 0.18);
     border-color: rgba(168, 192, 208, 0.4);
 }
+
+/* ========== Linguistic Echo Toast ========== */
+.linguistic-echo-toast {
+    position: fixed;
+    bottom: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 340px;
+    width: calc(100% - 32px);
+    background: var(--void, #f8f9fa);
+    border-left: 3px solid var(--steel, #5B8DB8);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    z-index: 9000;
+    transition: bottom 0.4s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+    opacity: 0;
+    cursor: pointer;
+    font-family: var(--font-body);
+}
+.linguistic-echo-toast.echo-visible {
+    bottom: 24px;
+    opacity: 1;
+}
+.echo-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--steel, #5B8DB8);
+    margin-bottom: 6px;
+}
+.echo-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-secondary, #5a6270);
+}
+
+/* Night mode */
+[data-theme="night"] .linguistic-echo-toast {
+    background: rgba(13, 21, 32, 0.85);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+[data-theme="night"] .echo-text {
+    color: var(--steel-light, #a8c0d0);
+}

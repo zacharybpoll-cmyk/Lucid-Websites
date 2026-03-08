@@ -618,6 +618,7 @@ const labView = (() => {
                     <div class="lab-trend-period-toggles">
                         <button class="lab-trend-period active" data-days="30">30 Days</button>
                         <button class="lab-trend-period" data-days="90">90 Days</button>
+                        <button class="lab-trend-period" data-days="365">All Time</button>
                     </div>
                     <div id="lab-trend-chart" style="width:100%;height:220px;"></div>
                 </div>
@@ -639,7 +640,7 @@ const labView = (() => {
                     bellContent.style.maxWidth = isHidden ? '640px' : '480px';
                 }
                 if (isHidden) {
-                    _loadTrendChart(matchKey, 30, popMean);
+                    _loadTrendChart(matchKey, 30);
                 }
             });
         }
@@ -651,7 +652,7 @@ const labView = (() => {
                 modal.querySelectorAll('.lab-trend-period').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 const days = parseInt(btn.dataset.days, 10);
-                _loadTrendChart(matchKey, days, popMean);
+                _loadTrendChart(matchKey, days);
             });
         });
 
@@ -813,7 +814,26 @@ const labView = (() => {
         }
     }
 
-    async function _loadTrendChart(column, days, populationMean) {
+    function _computeRollingStats(values, windowSize) {
+        const rollingAvg = new Array(values.length).fill(null);
+        const rollingStd = new Array(values.length).fill(null);
+        for (let i = 0; i < values.length; i++) {
+            const windowVals = [];
+            for (let j = Math.max(0, i - windowSize + 1); j <= i; j++) {
+                if (values[j] !== null && values[j] !== undefined) {
+                    windowVals.push(values[j]);
+                }
+            }
+            if (windowVals.length < 2) continue;
+            const mean = windowVals.reduce((a, b) => a + b, 0) / windowVals.length;
+            const variance = windowVals.reduce((sum, v) => sum + (v - mean) ** 2, 0) / windowVals.length;
+            rollingAvg[i] = mean;
+            rollingStd[i] = Math.sqrt(variance);
+        }
+        return { rollingAvg, rollingStd };
+    }
+
+    async function _loadTrendChart(column, days) {
         const chartEl = document.getElementById('lab-trend-chart');
         if (!chartEl) return;
 
@@ -840,40 +860,60 @@ const labView = (() => {
             const textColor = isNight ? 'rgba(255,255,255,0.5)' : '#8C96A0';
             const gridColor = isNight ? 'rgba(255,255,255,0.06)' : '#f0f2f4';
             const bgColor = isNight ? '#0c141c' : 'white';
+            const bandColor = isNight ? 'rgba(91,141,184,0.12)' : 'rgba(91,141,184,0.08)';
 
-            const traces = [{
-                x: dates,
-                y: values,
-                type: 'scatter',
-                mode: 'lines+markers',
-                line: { shape: 'spline', color: '#5B8DB8', width: 2 },
-                marker: { size: 5, color: '#5B8DB8' },
-                name: 'Your score',
-                connectgaps: false,
-            }];
+            // Compute 7-day rolling baseline and variability band
+            const { rollingAvg, rollingStd } = _computeRollingStats(values, 7);
+            const upperBand = rollingAvg.map((avg, i) => avg !== null && rollingStd[i] !== null ? avg + rollingStd[i] : null);
+            const lowerBand = rollingAvg.map((avg, i) => avg !== null && rollingStd[i] !== null ? avg - rollingStd[i] : null);
 
-            const shapes = [];
-            const annotations = [];
-
-            if (populationMean !== null && populationMean !== undefined && !isNaN(populationMean)) {
-                shapes.push({
-                    type: 'line',
-                    x0: dates[0],
-                    x1: dates[dates.length - 1],
-                    y0: populationMean,
-                    y1: populationMean,
-                    line: { color: '#8C96A0', width: 1.5, dash: 'dash' },
-                });
-                annotations.push({
-                    x: dates[dates.length - 1],
-                    y: populationMean,
-                    text: 'Pop. avg',
-                    showarrow: false,
-                    xanchor: 'left',
-                    xshift: 6,
-                    font: { size: 10, color: textColor },
-                });
-            }
+            const traces = [
+                // 1. Upper band boundary (invisible anchor for fill)
+                {
+                    x: dates,
+                    y: upperBand,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 0 },
+                    showlegend: false,
+                    hoverinfo: 'skip',
+                    connectgaps: false,
+                },
+                // 2. Lower band boundary (fills to upper)
+                {
+                    x: dates,
+                    y: lowerBand,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { width: 0 },
+                    fill: 'tonexty',
+                    fillcolor: bandColor,
+                    showlegend: false,
+                    hoverinfo: 'skip',
+                    connectgaps: false,
+                },
+                // 3. Personal baseline (7-day rolling avg)
+                {
+                    x: dates,
+                    y: rollingAvg,
+                    type: 'scatter',
+                    mode: 'lines',
+                    line: { shape: 'spline', color: '#7BA7C9', width: 1.5, dash: 'dash' },
+                    name: 'Your baseline',
+                    connectgaps: false,
+                },
+                // 4. Daily values (on top)
+                {
+                    x: dates,
+                    y: values,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { shape: 'spline', color: '#5B8DB8', width: 2 },
+                    marker: { size: 5, color: '#5B8DB8' },
+                    name: 'Your score',
+                    connectgaps: false,
+                },
+            ];
 
             const layout = {
                 paper_bgcolor: bgColor,
@@ -892,8 +932,6 @@ const labView = (() => {
                     gridcolor: gridColor,
                     linecolor: gridColor,
                 },
-                shapes,
-                annotations,
                 showlegend: false,
             };
 

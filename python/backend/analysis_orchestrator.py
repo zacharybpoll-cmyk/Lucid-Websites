@@ -19,6 +19,7 @@ from backend.audio_capture import AudioCapture
 from backend.speech_buffer import SpeechBuffer
 from backend.acoustic_features import AcousticFeatureExtractor
 from backend.linguistic_features import extract_linguistic_features
+from backend.linguistic_echo_generator import LinguisticEchoGenerator
 from backend.score_engine import ScoreEngine
 from backend.baseline_calibrator import BaselineCalibrator
 from backend.database import Database
@@ -470,6 +471,18 @@ class AnalysisOrchestrator:
 
             # Update baselines (for calibration)
             self.calibrator.update_baselines()
+
+            # Generate linguistic echo
+            if linguistic_status == 'ok':
+                try:
+                    echo_gen = LinguisticEchoGenerator()
+                    echo_text = echo_gen.generate_echo(linguistic_features, self.calibrator)
+                    if echo_text:
+                        self.db.update_reading_echo(reading_id, echo_text)
+                        self._last_linguistic_echo = echo_text
+                        logger.info(f"Linguistic echo: {echo_text[:80]}...")
+                except Exception as e:
+                    logger.warning(f"Echo generation failed (non-fatal): {e}")
 
             # Compute daily summary
             self.db.compute_daily_summary()

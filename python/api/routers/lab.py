@@ -223,6 +223,51 @@ async def get_biomarkers():
     }
 
 
+@router.get("/biomarker-history")
+async def get_biomarker_history(column: str = "stress_score", days: int = 30):
+    """
+    Return daily averages for a single biomarker over a given period.
+    Used by the trend chart in the bell curve modal.
+    """
+    if deps.db is None:
+        raise DatabaseNotReady()
+
+    # Validate column against whitelist (prevents SQL injection)
+    if column not in _LAB_COLUMNS:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=400, content={"error": f"Invalid column: {column}"})
+
+    # Cap days to 365
+    days = max(1, min(365, days))
+
+    try:
+        with deps.db.lock:
+            cursor = deps.db.conn.cursor()
+            cursor.execute(
+                f"""
+                SELECT timestamp, {column}
+                FROM readings
+                WHERE timestamp > datetime('now', '-{days} days')
+                ORDER BY timestamp DESC
+                """,
+            )
+            rows = _rows_to_dicts(cursor.fetchall())
+    except Exception as exc:
+        logger.error("Lab /biomarker-history DB query failed: %s", exc)
+        rows = []
+
+    daily_averages = _compute_sparkline(rows, column, days=days)
+    today = datetime.utcnow().date()
+    dates = [(today - timedelta(days=days - 1 - i)).isoformat() for i in range(days)]
+
+    return {
+        "column": column,
+        "days": days,
+        "daily_averages": daily_averages,
+        "dates": dates,
+    }
+
+
 @router.get("/fingerprint")
 async def get_fingerprint():
     """

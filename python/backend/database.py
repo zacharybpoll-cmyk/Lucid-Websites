@@ -416,6 +416,8 @@ class Database:
             ("daily_summaries", "avg_emotional_stability", "REAL"),
             # Echo Drop: tier column for eureka distinction
             ("echoes", "tier", "TEXT DEFAULT 'standard'"),
+            # Linguistic Echo: post-recording insight callout
+            ("readings", "linguistic_echo", "TEXT"),
         ]
         for table, col, coltype in migrate_columns:
             try:
@@ -903,6 +905,16 @@ class Database:
                 ORDER BY date DESC
             """, (start_date,))
             return [dict(row) for row in cursor.fetchall()]
+
+    def update_reading_echo(self, reading_id: int, echo_text: str):
+        """Store linguistic echo text for a reading."""
+        with self.lock:
+            cursor = self.conn.cursor()
+            cursor.execute(
+                "UPDATE readings SET linguistic_echo = ? WHERE id = ?",
+                (echo_text, reading_id)
+            )
+            self.conn.commit()
 
     def update_baseline(self, metric: str, mean: float, std: float, samples: int):
         """Update personal baseline for a metric"""

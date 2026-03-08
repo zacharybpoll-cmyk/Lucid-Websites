@@ -93,6 +93,9 @@ window.AppState = {
     // Sanctuary debounce
     lastSanctuaryTime: 0,
 
+    // Linguistic Echo
+    lastEchoReadingId: null,
+
     // Previous zone for transition detection
     previousZone: null,
 
@@ -1220,6 +1223,16 @@ async function loadTodayData() {
             }
         }
 
+        // Linguistic Echo — surface notable feature after recording
+        if (data.current_scores?.linguistic_echo) {
+            const latestId = data.readings?.[0]?.id;
+            if (latestId && latestId !== AppState.lastEchoReadingId) {
+                AppState.lastEchoReadingId = latestId;
+                const delay = (Date.now() - AppState.lastSanctuaryTime < 5000) ? 4000 : 500;
+                setTimeout(() => showLinguisticEcho(data.current_scores.linguistic_echo), delay);
+            }
+        }
+
         // Throttle expensive updates
         const now = Date.now();
         if (now - AppState.lastBriefingUpdate > 300000) {
@@ -2042,6 +2055,39 @@ function triggerSanctuary(type, message) {
         overlay.style.display = 'none';
         if (particles) particles.textContent = '';
     }, 3000);
+}
+
+// ========== Linguistic Echo (Post-Recording Insight) ==========
+
+function showLinguisticEcho(text) {
+    if (!text) return;
+
+    // Reuse or create toast element
+    let toast = document.getElementById('linguistic-echo-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'linguistic-echo-toast';
+        toast.className = 'linguistic-echo-toast';
+        toast.addEventListener('click', () => {
+            toast.classList.remove('echo-visible');
+        });
+        document.body.appendChild(toast);
+    }
+
+    toast.innerHTML = `
+        <div class="echo-label">VOICE ECHO</div>
+        <div class="echo-text">${text}</div>
+    `;
+
+    // Trigger slide-up
+    requestAnimationFrame(() => {
+        toast.classList.add('echo-visible');
+    });
+
+    // Auto-dismiss after 8 seconds
+    setTimeout(() => {
+        toast.classList.remove('echo-visible');
+    }, 8000);
 }
 
 // ========== Load Heatmap Data ==========
