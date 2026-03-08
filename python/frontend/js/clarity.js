@@ -5,6 +5,30 @@
 const clarityView = (() => {
     let journeyData = null;
 
+    const TRACK_COLORS = {
+        calm: '#5B8DB8',
+        energy: '#D4944C',
+        stability: '#6B9080',
+    };
+
+    const TRACK_ICONS = {
+        calm: '🌊',
+        energy: '☀️',
+        stability: '⛰️',
+    };
+
+    const TRACK_DESCRIPTIONS = {
+        calm: 'Learn to quiet the noise. Daily micro-practices that measurably lower your stress signature.',
+        energy: 'Wake up your vitality. Science-backed routines that boost your energy and presence.',
+        stability: 'Steady yourself. Build the emotional foundation that carries you through anything.',
+    };
+
+    const TRACK_PREVIEW = {
+        calm: '12 weeks  •  5 min/day  •  Breathing, meditation & journaling',
+        energy: '12 weeks  •  5 min/day  •  Movement, breathwork & energy habits',
+        stability: '12 weeks  •  5 min/day  •  Mindfulness, journaling & grounding',
+    };
+
     async function load() {
         const container = document.getElementById('journey-view');
         if (!container) return;
@@ -38,30 +62,46 @@ const clarityView = (() => {
             console.error('Failed to load tracks:', e);
         }
 
+        // Find the lowest score for "Recommended" badge
+        const scores = tracks.map(t => t.current_score != null ? t.current_score : Infinity);
+        const minScore = Math.min(...scores);
+
         container.innerHTML = `
             <div class="clarity-track-selection">
                 <div class="clarity-header">
                     <h2>Clarity Journey</h2>
-                    <p class="clarity-subtitle">Choose your 12-week coaching track</p>
+                    <p class="clarity-subtitle">Your voice reveals more than words. Choose a 12-week path to strengthen what matters most.</p>
                 </div>
                 <div class="clarity-tracks-grid">
-                    ${tracks.map(t => `
-                        <div class="clarity-track-card" data-track="${t.key}">
-                            <div class="clarity-track-icon">${_trackIcon(t.key)}</div>
+                    ${tracks.map(t => {
+                        const color = TRACK_COLORS[t.key] || '#8C96A0';
+                        const icon = TRACK_ICONS[t.key] || '';
+                        const desc = TRACK_DESCRIPTIONS[t.key] || t.desc;
+                        const preview = TRACK_PREVIEW[t.key] || '';
+                        const isRecommended = t.current_score != null && t.current_score === minScore && minScore !== Infinity;
+                        const scoreVal = t.current_score != null ? Math.round(t.current_score) : null;
+                        return `
+                        <div class="clarity-track-card" data-track="${t.key}" style="--track-color: ${color}">
+                            ${isRecommended ? '<div class="clarity-recommended-badge">Recommended for you</div>' : ''}
+                            <div class="clarity-track-icon">${icon}</div>
                             <h3>${t.name}</h3>
-                            <p class="clarity-track-desc">${t.desc}</p>
+                            <p class="clarity-track-desc">${desc}</p>
                             <div class="clarity-track-score">
-                                <span class="clarity-score-label">Current</span>
-                                <span class="clarity-score-value">${t.current_score != null ? Math.round(t.current_score) : '--'}</span>
+                                <span class="clarity-score-label">Your Score</span>
+                                <div class="clarity-score-row">
+                                    <span class="clarity-score-value" style="color: ${color}">${scoreVal != null ? scoreVal : '--'}</span>
+                                    ${scoreVal != null ? `<div class="clarity-score-bar"><div class="clarity-score-bar-fill" style="width: ${scoreVal}%; background: ${color}"></div></div>` : ''}
+                                </div>
                             </div>
                             <div class="clarity-target-row">
-                                <label>Target</label>
-                                <input type="range" class="clarity-target-slider" min="30" max="95" value="${t.suggested_target}" data-track="${t.key}">
+                                <label>Your Goal</label>
+                                <input type="range" class="clarity-target-slider" min="30" max="95" value="${t.suggested_target}" data-track="${t.key}" style="--track-color: ${color}">
                                 <span class="clarity-target-display">${t.suggested_target}</span>
                             </div>
-                            <button class="clarity-begin-btn" data-track="${t.key}">Begin Journey</button>
+                            <div class="clarity-track-preview">${preview}</div>
+                            <button class="clarity-begin-btn" data-track="${t.key}" style="background: ${color}">Start ${t.name} Journey →</button>
                         </div>
-                    `).join('')}
+                    `;}).join('')}
                 </div>
             </div>
         `;
@@ -88,7 +128,8 @@ const clarityView = (() => {
                 } catch (err) {
                     console.error('Start journey failed:', err);
                     btn.disabled = false;
-                    btn.textContent = 'Begin Journey';
+                    const trackName = btn.closest('.clarity-track-card').querySelector('h3').textContent;
+                    btn.textContent = `Start ${trackName} Journey →`;
                 }
             });
         });
@@ -276,8 +317,8 @@ const clarityView = (() => {
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Actual',
-                    line: { color: '#8C96A0', width: 3 },
-                    marker: { size: 8, color: '#8C96A0' },
+                    line: { color: '#5B8DB8', width: 3 },
+                    marker: { size: 8, color: '#5B8DB8' },
                     connectgaps: false,
                 },
             ];
@@ -314,7 +355,7 @@ const clarityView = (() => {
     }
 
     function _trackIcon(track) {
-        return '';
+        return TRACK_ICONS[track] || '';
     }
 
     return { load, unload };
