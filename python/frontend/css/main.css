@@ -2910,7 +2910,7 @@ body {
     --card-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), 0 1px 4px rgba(0, 0, 0, 0.4);
     --text-primary: #e0eaf0;
     --text-secondary: #a0b8c8;
-    --text-muted: #5a7888;
+    --text-muted: #7a9aaa;
     --text-light: rgba(255, 255, 255, 0.95);
     --calm-color: #a8c0d0;
     --calm-light: rgba(168, 192, 208, 0.15);
@@ -2930,6 +2930,28 @@ body {
     --metbar-fill-start: rgba(100,140,165,0.5);
     --metbar-fill-end: #a8c0d0;
 }
+
+/* ============ Dark Mode Component Overrides ============ */
+
+[data-theme="night"] .briefing-score-badge {
+    background: rgba(12, 20, 28, 0.88);
+    border-color: rgba(168, 192, 208, 0.2);
+}
+[data-theme="night"] .briefing-score-number { color: #e0eaf0; }
+[data-theme="night"] .briefing-score-label { color: #a0b8c8; }
+
+[data-theme="night"] .briefing-activity {
+    background: rgba(12, 20, 28, 0.88);
+    border-color: rgba(168, 192, 208, 0.12);
+}
+
+[data-theme="night"] .morning-bar-item,
+[data-theme="night"] .morning-weather-content {
+    background: rgba(12, 20, 28, 0.88);
+    border-color: rgba(168, 192, 208, 0.12);
+}
+[data-theme="night"] .morning-bar-label { color: var(--text-secondary); }
+[data-theme="night"] .morning-weather-content { color: var(--text-primary); }
 
 [data-theme="night"] body {
     background-color: #000000;
