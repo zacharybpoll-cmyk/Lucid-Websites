@@ -34,15 +34,16 @@
     padding: 24px 20px;
     text-align: center;
     transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: visible;
 }
 
 .clarity-track-card:hover {
-    border-color: #5B8DB8;
-    box-shadow: 0 2px 12px rgba(91, 141, 184, 0.12);
+    border-color: #8C96A0;
+    box-shadow: 0 2px 12px rgba(140, 150, 160, 0.12);
 }
 
 .clarity-track-icon {
-    margin-bottom: 12px;
+    margin-bottom: 0;
 }
 
 .clarity-track-card h3 {
@@ -76,7 +77,7 @@
 .clarity-score-value {
     font-size: 1.6rem;
     font-weight: 600;
-    color: #5B8DB8;
+    color: #8C96A0;
 }
 
 .clarity-target-row {
@@ -91,12 +92,12 @@
     color: #5a6270;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    min-width: 40px;
+    min-width: 52px;
 }
 
 .clarity-target-slider {
     flex: 1;
-    accent-color: #5B8DB8;
+    accent-color: #8C96A0;
     height: 4px;
 }
 
@@ -104,12 +105,12 @@
     font-size: 1rem;
     font-weight: 600;
     color: #1a1d21;
-    min-width: 28px;
+    min-width: 36px;
     text-align: right;
 }
 
 .clarity-begin-btn {
-    background: #5B8DB8;
+    background: #8C96A0;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -122,7 +123,7 @@
 }
 
 .clarity-begin-btn:hover {
-    background: #4a7ca6;
+    background: #7a838c;
 }
 
 .clarity-begin-btn:disabled {
@@ -152,14 +153,14 @@
 }
 
 .clarity-week-dot.completed {
-    background: #5B8DB8;
+    background: #8C96A0;
     color: #fff;
 }
 
 .clarity-week-dot.current {
     background: #fff;
-    color: #5B8DB8;
-    border: 2px solid #5B8DB8;
+    color: #8C96A0;
+    border: 2px solid #8C96A0;
     font-weight: 700;
 }
 
@@ -206,8 +207,8 @@
 }
 
 .clarity-action-card.clarity-action-done {
-    border-color: #5B8DB8;
-    background: rgba(91, 141, 184, 0.04);
+    border-color: #8C96A0;
+    background: rgba(140, 150, 160, 0.04);
 }
 
 .clarity-action-card.clarity-action-empty {
@@ -219,7 +220,7 @@
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #5B8DB8;
+    color: #8C96A0;
     margin-bottom: 6px;
     font-weight: 600;
 }
@@ -249,7 +250,7 @@
 }
 
 .clarity-action-complete-btn {
-    background: #5B8DB8;
+    background: #8C96A0;
     color: #fff;
     border: none;
     border-radius: 6px;
@@ -260,11 +261,11 @@
 }
 
 .clarity-action-complete-btn:hover {
-    background: #4a7ca6;
+    background: #7a838c;
 }
 
 .clarity-action-status {
-    color: #5B8DB8;
+    color: #8C96A0;
     font-weight: 600;
     font-size: 0.85rem;
 }
@@ -283,8 +284,8 @@
 /* Check-in */
 .clarity-checkin-btn {
     background: transparent;
-    border: 1px solid #5B8DB8;
-    color: #5B8DB8;
+    border: 1px solid #8C96A0;
+    color: #8C96A0;
     border-radius: 8px;
     padding: 10px 20px;
     font-size: 0.9rem;
@@ -293,7 +294,7 @@
 }
 
 .clarity-checkin-btn:hover {
-    background: rgba(91, 141, 184, 0.08);
+    background: rgba(140, 150, 160, 0.08);
 }
 
 .clarity-checkin-btn:disabled {
@@ -350,7 +351,7 @@
 }
 
 .clarity-dashboard-widget:hover {
-    border-color: #5B8DB8;
+    border-color: #8C96A0;
 }
 
 .clarity-widget-header {
@@ -362,7 +363,7 @@
 
 .clarity-widget-track {
     font-size: 0.8rem;
-    color: #5B8DB8;
+    color: #8C96A0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -385,7 +386,7 @@
 }
 
 .clarity-widget-progress strong {
-    color: #5B8DB8;
+    color: #8C96A0;
 }
 
 /* Dark theme support */
@@ -397,7 +398,7 @@
 }
 
 [data-theme="dark"] .clarity-track-card:hover {
-    border-color: #5B8DB8;
+    border-color: #8C96A0;
 }
 
 [data-theme="dark"] .clarity-header h2,

@@ -102,7 +102,9 @@ class TrendsView {
             { key: 'avg_wellbeing', label: 'Wellbeing', color: '#5B8DB8', fallback: 'avg_mood' },
             { key: 'avg_activation', label: 'Activation', color: '#6a90a8', fallback: 'avg_energy' },
             { key: 'avg_calm', label: 'Calm', color: '#7a9eb8' },
-            { key: 'avg_emotional_stability', label: 'Stability', color: '#7B68EE' }
+            { key: 'avg_emotional_stability', label: 'Stability', color: '#7B68EE' },
+            { key: 'avg_depression', label: 'Depression', color: '#8B6E8B' },
+            { key: 'avg_anxiety', label: 'Anxiety', color: '#C4884E' }
         ];
 
         metrics.forEach(metric => {
@@ -182,6 +184,18 @@ class TrendsView {
                 { min: 25, max: 50, label: 'Variable', color: 'rgba(196,130,58,0.07)' },
                 { min: 50, max: 75, label: 'Steady', color: 'rgba(168,192,208,0.04)' },
                 { min: 75, max: 100, label: 'Stable', color: 'rgba(90,154,110,0.07)' }
+            ],
+            'avg_depression': [
+                { min: 0, max: 25, label: 'Low', color: 'rgba(90,154,110,0.07)' },
+                { min: 25, max: 50, label: 'Moderate', color: 'rgba(168,192,208,0.04)' },
+                { min: 50, max: 75, label: 'High', color: 'rgba(196,130,58,0.07)' },
+                { min: 75, max: 100, label: 'V. High', color: 'rgba(196,88,76,0.10)' }
+            ],
+            'avg_anxiety': [
+                { min: 0, max: 25, label: 'Low', color: 'rgba(90,154,110,0.07)' },
+                { min: 25, max: 50, label: 'Moderate', color: 'rgba(168,192,208,0.04)' },
+                { min: 50, max: 75, label: 'High', color: 'rgba(196,130,58,0.07)' },
+                { min: 75, max: 100, label: 'V. High', color: 'rgba(196,88,76,0.10)' }
             ]
         };
 

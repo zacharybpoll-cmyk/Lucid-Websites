@@ -974,11 +974,20 @@ function revealReadinessScore() {
         }
     }
 
-    // Animate arc (300ms)
-    const arc = document.getElementById('readiness-ring-arc');
-    if (arc) {
-        setTimeout(() => { arc.style.strokeDashoffset = 691.2 - (691.2 * target / 100); }, 300);
-    }
+    // Animate multi-ring arcs (staggered)
+    const ringDefs = [
+        { id: 'readiness-ring-1', circumference: 816.8, key: 'avg_emotional_stability' },
+        { id: 'readiness-ring-2', circumference: 722.6, key: 'avg_wellbeing' },
+        { id: 'readiness-ring-3', circumference: 628.3, key: 'avg_calm' },
+        { id: 'readiness-ring-4', circumference: 534.1, key: 'avg_activation' },
+    ];
+    ringDefs.forEach((ring, i) => {
+        const el = document.getElementById(ring.id);
+        if (!el) return;
+        const val = scores && scores[ring.key] != null ? scores[ring.key] : target;
+        const offset = ring.circumference - (ring.circumference * val / 100);
+        setTimeout(() => { el.style.strokeDashoffset = offset; }, 300 + i * 200);
+    });
 
     // Count-up (2.5s)
     const scoreEl = document.getElementById('readiness-score');

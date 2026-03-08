@@ -198,13 +198,31 @@
             <!-- State C: Score (hidden initially) -->
             <div id="readiness-state-score" class="readiness-phase" style="display:none;">
                 <div class="readiness-ring-area">
-                    <svg viewBox="0 0 260 260" width="260" height="260">
-                        <circle cx="130" cy="130" r="110" class="readiness-ring-track"/>
-                        <circle cx="130" cy="130" r="110" class="readiness-ring-progress" id="readiness-ring-arc"
-                            stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
-                        <text x="130" y="118" text-anchor="middle" class="readiness-top-label">Morning Readiness Score</text>
-                        <text x="130" y="148" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
-                        <text x="130" y="172" text-anchor="middle" class="readiness-label-text" id="readiness-label-text">MENTAL READINESS</text>
+                    <svg viewBox="0 0 300 300" width="260" height="260" id="readiness-ring-svg">
+                        <defs>
+                            <filter id="readiness-glow">
+                                <feGaussianBlur stdDeviation="2" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                            </filter>
+                        </defs>
+                        <!-- Ring tracks (background) -->
+                        <circle cx="150" cy="150" r="130" class="readiness-ring-track"/>
+                        <circle cx="150" cy="150" r="115" class="readiness-ring-track"/>
+                        <circle cx="150" cy="150" r="100" class="readiness-ring-track"/>
+                        <circle cx="150" cy="150" r="85" class="readiness-ring-track"/>
+                        <!-- Ring progress arcs (filled by JS) -->
+                        <circle cx="150" cy="150" r="130" class="readiness-ring-progress" id="readiness-ring-1"
+                            stroke-dasharray="816.8" stroke-dashoffset="816.8" transform="rotate(-90 150 150)" style="opacity:1" filter="url(#readiness-glow)"/>
+                        <circle cx="150" cy="150" r="115" class="readiness-ring-progress" id="readiness-ring-2"
+                            stroke-dasharray="722.6" stroke-dashoffset="722.6" transform="rotate(-90 150 150)" style="opacity:0.8" filter="url(#readiness-glow)"/>
+                        <circle cx="150" cy="150" r="100" class="readiness-ring-progress" id="readiness-ring-3"
+                            stroke-dasharray="628.3" stroke-dashoffset="628.3" transform="rotate(-90 150 150)" style="opacity:0.6" filter="url(#readiness-glow)"/>
+                        <circle cx="150" cy="150" r="85" class="readiness-ring-progress" id="readiness-ring-4"
+                            stroke-dasharray="534.1" stroke-dashoffset="534.1" transform="rotate(-90 150 150)" style="opacity:0.45" filter="url(#readiness-glow)"/>
+                        <!-- Text labels -->
+                        <text x="150" y="130" text-anchor="middle" class="readiness-top-label">Morning Readiness Score</text>
+                        <text x="150" y="165" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
+                        <text x="150" y="185" text-anchor="middle" class="readiness-label-text" id="readiness-label-text">MENTAL READINESS</text>
                     </svg>
                 </div>
                 <div class="readiness-stats" id="readiness-stats">

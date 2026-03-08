@@ -276,8 +276,8 @@ const clarityView = (() => {
                     type: 'scatter',
                     mode: 'lines+markers',
                     name: 'Actual',
-                    line: { color: '#5B8DB8', width: 3 },
-                    marker: { size: 8, color: '#5B8DB8' },
+                    line: { color: '#8C96A0', width: 3 },
+                    marker: { size: 8, color: '#8C96A0' },
                     connectgaps: false,
                 },
             ];
@@ -314,12 +314,7 @@ const clarityView = (() => {
     }
 
     function _trackIcon(track) {
-        const icons = {
-            calm: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5B8DB8" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',
-            energy: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5B8DB8" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
-            stability: '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5B8DB8" stroke-width="2"><path d="M12 22V8"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M12 2a4 4 0 0 0-4 4"/><path d="M12 2a4 4 0 0 1 4 4"/></svg>',
-        };
-        return icons[track] || '';
+        return '';
     }
 
     return { load, unload };

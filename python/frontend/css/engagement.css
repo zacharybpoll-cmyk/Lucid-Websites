@@ -1610,14 +1610,14 @@
 
 .readiness-ring-track {
     fill: none;
-    stroke: rgba(91, 141, 184, 0.12);
-    stroke-width: 10;
+    stroke: rgba(228, 232, 236, 0.3);
+    stroke-width: 5.5;
 }
 
 .readiness-ring-progress {
     fill: none;
-    stroke: #5B8DB8;
-    stroke-width: 10;
+    stroke: #8C96A0;
+    stroke-width: 5.5;
     stroke-linecap: round;
     transition: stroke-dashoffset 2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1634,12 +1634,12 @@
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 3px;
-    fill: rgba(91, 141, 184, 0.7);
+    fill: rgba(140, 150, 160, 0.7);
 }
 
 .readiness-top-label {
     font-family: var(--font-body);
-    font-size: 14px;
+    font-size: 11px;
     fill: #5a6270;
     font-weight: 500;
 }
