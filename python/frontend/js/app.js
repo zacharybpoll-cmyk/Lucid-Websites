@@ -94,7 +94,7 @@ window.AppState = {
     lastSanctuaryTime: 0,
 
     // Linguistic Echo
-    lastEchoReadingId: null,
+    lastEchoReadingId: localStorage.getItem('lastEchoReadingId') || null,
 
     // Previous zone for transition detection
     previousZone: null,
@@ -310,17 +310,13 @@ const VIEW_MODULES = {
         load() { if (typeof labView !== 'undefined') labView.load(); },
         unload() { TimerRegistry.clearScope('lab'); }
     },
-    sculptor: {
-        load() { if (typeof sculptorView !== 'undefined') sculptorView.load(); },
-        unload() { if (typeof sculptorView !== 'undefined') sculptorView.unload(); }
-    },
     reports: {
         load() { if (typeof reportsView !== 'undefined') reportsView.load(); },
         unload() { TimerRegistry.clearScope('reports'); }
     },
     echoes: {
         load() { initEchoesView(); },
-        unload() {}
+        unload() { API.markEchoesSeen().then(() => updateEchoBadge()); }
     },
     settings: {
         load() {},
@@ -1226,8 +1222,9 @@ async function loadTodayData() {
         // Linguistic Echo — surface notable feature after recording
         if (data.current_scores?.linguistic_echo) {
             const latestId = data.readings?.[0]?.id;
-            if (latestId && latestId !== AppState.lastEchoReadingId) {
+            if (latestId && String(latestId) !== String(AppState.lastEchoReadingId)) {
                 AppState.lastEchoReadingId = latestId;
+                localStorage.setItem('lastEchoReadingId', latestId);
                 const delay = (Date.now() - AppState.lastSanctuaryTime < 5000) ? 4000 : 500;
                 setTimeout(() => showLinguisticEcho(data.current_scores.linguistic_echo), delay);
             }
@@ -1781,7 +1778,7 @@ function showReengagementOverlay(unreadCount) {
 async function maybeShowEchoDrop() {
     try {
         const data = await API.getEchoes();
-        const unread = (data.echoes || []).filter(e => !e.seen);
+        const unread = (data.echoes || []).filter(e => !e.seen && e.tier !== 'voice');
         if (unread.length === 0) return;
         const echo = unread[0];
         const titleEl = document.getElementById('echo-drop-title');
@@ -1815,7 +1812,25 @@ function initEchoDropOverlay() {
     }
 }
 
-// Load full echoes list into #echoes-list-container
+// Render a single echo item with tier-aware icon
+function renderEchoItem(echo) {
+    const dateStr = new Date(echo.discovered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const tierClass = echo.tier === 'eureka' ? ' echo-eureka' : (echo.tier === 'voice' ? ' echo-voice' : '');
+    const newClass = echo.seen ? '' : ' echo-new';
+    let icon = '\u25cf'; // standard dot
+    if (echo.tier === 'eureka') icon = '\u2728'; // sparkle
+    else if (echo.tier === 'voice') icon = '\ud83c\udfa4'; // microphone
+    return `
+        <div class="echo-item${newClass}${tierClass}">
+            <span class="echo-icon">${icon}</span>
+            <div class="echo-content">
+                <span class="echo-message">${sanitizeHTML(echo.message)}</span>
+                <span class="echo-date">${dateStr}</span>
+            </div>
+        </div>`;
+}
+
+// Load full echoes list into #echoes-list-container (split by tier)
 async function loadEchoesListView() {
     const container = document.getElementById('echoes-list-container');
     if (!container) return;
@@ -1825,19 +1840,26 @@ async function loadEchoesListView() {
             container.innerHTML = '<div class="echoes-empty">Echoes surface recurring patterns in your voice data \u2014 like stress spikes on certain days or calm streaks. They appear after 7+ days of readings.</div>';
             return;
         }
+
+        const voiceEchoes = data.echoes.filter(e => e.tier === 'voice');
+        const patternEchoes = data.echoes.filter(e => e.tier !== 'voice');
+
         let html = '';
-        for (const echo of data.echoes) {
-            const dateStr = new Date(echo.discovered_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            const eurekaClass = echo.tier === 'eureka' ? ' echo-eureka' : '';
-            html += `
-                <div class="echo-item${echo.seen ? '' : ' echo-new'}${eurekaClass}">
-                    <span class="echo-icon">${echo.tier === 'eureka' ? '\u2728' : '\u25cf'}</span>
-                    <div class="echo-content">
-                        <span class="echo-message">${sanitizeHTML(echo.message)}</span>
-                        <span class="echo-date">${dateStr}</span>
-                    </div>
-                </div>`;
+
+        if (voiceEchoes.length > 0) {
+            html += '<div class="echoes-section-header">Voice Echoes</div>';
+            for (const echo of voiceEchoes) {
+                html += renderEchoItem(echo);
+            }
         }
+
+        if (patternEchoes.length > 0) {
+            html += '<div class="echoes-section-header">Patterns</div>';
+            for (const echo of patternEchoes) {
+                html += renderEchoItem(echo);
+            }
+        }
+
         container.innerHTML = html;
     } catch (e) {
         container.innerHTML = '<div class="echoes-empty">Unable to load echoes.</div>';
