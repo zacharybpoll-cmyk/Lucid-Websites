@@ -1818,9 +1818,8 @@ function renderEchoItem(echo, variant) {
     const tierClass = echo.tier === 'eureka' ? ' echo-eureka' : (echo.tier === 'voice' ? ' echo-voice' : '');
     const newClass = echo.seen ? '' : ' echo-new';
     let icon = '\u25cf'; // standard dot
-    if (echo.tier === 'eureka') icon = '\u2728'; // sparkle
-    else if (echo.tier === 'voice') icon = '\ud83c\udfa4'; // microphone
-    else if (echo.tier === 'milestone') icon = '\u25cf'; // dot for milestone
+    if (echo.tier === 'eureka') icon = '\u2728';
+    else if (echo.tier === 'milestone') icon = '\u25cf';
 
     // Pattern card variant: type label above bold message
     if (variant === 'pattern') {

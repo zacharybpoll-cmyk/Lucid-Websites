@@ -2667,7 +2667,7 @@
 #echoes-list-container {
     padding: 0 24px 24px;
     display: grid;
-    grid-template-columns: 3fr 2fr;
+    grid-template-columns: 1.4fr 1fr;
     gap: 0;
     min-height: 0;
 }
