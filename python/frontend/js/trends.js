@@ -346,7 +346,7 @@ class TrendsView {
         const section = document.createElement('div');
         section.className = 'trends-score-trends';
         section.innerHTML = `
-            <h3 class="section-label">SCORE TRENDS</h3>
+            <h3 class="section-label">HEALTH TRENDS</h3>
             <div id="trends-plotly-chart"></div>
         `;
         this.container.appendChild(section);
@@ -361,6 +361,8 @@ class TrendsView {
             { x: days, y: avg('avg_activation'), name: 'Activation', line: { color: '#DD8452', width: 2 }, marker: { size: 5 } },
             { x: days, y: avg('avg_calm'), name: 'Calm', line: { color: '#5a6270', width: 2 }, marker: { size: 5 } },
             { x: days, y: avg('avg_emotional_stability'), name: 'Stability', line: { color: '#7B68EE', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_depression'), name: 'Depression', line: { color: '#8B5CF6', width: 2 }, marker: { size: 5 } },
+            { x: days, y: avg('avg_anxiety'), name: 'Anxiety', line: { color: '#F59E0B', width: 2 }, marker: { size: 5 } },
         ].map(t => ({ ...t, type: 'scatter', mode: 'lines+markers' }));
 
         const layout = {
