@@ -411,8 +411,8 @@ function renderRingGauge(wellnessScore, scores, delta) {
     if (showScoreEarly && !window.AppState.wellnessRevealed) {
         const currentCount = window.AppState.currentReadingCount || 0;
         const lastRevealed = parseInt(localStorage.getItem('lucid-last-revealed-count') || '0', 10);
-        if (currentCount > lastRevealed && currentCount > 1) {
-            // 2nd+ reading of the day: show reveal card
+        if (currentCount > lastRevealed) {
+            // New reading arrived: show reveal card
             _renderRevealCard(wellnessScore, scores, delta);
             return;
         } else {

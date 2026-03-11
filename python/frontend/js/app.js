@@ -95,6 +95,7 @@ window.AppState = {
 
     // Linguistic Echo
     lastEchoReadingId: localStorage.getItem('lastEchoReadingId') || null,
+    lastEchoDate: localStorage.getItem('lastEchoDate') || null,
 
     // Previous zone for transition detection
     previousZone: null,
@@ -188,7 +189,7 @@ async function init() {
     await waitForBackend();
 
     // 6. Re-engagement check (after backend ready, non-blocking)
-    checkReengagement().catch(() => {});
+    checkReengagement().catch(err => console.warn('[reengagement] prefetch failed:', err.message || err));
 }
 
 document.addEventListener('DOMContentLoaded', init);
@@ -380,14 +381,9 @@ function updateCurrentDate() {
 // ========== Polling ==========
 
 function stopPolling() {
-    if (AppState.pollInterval) {
-        clearTimeout(AppState.pollInterval);
-        AppState.pollInterval = null;
-    }
-    if (AppState.statusPollInterval) {
-        clearTimeout(AppState.statusPollInterval);
-        AppState.statusPollInterval = null;
-    }
+    TimerRegistry.clearScope('polling');
+    AppState.pollInterval = null;
+    AppState.statusPollInterval = null;
 }
 
 // Exponential backoff state for status polling
@@ -397,14 +393,14 @@ const _STATUS_POLL_MIN = 2000;
 const _STATUS_POLL_MAX = 30000;
 
 function _scheduleStatusPoll() {
-    AppState.statusPollInterval = setTimeout(async () => {
+    AppState.statusPollInterval = TimerRegistry.setTimeout('polling', async () => {
         await pollStatus();
         _scheduleStatusPoll();
     }, _statusPollDelay);
 }
 
 function _scheduleDataPoll() {
-    AppState.pollInterval = setTimeout(() => {
+    AppState.pollInterval = TimerRegistry.setTimeout('polling', () => {
         if (AppState.currentView === 'today') {
             loadTodayData();
         }
@@ -923,18 +919,15 @@ async function showReadinessOverlayAnalyzing() {
     if (!overlay) return;
 
     // Prefetch wellness data in the background
-    API.getWellness().then(d => { AppState.readinessWellnessData = d; }).catch(() => {});
+    API.getWellness().then(d => { AppState.readinessWellnessData = d; }).catch(err => console.warn('[readiness] wellness prefetch failed:', err.message || err));
 
     _setReadinessPhase('analyzing');
     overlay.style.display = 'flex';
     overlay.offsetHeight;
     overlay.classList.add('visible');
 
-    // Mark as seen today
-    localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0,10)}`, '1');
-
     // After 2.5s: transition to reveal prompt
-    setTimeout(() => _setReadinessPhase('reveal'), 2500);
+    TimerRegistry.setTimeout('readiness', () => _setReadinessPhase('reveal'), 2500);
 }
 
 // Alias — handles the "reopened after reading completed" path
@@ -943,10 +936,15 @@ async function showReadinessOverlay() {
 }
 
 function revealReadinessScore() {
+    // Mark as seen today — only after user actually clicks "Reveal"
+    localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0,10)}`, '1');
     _setReadinessPhase('score');
 
     const scores = AppState.todayData && AppState.todayData.current_scores;
-    const readinessScore = _computeReadinessScore(scores);
+    const wellnessData = AppState.readinessWellnessData;
+    const readinessScore = (wellnessData && wellnessData.score != null)
+        ? Math.round(wellnessData.score)
+        : _computeReadinessScore(scores);
     const label = _readinessScoreLabel(readinessScore != null ? readinessScore : 0);
     const topFactor = _readinessTopFactor(scores);
     const target = readinessScore != null ? readinessScore : 0;
@@ -955,7 +953,6 @@ function revealReadinessScore() {
     const countEl      = document.getElementById('readiness-count');
     const topEl        = document.getElementById('readiness-top-factor');
     const deltaEl      = document.getElementById('readiness-delta');
-    const wellnessData = AppState.readinessWellnessData;
 
     if (countEl) countEl.textContent = wellnessData && wellnessData.reading_count != null
         ? wellnessData.reading_count
@@ -1219,12 +1216,17 @@ async function loadTodayData() {
             }
         }
 
-        // Linguistic Echo — surface notable feature after recording
+        // Linguistic Echo — surface notable feature after recording (once per day)
         if (data.current_scores?.linguistic_echo) {
             const latestId = data.readings?.[0]?.id;
-            if (latestId && String(latestId) !== String(AppState.lastEchoReadingId)) {
+            const today = new Date().toISOString().split('T')[0];
+            const alreadyShownToday = AppState.lastEchoDate === today;
+
+            if (latestId && !alreadyShownToday && String(latestId) !== String(AppState.lastEchoReadingId)) {
                 AppState.lastEchoReadingId = latestId;
+                AppState.lastEchoDate = today;
                 localStorage.setItem('lastEchoReadingId', latestId);
+                localStorage.setItem('lastEchoDate', today);
                 const delay = (Date.now() - AppState.lastSanctuaryTime < 5000) ? 4000 : 500;
                 setTimeout(() => showLinguisticEcho(data.current_scores.linguistic_echo), delay);
             }
@@ -1497,8 +1499,8 @@ function startWellnessProgress() {
     if (AppState.wellnessProgressRAF) cancelAnimationFrame(AppState.wellnessProgressRAF);
 
     // Safety timeout: auto-dismiss after 25s no matter what
-    if (AppState.wellnessProgressSafetyTimer) clearTimeout(AppState.wellnessProgressSafetyTimer);
-    AppState.wellnessProgressSafetyTimer = setTimeout(() => {
+    TimerRegistry.clearScope('wellness-progress');
+    AppState.wellnessProgressSafetyTimer = TimerRegistry.setTimeout('wellness-progress', () => {
         if (AppState.wellnessIsAnalyzing) finishWellnessProgress();
     }, 25000);
 
@@ -2727,7 +2729,7 @@ function showSelfAssessmentModal(readingId) {
         modal.remove();
         _selfAssessmentDismissed = true;
         // Reset after 2 hours so it can prompt again
-        setTimeout(() => { _selfAssessmentDismissed = false; }, 2 * 60 * 60 * 1000);
+        TimerRegistry.setTimeout('self-assessment', () => { _selfAssessmentDismissed = false; }, 2 * 60 * 60 * 1000);
     });
 }
 
