@@ -126,6 +126,7 @@ window.AppState = {
     // Mental Readiness overlay state
     readinessShown: false,
     readinessWellnessData: null,
+    previousReadingCount: undefined,
 
     // Evening summary state
     eveningSummaryShown: false,
@@ -467,6 +468,10 @@ async function pollStatus() {
         if (!status.is_analyzing && _ringAnalyzing) {
             finishRingGaugeProgress();
             console.log('[Lucid] Analysis complete, refreshing data...');
+            // Show readiness overlay immediately on analysis completion
+            if (!AppState.readinessShown) {
+                showReadinessOverlayAnalyzing();
+            }
             // Small delay to let backend persist reading before fetching
             setTimeout(async () => {
                 await loadTodayData();
@@ -912,10 +917,12 @@ function _readinessTopFactor(scores) {
 }
 
 async function showReadinessOverlayAnalyzing() {
+    console.log('[Lucid] showReadinessOverlayAnalyzing called, readinessShown:', AppState.readinessShown);
     if (AppState.readinessShown) return;
     AppState.readinessShown = true;
 
     const overlay = document.getElementById('readiness-overlay');
+    console.log('[Lucid] readiness overlay element:', overlay ? 'found' : 'NOT FOUND');
     if (!overlay) return;
 
     // Prefetch wellness data in the background
@@ -1155,9 +1162,23 @@ async function loadTodayData() {
         } else if (AppState.speakHeroVisible && todayReadings >= 1) {
             // First reading arrived — transition to "done" state
             transitionHeroToDone();
-        } else if (todayReadings >= 1 && !readinessSeenToday && !AppState.readinessShown) {
-            // User closed app during analysis, reopened after reading completed
-            showReadinessOverlay();
+        } else if (todayReadings >= 1 && !AppState.readinessShown) {
+            if (AppState.previousReadingCount === undefined) {
+                // First data load this session — initialize baseline
+                AppState.previousReadingCount = todayReadings;
+                // If readiness wasn't seen today and there are readings, show overlay (reopened-app case)
+                if (!readinessSeenToday) {
+                    showReadinessOverlay();
+                }
+            } else if (todayReadings > AppState.previousReadingCount) {
+                // New reading detected — show overlay (bypasses stale localStorage)
+                console.log('[Lucid] New reading detected:', todayReadings, '>', AppState.previousReadingCount);
+                showReadinessOverlayAnalyzing();
+            }
+        }
+        // Always track reading count
+        if (todayReadings > 0) {
+            AppState.previousReadingCount = todayReadings;
         }
 
         // Fetch wellness data first so ring gauge has the score

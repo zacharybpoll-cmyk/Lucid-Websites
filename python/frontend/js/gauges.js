@@ -66,18 +66,23 @@ function updateScoreCircles(scores, wellnessScore, delta) {
     const hasNewData = Object.keys(targets).some(
         m => Math.abs((targets[m] || 0) - (prevCircleScores[m] || 0)) > 1
     );
-    Object.entries(targets).forEach(([metric, value]) => {
-        hasNewData ? animateCircle(metric, value, 1200) : updateCircle(metric, value);
-    });
+    const readinessUp = document.getElementById('readiness-overlay')?.classList.contains('visible');
+    if (!_ringAnalyzing && !readinessUp) {
+        Object.entries(targets).forEach(([metric, value]) => {
+            hasNewData ? animateCircle(metric, value, 1200) : updateCircle(metric, value);
+        });
+    }
     prevCircleScores = {...targets};
 
-    // Drive ring gauge + metric bars (skip if ring gauge is in analyzing state)
-    if (!_ringAnalyzing) {
+    // Drive ring gauge + metric bars (skip if ring gauge is in analyzing state or overlay visible)
+    if (!_ringAnalyzing && !readinessUp) {
         const effectiveWellness = wellnessScore !== undefined && wellnessScore !== null
             ? wellnessScore : _gaugeState.wellness;
         renderRingGauge(effectiveWellness, scores, delta);
     }
-    updateMetricBars(scores);
+    if (!readinessUp) {
+        updateMetricBars(scores);
+    }
 }
 
 function updateCircle(metric, value) {
@@ -175,12 +180,12 @@ function animateMetricBar(valEl, fillEl, rawTarget, pctTarget, duration, delay) 
 }
 
 const RING_DEFS = [
-    { key: 'emotional-stability', r: 120 },
-    { key: 'wellbeing',           r: 105 },
-    { key: 'calm',                r: 90  },
-    { key: 'activation',          r: 75  },
-    { key: 'anxiety',             r: 60  },
-    { key: 'stress',              r: 45  },
+    { key: 'emotional-stability', r: 155 },
+    { key: 'wellbeing',           r: 140 },
+    { key: 'calm',                r: 125 },
+    { key: 'activation',          r: 110 },
+    { key: 'anxiety',             r: 95  },
+    { key: 'stress',              r: 80  },
 ];
 
 function startRingGaugeProgress() {
@@ -226,7 +231,7 @@ function renderRingGaugeAnalyzing() {
     if (!svg) return;
     svg.innerHTML = '';
 
-    const cx = 150, cy = 150;
+    const cx = 170, cy = 170;
     const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
     const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
                         '--ring-accent-4','--ring-accent-5','--ring-accent-6'];
@@ -354,7 +359,7 @@ function _renderRevealCard(wellnessScore, scores, delta) {
     svg.innerHTML = '';
 
     // Render empty track rings (no arcs, no score) as a teaser background
-    const cx = 150, cy = 150;
+    const cx = 170, cy = 170;
     const style = getComputedStyle(document.documentElement);
     const trackColor = style.getPropertyValue('--ring-track').trim() || '#1a2028';
 
@@ -426,14 +431,14 @@ function renderRingGauge(wellnessScore, scores, delta) {
 
     svg.innerHTML = '';
 
-    const cx = 150, cy = 150;
+    const cx = 170, cy = 170;
     const rings = [
-        { key: 'emotional-stability', r: 120, invert: false },
-        { key: 'wellbeing',           r: 105, invert: false },
-        { key: 'calm',                r: 90,  invert: false },
-        { key: 'activation',          r: 75,  invert: false },
-        { key: 'anxiety',             r: 60,  invert: true  },
-        { key: 'stress',              r: 45,  invert: true  },
+        { key: 'emotional-stability', r: 155, invert: false },
+        { key: 'wellbeing',           r: 140, invert: false },
+        { key: 'calm',                r: 125,  invert: false },
+        { key: 'activation',          r: 110,  invert: false },
+        { key: 'anxiety',             r: 95,  invert: true  },
+        { key: 'stress',              r: 80,  invert: true  },
     ];
     const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
     const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
