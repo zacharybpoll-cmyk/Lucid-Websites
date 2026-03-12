@@ -141,7 +141,7 @@ class SpeakerVerifier:
             # Load adaptive threshold if stored
             stored_threshold = profile.get('similarity_threshold')
             if stored_threshold and stored_threshold > 0:
-                self.threshold = stored_threshold
+                self.threshold = min(stored_threshold, 0.45)  # Hard cap on adaptive threshold
                 logger.info(f"Loaded voiceprint ({self._centroid.shape[0]}-dim, adaptive threshold={self.threshold:.3f})")
             else:
                 logger.info(f"Loaded voiceprint ({self._centroid.shape[0]}-dim)")
@@ -292,7 +292,10 @@ class SpeakerVerifier:
                 for j in range(i + 1, len(embeddings)):
                     pairwise_sims.append(float(np.dot(embeddings[i], embeddings[j])))
             min_pairwise = min(pairwise_sims)
-            adaptive_threshold = max(config.SPEAKER_VERIFICATION_THRESHOLD, min_pairwise - 0.05)
+            adaptive_threshold = min(
+                max(config.SPEAKER_VERIFICATION_THRESHOLD, min_pairwise - 0.15),
+                0.45  # Hard cap — never exceed this regardless of enrollment quality
+            )
             self.threshold = adaptive_threshold
             logger.info(f"Adaptive threshold: {adaptive_threshold:.3f} (min pairwise={min_pairwise:.3f})")
         else:
