@@ -468,8 +468,8 @@ async function pollStatus() {
         if (!status.is_analyzing && _ringAnalyzing) {
             finishRingGaugeProgress();
             console.log('[Lucid] Analysis complete, refreshing data...');
-            // Show readiness overlay immediately on analysis completion
-            if (!AppState.readinessShown) {
+            // Show readiness overlay immediately on analysis completion (first of the day only)
+            if (shouldShowReadinessOverlay()) {
                 showReadinessOverlayAnalyzing();
             }
             // Small delay to let backend persist reading before fetching
@@ -867,7 +867,9 @@ function hideSpeakHero(celebrate) {
 function transitionHeroToDone() {
     // New flow: skip the "done" tap state — hide hero immediately, show readiness overlay
     hideSpeakHero(true);
-    showReadinessOverlayAnalyzing();
+    if (shouldShowReadinessOverlay()) {
+        showReadinessOverlayAnalyzing();
+    }
 }
 
 // Kept as stub (no longer triggered, but harmless if called)
@@ -916,10 +918,19 @@ function _readinessTopFactor(scores) {
     return components[0].label;
 }
 
+function shouldShowReadinessOverlay() {
+    const todayKey = `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`;
+    if (localStorage.getItem(todayKey)) return false;
+    if (AppState.readinessShown) return false;
+    return true;
+}
+
 async function showReadinessOverlayAnalyzing() {
     console.log('[Lucid] showReadinessOverlayAnalyzing called, readinessShown:', AppState.readinessShown);
     if (AppState.readinessShown) return;
     AppState.readinessShown = true;
+    // Mark as seen today immediately — prevents re-trigger on dismiss-without-reveal
+    localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`, '1');
 
     const overlay = document.getElementById('readiness-overlay');
     console.log('[Lucid] readiness overlay element:', overlay ? 'found' : 'NOT FOUND');
@@ -943,8 +954,6 @@ async function showReadinessOverlay() {
 }
 
 function revealReadinessScore() {
-    // Mark as seen today — only after user actually clicks "Reveal"
-    localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0,10)}`, '1');
     _setReadinessPhase('score');
 
     const scores = AppState.todayData && AppState.todayData.current_scores;
@@ -1153,25 +1162,33 @@ async function loadTodayData() {
             `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`
         );
 
+        console.log('[Lucid] loadTodayData readiness check:', {
+            todayReadings, totalReadings,
+            readinessSeenToday: !!readinessSeenToday,
+            readinessShown: AppState.readinessShown,
+            previousReadingCount: AppState.previousReadingCount,
+            speakHeroVisible: AppState.speakHeroVisible,
+        });
+
         if (totalReadings === 0 && todayReadings === 0) {
             // First-time-ever: show hero card
             if (!AppState.speakHeroVisible) showSpeakHero();
+            AppState.previousReadingCount = 0;
         } else if (todayReadings === 0 && !readinessSeenToday && !AppState.speakHeroVisible) {
             // Returning user, first open today, no readings yet
             showSpeakHero();
+            AppState.previousReadingCount = 0;
         } else if (AppState.speakHeroVisible && todayReadings >= 1) {
             // First reading arrived — transition to "done" state
             transitionHeroToDone();
-        } else if (todayReadings >= 1 && !AppState.readinessShown) {
+        } else if (todayReadings >= 1 && shouldShowReadinessOverlay()) {
             if (AppState.previousReadingCount === undefined) {
                 // First data load this session — initialize baseline
                 AppState.previousReadingCount = todayReadings;
-                // If readiness wasn't seen today and there are readings, show overlay (reopened-app case)
-                if (!readinessSeenToday) {
-                    showReadinessOverlay();
-                }
+                // Reopened-app case: show overlay for first time today
+                showReadinessOverlay();
             } else if (todayReadings > AppState.previousReadingCount) {
-                // New reading detected — show overlay (bypasses stale localStorage)
+                // New reading detected
                 console.log('[Lucid] New reading detected:', todayReadings, '>', AppState.previousReadingCount);
                 showReadinessOverlayAnalyzing();
             }
