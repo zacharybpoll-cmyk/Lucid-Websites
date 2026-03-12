@@ -1202,7 +1202,14 @@ async function loadTodayData() {
         const wellnessData = await API.getWellness().catch(() => null);
         const wellnessScore = (wellnessData && wellnessData.has_data) ? wellnessData.score : null;
         // Track reading count for reveal overlay logic
-        if (wellnessData) AppState.currentReadingCount = wellnessData.reading_count || 0;
+        if (wellnessData) {
+            const newCount = wellnessData.reading_count || 0;
+            if (newCount > AppState.currentReadingCount) {
+                // New reading arrived — allow ring gauge reveal card to show once
+                AppState.wellnessRevealed = false;
+            }
+            AppState.currentReadingCount = newCount;
+        }
 
         // Intraday trend: reset baseline if day changed
         if (AppState.morningBaselineTime) {

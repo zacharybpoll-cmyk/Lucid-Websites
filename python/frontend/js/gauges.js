@@ -180,12 +180,12 @@ function animateMetricBar(valEl, fillEl, rawTarget, pctTarget, duration, delay) 
 }
 
 const RING_DEFS = [
-    { key: 'emotional-stability', r: 155 },
-    { key: 'wellbeing',           r: 140 },
-    { key: 'calm',                r: 125 },
-    { key: 'activation',          r: 110 },
-    { key: 'anxiety',             r: 95  },
-    { key: 'stress',              r: 80  },
+    { key: 'emotional-stability', r: 185 },
+    { key: 'wellbeing',           r: 170 },
+    { key: 'calm',                r: 155 },
+    { key: 'activation',          r: 140 },
+    { key: 'anxiety',             r: 125 },
+    { key: 'stress',              r: 110 },
 ];
 
 function startRingGaugeProgress() {
@@ -231,7 +231,7 @@ function renderRingGaugeAnalyzing() {
     if (!svg) return;
     svg.innerHTML = '';
 
-    const cx = 170, cy = 170;
+    const cx = 230, cy = 230;
     const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
     const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
                         '--ring-accent-4','--ring-accent-5','--ring-accent-6'];
@@ -343,7 +343,9 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
-    window.AppState.wellnessRevealed = false;  // Reset so renderRingGauge() can show the reveal card
+    // NOTE: Do NOT reset wellnessRevealed here — the reveal card in renderRingGauge()
+    // has its own gate (currentCount > lastRevealed) that correctly handles new readings.
+    // Resetting wellnessRevealed here caused the reveal card to show after EVERY analysis.
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
@@ -359,7 +361,7 @@ function _renderRevealCard(wellnessScore, scores, delta) {
     svg.innerHTML = '';
 
     // Render empty track rings (no arcs, no score) as a teaser background
-    const cx = 170, cy = 170;
+    const cx = 230, cy = 230;
     const style = getComputedStyle(document.documentElement);
     const trackColor = style.getPropertyValue('--ring-track').trim() || '#1a2028';
 
@@ -431,14 +433,14 @@ function renderRingGauge(wellnessScore, scores, delta) {
 
     svg.innerHTML = '';
 
-    const cx = 170, cy = 170;
+    const cx = 230, cy = 230;
     const rings = [
-        { key: 'emotional-stability', r: 155, invert: false },
-        { key: 'wellbeing',           r: 140, invert: false },
-        { key: 'calm',                r: 125,  invert: false },
-        { key: 'activation',          r: 110,  invert: false },
-        { key: 'anxiety',             r: 95,  invert: true  },
-        { key: 'stress',              r: 80,  invert: true  },
+        { key: 'emotional-stability', r: 185, invert: false },
+        { key: 'wellbeing',           r: 170, invert: false },
+        { key: 'calm',                r: 155,  invert: false },
+        { key: 'activation',          r: 140,  invert: false },
+        { key: 'anxiety',             r: 125,  invert: true  },
+        { key: 'stress',              r: 110,  invert: true  },
     ];
     const opacities = [1, 0.88, 0.76, 0.62, 0.48, 0.38];
     const accentVars = ['--ring-accent-1','--ring-accent-2','--ring-accent-3',
@@ -507,7 +509,7 @@ function renderRingGauge(wellnessScore, scores, delta) {
     const scoreStr = showScore ? (isReveal ? '0' : finalScore.toString()) : '--';
 
     const scoreEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    scoreEl.setAttribute('x', cx); scoreEl.setAttribute('y', cy + 18);
+    scoreEl.setAttribute('x', cx); scoreEl.setAttribute('y', cy + 12);
     scoreEl.setAttribute('text-anchor', 'middle');
     scoreEl.setAttribute('font-family', 'Playfair Display, Georgia, serif');
     scoreEl.setAttribute('font-size', '58');
@@ -518,10 +520,10 @@ function renderRingGauge(wellnessScore, scores, delta) {
 
     // Center: tier label
     const tierEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    tierEl.setAttribute('x', cx); tierEl.setAttribute('y', cy + 36);
+    tierEl.setAttribute('x', cx); tierEl.setAttribute('y', cy + 33);
     tierEl.setAttribute('text-anchor', 'middle');
     tierEl.setAttribute('font-family', 'Inter, sans-serif');
-    tierEl.setAttribute('font-size', '10');
+    tierEl.setAttribute('font-size', '13');
     tierEl.setAttribute('font-weight', '500');
     tierEl.setAttribute('letter-spacing', '3');
     tierEl.setAttribute('fill', style.getPropertyValue('--ring-accent-3').trim() || '#a8c0d0');
