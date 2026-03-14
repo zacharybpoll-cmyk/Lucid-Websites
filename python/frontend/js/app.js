@@ -100,7 +100,7 @@ window.AppState = {
     // Previous zone for transition detection
     previousZone: null,
 
-    // Wellness score reveal state
+    // Wellness score reveal state — starts false, re-armed on each new analysis
     wellnessRevealed: false,
     prevWellnessScore: 0,
 
@@ -177,7 +177,6 @@ async function init() {
     setupSettings();
     setupBriefingCards();
     setupInfoButtons();
-    updateCurrentDate();
     updateDailyGreeting();
 
     // 4. Setup analytics tracking
@@ -226,6 +225,11 @@ function waitForBackend() {
         API.getHealth()
             .then(data => {
                 if (data.ready) {
+                    // If backend confirms speaker is enrolled, suppress auto-enrollment prompt
+                    if (data.speaker_enrolled) {
+                        AppState.enrollmentAutoPrompted = true;
+                    }
+
                     // Complete the progress bar
                     if (progressBar) progressBar.style.width = '100%';
                     if (timelineSweep) timelineSweep.style.width = '100%';
@@ -371,13 +375,6 @@ function switchView(view) {
     if (nextModule) nextModule.load();
 }
 
-function updateCurrentDate() {
-    const dateEl = document.getElementById('current-date');
-    if (!dateEl) return;
-    const now = new Date();
-    const options = { weekday: 'short', month: 'short', day: 'numeric' };
-    dateEl.textContent = now.toLocaleDateString('en-US', options);
-}
 
 // ========== Polling ==========
 
@@ -467,6 +464,7 @@ async function pollStatus() {
         }
         if (!status.is_analyzing && _ringAnalyzing) {
             finishRingGaugeProgress();
+            AppState.wellnessRevealed = false;  // Re-arm reveal overlay for new score
             console.log('[Lucid] Analysis complete, refreshing data...');
             // Show readiness overlay immediately on analysis completion (first of the day only)
             if (shouldShowReadinessOverlay()) {
@@ -931,7 +929,6 @@ async function showReadinessOverlayAnalyzing() {
     AppState.readinessShown = true;
     // Mark as seen today immediately — prevents re-trigger on dismiss-without-reveal
     localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`, '1');
-
     const overlay = document.getElementById('readiness-overlay');
     console.log('[Lucid] readiness overlay element:', overlay ? 'found' : 'NOT FOUND');
     if (!overlay) return;
@@ -1203,12 +1200,7 @@ async function loadTodayData() {
         const wellnessScore = (wellnessData && wellnessData.has_data) ? wellnessData.score : null;
         // Track reading count for reveal overlay logic
         if (wellnessData) {
-            const newCount = wellnessData.reading_count || 0;
-            if (newCount > AppState.currentReadingCount) {
-                // New reading arrived — allow ring gauge reveal card to show once
-                AppState.wellnessRevealed = false;
-            }
-            AppState.currentReadingCount = newCount;
+            AppState.currentReadingCount = wellnessData.reading_count || 0;
         }
 
         // Intraday trend: reset baseline if day changed
@@ -1440,7 +1432,6 @@ async function loadWellnessScore() {
             if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
             if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
             if (profileEl) profileEl.textContent = '';
-            AppState.wellnessRevealed = false; // Reset so animation fires on score unlock
         } else {
             // Show score (but not while progress circle is active)
             if (progressState) progressState.style.display = 'none';
@@ -1474,7 +1465,6 @@ function _updateWellnessUI(data) {
         if (progressBar) progressBar.style.width = ((count / 1) * 100) + '%';
         if (readingCountEl) readingCountEl.textContent = `${count} of 1 reading`;
         if (profileEl) profileEl.textContent = '';
-        AppState.wellnessRevealed = false;
     } else {
         if (progressState) progressState.style.display = 'none';
         if (!AppState.wellnessIsAnalyzing && scoreEl) scoreEl.style.display = '';

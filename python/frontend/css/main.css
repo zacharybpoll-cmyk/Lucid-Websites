@@ -242,11 +242,9 @@ body {
 }
 
 /* Interactive elements must opt out of drag */
-.app-header .header-avatar,
 .app-header .mic-status,
 .app-header .header-mic-label,
-.app-header .echo-dot-wrap,
-.app-header #current-date {
+.app-header .echo-dot-wrap {
     -webkit-app-region: no-drag;
 }
 
@@ -273,13 +271,6 @@ body {
     display: flex;
     align-items: center;
     gap: 14px;
-}
-
-#current-date {
-    color: var(--text-primary);
-    font-size: var(--text-base);
-    font-weight: 500;
-    text-shadow: none;
 }
 
 .header-mic-label {
@@ -321,19 +312,6 @@ body {
 @keyframes pulse-glow {
     0%, 100% { opacity: 1; box-shadow: 0 0 0 0 currentColor; }
     50% { opacity: 0.5; box-shadow: 0 0 8px 3px currentColor; }
-}
-
-.header-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--card-bg);
-    border: 2px solid rgba(168, 192, 208, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-secondary);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* ============ Glass Card Base ============ */
@@ -2798,8 +2776,8 @@ body {
 .ring-gauge-svg {
     display: block;
     margin: 0 auto;
-    width: 300px;
-    height: 300px;
+    width: 380px;
+    height: 380px;
     max-width: 100%;
 }
 

@@ -16,7 +16,6 @@
     <link rel="stylesheet" href="css/correlation.css?v=15">
     <link rel="stylesheet" href="css/active_assessment.css?v=1">
     <link rel="stylesheet" href="css/lab.css?v=1">
-    <link rel="stylesheet" href="css/sculptor.css?v=1">
     <link rel="stylesheet" href="css/clarity.css?v=1">
     <link rel="stylesheet" href="css/reports.css?v=1">
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
@@ -197,6 +196,7 @@
 
             <!-- State C: Score (hidden initially) -->
             <div id="readiness-state-score" class="readiness-phase" style="display:none;">
+                <p class="readiness-top-label-html">Morning Readiness Score</p>
                 <div class="readiness-ring-area">
                     <svg viewBox="0 0 300 300" width="260" height="260" id="readiness-ring-svg">
                         <defs>
@@ -220,7 +220,7 @@
                         <circle cx="150" cy="150" r="85" class="readiness-ring-progress" id="readiness-ring-4"
                             stroke-dasharray="534.1" stroke-dashoffset="534.1" transform="rotate(-90 150 150)" style="opacity:0.45" filter="url(#readiness-glow)"/>
                         <!-- Text labels -->
-                        <text x="150" y="130" text-anchor="middle" class="readiness-top-label">Morning Readiness Score</text>
+                        <!-- Label moved to HTML above SVG -->
                         <text x="150" y="165" text-anchor="middle" class="readiness-score-text" id="readiness-score">0</text>
                         <text x="150" y="185" text-anchor="middle" class="readiness-label-text" id="readiness-label-text">MENTAL READINESS</text>
                     </svg>
@@ -402,14 +402,6 @@
                     <line x1="8" y1="23" x2="16" y2="23"/>
                 </svg>
             </button>
-            <button class="sidebar-icon" data-view="sculptor" title="Voice Sculptor" aria-label="Voice Sculptor">
-                <!-- Organic blob / wave icon -->
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10"/>
-                    <path d="M22 12c0-2-1-4-3-5.5"/>
-                    <path d="M8 12c0-2.5 1.5-4.5 4-4.5s4 2 4 4.5-1.5 4.5-4 4.5"/>
-                </svg>
-            </button>
             <button class="sidebar-icon" data-view="waypoints" title="Waypoints" aria-label="Waypoints">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
@@ -462,7 +454,6 @@
             <header class="app-header" role="banner">
                 <h1>Lucid</h1>
                 <div class="header-right">
-                    <span id="current-date"></span>
                     <!-- Echo notification dot -->
                     <div class="echo-dot-wrap" id="echo-dot-wrap" style="display: none;" title="New pattern discovered">
                         <span class="echo-dot"></span>
@@ -471,12 +462,6 @@
                         <span id="mic-dot" class="mic-dot idle"></span>
                     </div>
                     <span id="mic-label" class="header-mic-label">Listening...</span>
-                    <div class="header-avatar">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </div>
                 </div>
             </header>
 
@@ -581,7 +566,7 @@
                         </div>
 
                         <!-- Ring gauge SVG — JS fills this -->
-                        <svg id="ring-gauge-svg" viewBox="0 0 300 300" class="ring-gauge-svg"></svg>
+                        <svg id="ring-gauge-svg" viewBox="0 0 460 460" class="ring-gauge-svg"></svg>
 
                         <!-- Hidden legacy elements (still updated by existing JS for wellness logic) -->
                         <span class="wellness-number" id="wellness-score" style="display:none;">--</span>
@@ -1013,9 +998,6 @@
                 <!-- BIOMARKER LAB VIEW -->
                 <div id="lab-view" class="view" role="region" aria-label="Lab"></div>
 
-                <!-- VOICE SCULPTOR VIEW -->
-                <div id="sculptor-view" class="view" role="region" aria-label="Sculptor"></div>
-
                 <!-- CLARITY JOURNEY VIEW -->
                 <div id="journey-view" class="view" role="region" aria-label="Clarity Journey"></div>
 
@@ -1231,6 +1213,12 @@
                 <p class="settings-desc">Use your API token to access Lucid data from external tools.</p>
                 <button class="btn btn-secondary" style="width: 100%;" onclick="showApiToken()">Show API Token</button>
                 <pre id="api-token-display" style="display: none; word-break: break-all; padding: 8px; margin-top: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; font-size: 12px;"></pre>
+            </div>
+            <div class="settings-section">
+                <h3>About Lucid</h3>
+                <p class="settings-desc" style="font-size: 13px; color: var(--primary-text); font-weight: 500;">Version <span id="settings-version">v1.1.0</span></p>
+                <p class="settings-desc" style="font-style: italic; color: var(--secondary-text);">Clarity through voice.</p>
+                <p class="settings-desc" style="font-size: 11px; color: var(--secondary-text); margin-top: 8px; line-height: 1.5;">Lucid provides wellness indicators based on voice analysis. These are not medical diagnoses and should not replace professional medical advice. All processing happens locally on your device — your voice data never leaves your computer.</p>
             </div>
         </div>
     </div>
@@ -1449,7 +1437,7 @@
     <!-- Scripts -->
     <script src="js/timer_registry.js?v=1"></script>
     <script src="js/bridge.js?v=17"></script>
-    <script src="js/gauges.js?v=16"></script>
+    <script src="js/gauges.js?v=17"></script>
     <script src="js/anxiety_timeline.js?v=15"></script>
     <script src="js/trends.js?v=14"></script>
     <script src="js/engagement.js?v=14"></script>
@@ -1458,13 +1446,13 @@
     <script src="js/layout.js?v=14"></script>
     <script src="js/active_assessment.js?v=1"></script>
     <script src="js/lab.js?v=1"></script>
-    <script src="js/sculptor.js?v=1"></script>
     <script src="js/clarity.js?v=1"></script>
     <script src="js/reports.js?v=1"></script>
     <script src="js/settings_panel.js?v=1"></script>
     <script src="js/overlays.js?v=1"></script>
     <script src="js/speaker_enrollment.js?v=1"></script>
-    <script src="js/app.js?v=31"></script>
+    <script src="js/feedback.js?v=1"></script>
+    <script src="js/app.js?v=32"></script>
 
     <!-- Speaker Gate Debug Overlay (toggle with Cmd+Shift+D) -->
     <div id="speaker-debug" class="speaker-debug" style="display:none;">
@@ -1488,6 +1476,27 @@
             <br>
             <button class="echo-drop-skip" id="echo-drop-skip">Maybe later</button>
         </div>
+    </div>
+
+    <!-- Feedback Prompt — appears after 7 days of use, max once per 30 days -->
+    <div id="feedback-overlay" style="display:none; position:fixed; bottom:1.5rem; right:1.5rem; z-index:9000; background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.12); padding:1.5rem; max-width:320px; font-family:'Inter',sans-serif;" role="dialog" aria-label="Feedback">
+        <div id="feedback-form">
+            <p style="margin:0 0 0.5rem; font-size:11px; color:#5a6270; line-height:1.4;">Your feedback helps improve Lucid. Feedback is stored locally and only shared when you choose to send it.</p>
+            <p style="margin:0 0 0.25rem; font-size:0.8125rem; color:#5a6270;">You've been using Lucid for a week</p>
+            <p style="margin:0 0 1rem; font-size:0.9375rem; font-weight:600; color:#1a1d21;">How's it going?</p>
+            <div style="display:flex; gap:0.5rem; margin-bottom:0.75rem;">
+                <button class="feedback-btn" data-rating="love_it" style="flex:1; padding:0.5rem; border:1px solid #e4e8ec; border-radius:8px; background:#fff; cursor:pointer; font-size:0.8125rem; color:#1a1d21; transition:all 0.15s;">Love it</button>
+                <button class="feedback-btn" data-rating="its_okay" style="flex:1; padding:0.5rem; border:1px solid #e4e8ec; border-radius:8px; background:#fff; cursor:pointer; font-size:0.8125rem; color:#1a1d21; transition:all 0.15s;">It's okay</button>
+                <button class="feedback-btn" data-rating="not_for_me" style="flex:1; padding:0.5rem; border:1px solid #e4e8ec; border-radius:8px; background:#fff; cursor:pointer; font-size:0.8125rem; color:#1a1d21; transition:all 0.15s;">Not for me</button>
+            </div>
+            <textarea id="feedback-comment" placeholder="Anything you'd change?" style="width:100%; box-sizing:border-box; height:60px; border:1px solid #e4e8ec; border-radius:8px; padding:0.5rem; font-size:0.8125rem; font-family:'Inter',sans-serif; resize:none; display:none;"></textarea>
+            <button id="feedback-submit" style="display:none; width:100%; margin-top:0.5rem; padding:0.5rem; background:#5B8DB8; color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:0.8125rem; font-weight:600;">Send Feedback</button>
+        </div>
+        <div id="feedback-thanks" style="display:none; text-align:center; padding:0.5rem 0;">
+            <p style="margin:0; font-size:0.9375rem; font-weight:600; color:#1a1d21;">Thank you!</p>
+            <p style="margin:0.25rem 0 0; font-size:0.8125rem; color:#5a6270;">Your feedback helps shape Lucid.</p>
+        </div>
+        <button id="feedback-dismiss" style="position:absolute; top:0.5rem; right:0.75rem; background:none; border:none; cursor:pointer; color:#5a6270; font-size:1.125rem; line-height:1;" aria-label="Dismiss">&times;</button>
     </div>
 
     <!-- Re-engagement Overlay — fires on return after 2+ day absence -->
