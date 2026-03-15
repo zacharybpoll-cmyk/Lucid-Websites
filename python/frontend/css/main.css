@@ -31,30 +31,30 @@
     --font-body: 'Inter', -apple-system, sans-serif;
 
     /* === Colors === */
-    --steel: #5B8DB8;
-    --steel-dark: #4a7a9e;
-    --steel-light: #a8c0d0;
-    --gold: #5B8DB8;
-    --gold-dark: #4a7a9e;
-    --gold-light: #a8c0d0;
-    --void: #f8f9fa;
-    --void-dark: #f0f2f4;
-    --void-light: #e4e8ec;
-    --forest: #5a6270;
-    --forest-dark: #4a5260;
-    --forest-light: #6a7280;
-    --cream: #1a1d21;
-    --cream-dark: #f0f2f4;
+    --steel: #2D6A4F;
+    --steel-dark: #1f4f39;
+    --steel-light: #8ab5a0;
+    --gold: #2D6A4F;
+    --gold-dark: #1f4f39;
+    --gold-light: #8ab5a0;
+    --void: #f7f6f3;
+    --void-dark: #eeecea;
+    --void-light: #e0ddd8;
+    --forest: #57534e;
+    --forest-dark: #44403c;
+    --forest-light: #78716c;
+    --cream: #1c1917;
+    --cream-dark: #eeecea;
     --dark-surface: #ffffff;
-    --dark-surface-mid: #f0f2f4;
+    --dark-surface-mid: #eeecea;
     --card-bg: rgba(255, 255, 255, 0.0);
     --card-bg-strong: rgba(255, 255, 255, 0.96);
     --card-border: transparent;
     --card-shadow: none;
-    --text-primary: #1a1d21;
-    --text-secondary: #5a6270;
-    --text-muted: rgba(60,68,80,0.5);
-    --text-light: #1a1d21;
+    --text-primary: #1c1917;
+    --text-secondary: #57534e;
+    --text-muted: rgba(87,83,78,0.5);
+    --text-light: #1c1917;
     --calm-color: #7BA7C9;
     --calm-light: rgba(123, 167, 201, 0.15);
     --steady-color: #8C96A0;
@@ -65,7 +65,7 @@
     --depression-color: #c4584c;
     --anxiety-color: #8B6DB5;
     --stability-color: #7B68EE;
-    --sidebar-width: 68px;
+    --sidebar-width: 80px;
     --header-height: 60px;
     --gauge-bg: #f0f2f4;
     --gate-fail: #c44e52;
@@ -122,7 +122,7 @@
 
 body {
     font-family: var(--font-body);
-    background-color: #f8f9fa;
+    background-color: #f7f6f3;
     color: var(--text-primary);
     line-height: 1.6;
     overflow-x: hidden;
@@ -165,8 +165,8 @@ body {
     flex-direction: column;
     align-items: center;
     padding: 40px 0 18px;
-    gap: 6px;
-    background: #f0f2f4;
+    gap: 2px;
+    background: var(--void-dark);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-right: 1px solid rgba(0,0,0,0.08);
@@ -195,26 +195,132 @@ body {
 }
 
 .sidebar-icon.active {
-    background: rgba(91, 141, 184, 0.12);
-    color: #5B8DB8;
-    filter: drop-shadow(0 0 6px rgba(91, 141, 184, 0.4));
+    background: rgba(45, 106, 79, 0.10);
+    color: var(--steel);
+    filter: drop-shadow(0 0 6px rgba(45, 106, 79, 0.3));
 }
 
 #layout-edit-btn,
 #settings-btn,
 .sidebar-icon[data-view="faq"] {
-    color: rgba(60,68,80,0.5);
+    color: rgba(87,83,78,0.5);
     background: rgba(0,0,0,0.04);
 }
 #layout-edit-btn:hover,
 #settings-btn:hover,
 .sidebar-icon[data-view="faq"]:hover {
-    color: #5B8DB8;
-    background: rgba(91, 141, 184, 0.08);
+    color: var(--steel);
+    background: rgba(45, 106, 79, 0.08);
 }
 
 .sidebar-spacer {
     flex: 1;
+}
+
+.sidebar-nav-text {
+    width: 72px;
+    height: auto;
+    padding: 10px 0;
+    font-family: var(--font-body);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    transition: color 0.15s;
+    position: relative;
+    -webkit-app-region: no-drag;
+}
+
+.sidebar-nav-text:hover { color: var(--text-secondary); }
+
+.sidebar-nav-text.active {
+    color: var(--steel);
+}
+.sidebar-nav-text.active::before {
+    content: '';
+    position: absolute;
+    left: -1px; top: 50%;
+    transform: translateY(-50%);
+    width: 2px; height: 20px;
+    background: var(--steel);
+    border-radius: 0 2px 2px 0;
+}
+
+/* ============ Signal Glance Grid ============ */
+.signal-glance-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 16px 28px 28px;
+}
+
+.glance-card {
+    background: var(--void-dark);
+    border: 1px solid var(--void-light);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+}
+
+.glance-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.glance-value {
+    font-family: var(--font-heading);
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-bottom: 6px;
+}
+
+.glance-sentence {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* ============ Arc Chart (Trends) ============ */
+.arc-chart-card {
+    background: var(--void-dark);
+    border: 1px solid var(--void-light);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px 16px;
+    margin-bottom: 16px;
+}
+
+.arc-chart-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.trends-arc-svg {
+    width: 100%;
+    height: 160px;
+    overflow: visible;
+}
+
+.arc-narrative {
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.5;
 }
 
 /* ============ Main Content ============ */

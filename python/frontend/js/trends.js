@@ -34,6 +34,9 @@ class TrendsView {
 
         this.container.textContent = '';
 
+        // Arc chart hero — first element
+        this.renderArcChart();
+
         // Echo teaser card (prepend if echo is forming)
         if (this.echoProgress && this.echoProgress.sessions_until_next_echo > 0) {
             const ep = this.echoProgress;
@@ -90,6 +93,142 @@ class TrendsView {
 
         // 30-Day Heatmap
         this.renderHeatmap();
+    }
+
+    renderArcChart() {
+        const summaries = [...this.data.daily_summaries].sort((a, b) => new Date(a.date) - new Date(b.date));
+        const scores = summaries.map(s => s.avg_wellbeing ?? s.avg_mood ?? 50);
+
+        const card = document.createElement('div');
+        card.className = 'arc-chart-card';
+
+        const label = document.createElement('div');
+        label.className = 'arc-chart-label';
+        label.textContent = 'YOUR ARC — ' + this.days + ' DAYS';
+
+        const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgEl.id = 'trends-arc-svg';
+        svgEl.setAttribute('class', 'trends-arc-svg');
+        svgEl.setAttribute('viewBox', '0 0 800 160');
+        svgEl.setAttribute('preserveAspectRatio', 'none');
+
+        const narrative = document.createElement('p');
+        narrative.className = 'arc-narrative';
+        narrative.id = 'arc-narrative-text';
+
+        card.appendChild(label);
+        card.appendChild(svgEl);
+        card.appendChild(narrative);
+        this.container.appendChild(card);
+
+        if (scores.length < 2) {
+            narrative.textContent = 'Not enough data yet to draw your arc.';
+            return;
+        }
+
+        const W = 800, H = 160;
+        const padL = 10, padR = 10, padT = 20, padB = 30;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+
+        const minScore = Math.min(...scores);
+        const maxScore = Math.max(...scores);
+        const range = maxScore - minScore || 1;
+
+        const xScale = (i) => padL + (i / (scores.length - 1)) * plotW;
+        const yScale = (v) => padT + plotH - ((v - minScore) / range) * plotH;
+
+        // Build polyline path
+        const points = scores.map((v, i) => `${xScale(i)},${yScale(v)}`).join(' ');
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points);
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', '#2D6A4F');
+        polyline.setAttribute('stroke-width', '1.5');
+        polyline.setAttribute('stroke-linejoin', 'round');
+        polyline.setAttribute('stroke-linecap', 'round');
+        svgEl.appendChild(polyline);
+
+        // Milestone detection
+        const floorIdx = scores.indexOf(minScore);
+        let turnIdx = -1;
+        if (floorIdx < scores.length - 3) {
+            for (let i = floorIdx + 1; i <= scores.length - 3; i++) {
+                if (scores[i] > minScore + 5 && scores[i + 1] > minScore + 5 && scores[i + 2] > minScore + 5) {
+                    turnIdx = i;
+                    break;
+                }
+            }
+        }
+        const currentIdx = scores.length - 1;
+
+        const addDot = (idx, color, fill, label, labelBelow) => {
+            const cx = xScale(idx);
+            const cy = yScale(scores[idx]);
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx);
+            circle.setAttribute('cy', cy);
+            circle.setAttribute('r', '4');
+            circle.setAttribute('fill', fill);
+            circle.setAttribute('stroke', color);
+            circle.setAttribute('stroke-width', '1.5');
+            svgEl.appendChild(circle);
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', cx);
+            text.setAttribute('y', labelBelow ? cy + 16 : cy - 8);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.setAttribute('font-size', '8');
+            text.setAttribute('fill', color);
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('letter-spacing', '0.08em');
+            text.textContent = label;
+            svgEl.appendChild(text);
+        };
+
+        // Axis date labels
+        const addDateLabel = (idx, labelText) => {
+            const x = xScale(idx);
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x); line.setAttribute('y1', padT);
+            line.setAttribute('x2', x); line.setAttribute('y2', padT + plotH);
+            line.setAttribute('stroke', 'rgba(87,83,78,0.15)');
+            line.setAttribute('stroke-width', '1');
+            svgEl.insertBefore(line, polyline);
+
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', H - 4);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.setAttribute('font-size', '8');
+            text.setAttribute('fill', 'rgba(87,83,78,0.5)');
+            text.textContent = labelText;
+            svgEl.appendChild(text);
+        };
+
+        const fmtDate = (dateStr) => {
+            const d = new Date(dateStr + 'T12:00:00');
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+
+        addDateLabel(0, fmtDate(summaries[0].date));
+        const midIdx = Math.floor(scores.length / 2);
+        addDateLabel(midIdx, fmtDate(summaries[midIdx].date));
+        addDateLabel(currentIdx, 'Today');
+
+        // Plot milestones (after axis lines so dots are on top)
+        addDot(floorIdx, '#D97706', '#FFF8E7', 'THE FLOOR', true);
+        if (turnIdx >= 0) addDot(turnIdx, '#2D6A4F', '#E8F4EF', 'THE TURN', false);
+        addDot(currentIdx, '#2D6A4F', '#2D6A4F', scores[currentIdx].toFixed(0), false);
+
+        // Narrative sentence
+        const climb = scores[currentIdx] - minScore;
+        const recentDays = Math.min(scores.length, 7);
+        const recentChange = scores[currentIdx] - scores[currentIdx - recentDays + 1];
+        const direction = recentChange > 2 ? 'pointing up' : recentChange < -2 ? 'pointing down' : 'holding steady';
+        narrative.textContent = `You've climbed ${Math.round(climb)} points from your floor. The arc is ${direction}.`;
     }
 
     renderLineCharts() {
