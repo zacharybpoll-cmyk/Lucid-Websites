@@ -82,7 +82,6 @@ function updateScoreCircles(scores, wellnessScore, delta) {
     }
     if (!readinessUp) {
         updateMetricBars(scores);
-        updateGlanceCards(scores, effectiveWellness, delta);
     }
 }
 
@@ -143,7 +142,6 @@ let _ringSafetyTimer = null;
 // ============ Score Reveal Flags ============
 let _ringScoreReveal = false;  // set on analysis finish, consumed by renderRingGauge()
 let _metBarReveal = false;     // set on analysis finish, consumed by updateMetricBars()
-let _revealAnimating = false;  // true while reveal RAF is running
 
 function startMetricBarPulse() {
     document.querySelectorAll('.metbar-item').forEach(el => el.classList.add('metbar-analyzing'));
@@ -345,7 +343,9 @@ function finishRingGaugeProgress() {
     // Set reveal flags — consumed by renderRingGauge() and updateMetricBars()
     _ringScoreReveal = true;
     _metBarReveal = true;
-    // NOTE: wellnessRevealed is re-armed in app.js pollStatus() when analysis completes.
+    // NOTE: Do NOT reset wellnessRevealed here — the reveal card in renderRingGauge()
+    // has its own gate (currentCount > lastRevealed) that correctly handles new readings.
+    // Resetting wellnessRevealed here caused the reveal card to show after EVERY analysis.
     stopMetricBarPulse();
 
     // After brief pause, loadTodayData() will call renderRingGauge() with real data
@@ -393,6 +393,7 @@ function _renderRevealCard(wellnessScore, scores, delta) {
             _ringScoreReveal = true;
             _metBarReveal = true;
             window.AppState.wellnessRevealed = true;
+            localStorage.setItem('lucid-last-revealed-count', String(window.AppState.currentReadingCount || 0));
             renderRingGauge(wellnessScore, scores, delta);
             updateMetricBars(_gaugeState.scores);
         }, 300);
@@ -407,20 +408,27 @@ function renderRingGauge(wellnessScore, scores, delta) {
     const svg = document.getElementById('ring-gauge-svg');
     if (!svg) return;
 
-    // Don't let 5s data poll wipe SVG while reveal animation is running
-    if (_revealAnimating && !_ringScoreReveal) {
-        return;
-    }
-
     // Capture and consume reveal flag
     const isReveal = _ringScoreReveal;
     if (!wellnessScore && wellnessScore !== 0) _ringScoreReveal = false;
     if (isReveal) _ringScoreReveal = false;
 
-    // Tap-to-reveal: show overlay once per day (controlled by daily localStorage key)
-    if (wellnessScore != null && !window.AppState.wellnessRevealed) {
-        _renderRevealCard(wellnessScore, scores, delta);
-        return;
+    // Tap-to-reveal: show overlay only when new readings arrive
+    const showScoreEarly = wellnessScore !== null && wellnessScore !== undefined;
+    if (showScoreEarly && !window.AppState.wellnessRevealed) {
+        const currentCount = window.AppState.currentReadingCount || 0;
+        const lastRevealed = parseInt(localStorage.getItem('lucid-last-revealed-count') || '0', 10);
+        if (currentCount > lastRevealed) {
+            // New reading arrived: show reveal card
+            _renderRevealCard(wellnessScore, scores, delta);
+            return;
+        } else {
+            // First reading or no new readings — skip overlay, go straight to display
+            window.AppState.wellnessRevealed = true;
+            if (currentCount > lastRevealed) {
+                localStorage.setItem('lucid-last-revealed-count', String(currentCount));
+            }
+        }
     }
 
     svg.innerHTML = '';
@@ -550,9 +558,6 @@ function renderRingGauge(wellnessScore, scores, delta) {
 
     // ---- Reveal animations (RAF) ----
     if (isReveal && showScore) {
-        _revealAnimating = true;
-        // Safety timeout: clear if RAF somehow fails (4s > max animation 2.5s)
-        setTimeout(() => { _revealAnimating = false; }, 4000);
         const arcDuration = 2000;   // 2s for ring arcs
         const scoreDuration = 2500; // 2.5s for score count-up
         const startTime = performance.now();
@@ -581,7 +586,6 @@ function renderRingGauge(wellnessScore, scores, delta) {
                     arc.setAttribute('stroke-dashoffset', (circumference * (1 - pct)).toFixed(2));
                 });
                 scoreEl.textContent = finalScore.toString();
-                _revealAnimating = false;
             }
         }
         requestAnimationFrame(revealTick);
@@ -627,85 +631,6 @@ function updateMetricBars(scores) {
             if (fillEl) fillEl.style.width = pct.toFixed(1) + '%';
         }
     });
-}
-
-// ============ Glance Cards ============
-
-function updateGlanceCards(scores, wellnessScore, wellnessDelta) {
-    // TODAY AT A GLANCE
-    const overviewValEl = document.getElementById('glance-value-overview');
-    const overviewSentEl = document.getElementById('glance-sentence-overview');
-    if (overviewValEl) {
-        if (wellnessScore != null) {
-            overviewValEl.textContent = Math.round(wellnessScore);
-            let sentence = '';
-            if (wellnessScore >= 75) sentence = 'Your voice is reading strong today.';
-            else if (wellnessScore >= 55) sentence = 'Steady signal — a balanced day so far.';
-            else if (wellnessScore >= 35) sentence = 'Some tension present. Take it easy.';
-            else sentence = 'Low reading today. Rest when you can.';
-            if (overviewSentEl) overviewSentEl.textContent = sentence;
-        } else {
-            overviewValEl.textContent = '--';
-            if (overviewSentEl) overviewSentEl.textContent = 'Record a voice reading to unlock.';
-        }
-    }
-
-    // TENSION — from stress + anxiety
-    const tensionValEl = document.getElementById('glance-value-tension');
-    const tensionSentEl = document.getElementById('glance-sentence-tension');
-    if (tensionValEl && scores) {
-        const stress = scores.stress ?? 50;
-        const anxiety = scores.anxiety ?? 50;
-        const tension = (stress + anxiety) / 2;
-        let level, sentence;
-        if (tension < 33) {
-            level = 'Low';
-            sentence = 'Vocal patterns suggest you\'re relaxed.';
-        } else if (tension < 60) {
-            level = 'Moderate';
-            sentence = 'Some stress detected — manageable.';
-        } else {
-            level = 'Elevated';
-            sentence = 'High tension in your voice today.';
-        }
-        tensionValEl.textContent = level;
-        if (tensionSentEl) tensionSentEl.textContent = sentence;
-    }
-
-    // ENERGY — from activation
-    const energyValEl = document.getElementById('glance-value-energy');
-    const energySentEl = document.getElementById('glance-sentence-energy');
-    if (energyValEl && scores) {
-        const activation = scores.activation ?? 50;
-        let level, sentence;
-        if (activation >= 65) {
-            level = 'High';
-            sentence = 'Strong vocal energy — you\'re activated.';
-        } else if (activation >= 35) {
-            level = 'Measured';
-            sentence = 'Balanced energy levels today.';
-        } else {
-            level = 'Low';
-            sentence = 'Quieter energy — rest may be helpful.';
-        }
-        energyValEl.textContent = level;
-        if (energySentEl) energySentEl.textContent = sentence;
-    }
-
-    // TRAJECTORY — from delta vs morning baseline
-    const trajValEl = document.getElementById('glance-value-trajectory');
-    const trajSentEl = document.getElementById('glance-sentence-trajectory');
-    if (trajValEl) {
-        if (wellnessDelta != null) {
-            const sign = wellnessDelta >= 0 ? '+' : '';
-            trajValEl.textContent = sign + wellnessDelta + ' pts';
-            const dir = wellnessDelta > 2 ? 'climbing' : wellnessDelta < -2 ? 'easing down' : 'holding steady';
-            if (trajSentEl) trajSentEl.textContent = `Your score is ${dir} from this morning.`;
-        } else {
-            trajValEl.textContent = '--';
-            if (trajSentEl) trajSentEl.textContent = 'Need 2+ readings to track trajectory.';
-        }
-    }
 }
 
 // ============ Theme Toggle ============

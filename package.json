@@ -1,6 +1,6 @@
 {
   "name": "lucid",
-  "version": "1.2.0",
+  "version": "1.1.0",
   "description": "Lucid — Clarity through voice.",
   "main": "main.js",
   "scripts": {
@@ -14,8 +14,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "zacharybpoll-cmyk",
-        "repo": "lucid-releases"
+        "owner": "owner",
+        "repo": "lucid"
       }
     ]
   },

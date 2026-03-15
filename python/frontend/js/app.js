@@ -279,7 +279,7 @@ function waitForBackend() {
 // ========== Navigation ==========
 
 function setupNavigation() {
-    const sidebarIcons = document.querySelectorAll('.sidebar-nav-text[data-view], .sidebar-icon[data-view]');
+    const sidebarIcons = document.querySelectorAll('.sidebar-icon[data-view]');
     sidebarIcons.forEach(icon => {
         icon.addEventListener('click', () => {
             const view = icon.dataset.view;
@@ -360,7 +360,7 @@ function switchView(view) {
     }
 
     // Update sidebar + view visibility
-    document.querySelectorAll('.sidebar-nav-text[data-view], .sidebar-icon[data-view]').forEach(icon => {
+    document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
         icon.classList.toggle('active', icon.dataset.view === view);
     });
     document.querySelectorAll('.view').forEach(viewEl => {
