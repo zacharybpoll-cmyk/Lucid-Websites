@@ -2682,20 +2682,18 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 12px;
+    gap: 20px;
     padding: 8px 20px;
     margin-bottom: 12px;
-    background: rgba(255, 248, 230, 0.85);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(168, 192, 208, 0.25);
+    background: rgba(91, 141, 184, 0.06);
+    border: 1px solid rgba(91, 141, 184, 0.14);
     border-radius: var(--radius-lg);
     cursor: pointer;
     transition: background 0.2s ease;
 }
 
 .science-banner:hover {
-    background: rgba(255, 248, 230, 0.95);
+    background: rgba(91, 141, 184, 0.1);
 }
 
 .science-banner-text {
@@ -2714,7 +2712,7 @@ body {
 
 .science-banner-link {
     font-size: 0.6875rem;
-    color: var(--gold-dark);
+    color: var(--steel);
     font-weight: 600;
     white-space: nowrap;
     text-decoration: underline;
@@ -2731,7 +2729,7 @@ body {
     width: 5px;
     height: 5px;
     border-radius: 50%;
-    background: var(--gold-dark);
+    background: var(--steel);
     flex-shrink: 0;
 }
 
