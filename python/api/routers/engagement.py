@@ -48,7 +48,7 @@ async def self_assessment_status():
         try:
             last_dt = datetime.fromisoformat(last_time)
             hours_since = (datetime.now() - last_dt).total_seconds() / 3600
-            should_prompt = hours_since >= 6
+            should_prompt = hours_since >= 30
         except (ValueError, TypeError):
             should_prompt = True
 
