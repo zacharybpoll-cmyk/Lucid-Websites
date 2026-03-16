@@ -21,6 +21,17 @@ const ActiveAssessment = (() => {
     let pollInterval = null;
     let currentPrompt = '';
     let currentResult = null;
+    let _analyzingMsgInterval = null;
+
+    const ANALYZING_MESSAGES = [
+        'Measuring vocal energy patterns',
+        'Extracting prosody and rhythm',
+        'Analyzing pitch variability',
+        'Computing harmonic-to-noise ratio',
+        'Running acoustic feature extraction',
+        'Mapping voice to wellness dimensions',
+        'Almost there...',
+    ];
 
     function init() {
         _shufflePrompt();
@@ -57,11 +68,39 @@ const ActiveAssessment = (() => {
         document.querySelectorAll('#voicescan-view .vs-state').forEach(el => {
             el.classList.toggle('active', el.dataset.state === newState);
         });
+        // Start/stop rotating analyzing messages
+        if (newState === 'analyzing') {
+            _startAnalyzingMessages();
+        } else {
+            _stopAnalyzingMessages();
+        }
+    }
+
+    function _startAnalyzingMessages() {
+        _stopAnalyzingMessages();
+        let idx = 0;
+        const el = document.getElementById('vs-analyzing-sub');
+        if (!el) return;
+        el.textContent = ANALYZING_MESSAGES[0];
+        _analyzingMsgInterval = setInterval(() => {
+            idx = (idx + 1) % ANALYZING_MESSAGES.length;
+            el.textContent = ANALYZING_MESSAGES[idx];
+        }, 3500);
+    }
+
+    function _stopAnalyzingMessages() {
+        if (_analyzingMsgInterval) {
+            clearInterval(_analyzingMsgInterval);
+            _analyzingMsgInterval = null;
+        }
     }
 
     // ========== Recording ==========
 
     async function startRecording() {
+        if (state !== 'idle') return;
+        const startBtn = document.getElementById('vs-start-btn');
+        if (startBtn) startBtn.disabled = true;
         try {
             const resp = await fetch('/api/active/start', {
                 method: 'POST',
@@ -70,7 +109,13 @@ const ActiveAssessment = (() => {
             });
             if (!resp.ok) {
                 const err = await resp.json();
-                alert(err.detail || 'Failed to start recording');
+                const msg = err.detail || 'Failed to start recording';
+                if (resp.status === 409 || (msg && msg.toLowerCase().includes('already active'))) {
+                    showToast('Voice scan already in progress');
+                } else {
+                    alert(msg);
+                }
+                if (startBtn) startBtn.disabled = false;
                 return;
             }
             _setState('recording');
@@ -79,6 +124,7 @@ const ActiveAssessment = (() => {
             _startPolling();
         } catch (e) {
             console.error('Start recording error:', e);
+            if (startBtn) startBtn.disabled = false;
         }
     }
 
@@ -121,6 +167,8 @@ const ActiveAssessment = (() => {
         currentResult = null;
         _shufflePrompt();
         _setState('idle');
+        const startBtn = document.getElementById('vs-start-btn');
+        if (startBtn) startBtn.disabled = false;
     }
 
     // ========== Polling ==========
@@ -171,6 +219,9 @@ const ActiveAssessment = (() => {
         // Stop button
         const stopBtn = document.getElementById('vs-stop-btn');
         if (stopBtn) stopBtn.disabled = !data.ready_for_analysis;
+
+        // Signal quality indicator
+        _updateSignalQuality(data.rms_levels || []);
 
         // Waveform
         _renderWaveform(data.rms_levels || []);
@@ -226,6 +277,14 @@ const ActiveAssessment = (() => {
             return (raw[i - 1] + raw[i] + raw[i + 1]) / 3;
         });
 
+        // Compute recent activity level (last 10 samples) — VAD surrogate
+        const recentSamples = raw.slice(-10);
+        const recentAvg = recentSamples.length ? recentSamples.reduce((a, b) => a + b, 0) / recentSamples.length : 0;
+        // voiceActive: true when recent amplitude suggests actual speech (not silence)
+        const voiceActive = recentAvg > 0.08;
+        // Boost opacity when voice detected — visual VAD feedback
+        const opacityMult = voiceActive ? 1.8 : 0.7;
+
         const layers = [
             { ampMult: 0.5, opacity: 0.10, offset: 0 },
             { ampMult: 0.75, opacity: 0.15, offset: 2 },
@@ -237,9 +296,9 @@ const ActiveAssessment = (() => {
         const startIdx = _waveformMaxSamples - data.length;
 
         for (const layer of layers) {
-            // Upper trace
+            // Upper trace — brighter when voice active, dimmer when silent
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity})`;
+            ctx.strokeStyle = `rgba(91, 141, 184, ${Math.min(1, layer.opacity * opacityMult)})`;
             ctx.lineWidth = 2;
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
@@ -260,7 +319,7 @@ const ActiveAssessment = (() => {
 
             // Mirror below center line
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(91, 141, 184, ${layer.opacity * 0.6})`;
+            ctx.strokeStyle = `rgba(91, 141, 184, ${Math.min(1, layer.opacity * opacityMult * 0.6)})`;
             for (let i = 0; i < data.length; i++) {
                 const x = (startIdx + i) * step;
                 const y = midY - layer.offset + data[i] * layer.ampMult * (h * 0.35);
@@ -289,6 +348,34 @@ const ActiveAssessment = (() => {
         const m = Math.floor(sec / 60);
         const s = Math.floor(sec % 60);
         return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function _updateSignalQuality(rmsLevels) {
+        const el = document.getElementById('vs-signal-quality');
+        if (!el) return;
+        if (!rmsLevels || rmsLevels.length === 0) {
+            el.textContent = 'Listening...';
+            el.className = 'vs-signal-quality vs-signal-listening';
+            return;
+        }
+        // Use last 10 samples for responsiveness
+        const recent = rmsLevels.slice(-10);
+        const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+        // Normalize against 0.15 max (same as waveform)
+        const norm = avg / 0.15;
+        if (norm < 0.04) {
+            el.textContent = 'No signal — speak closer';
+            el.className = 'vs-signal-quality vs-signal-low';
+        } else if (norm < 0.15) {
+            el.textContent = 'Soft signal — speak a bit louder';
+            el.className = 'vs-signal-quality vs-signal-soft';
+        } else if (norm > 0.85) {
+            el.textContent = 'Strong signal — move back slightly';
+            el.className = 'vs-signal-quality vs-signal-strong';
+        } else {
+            el.textContent = 'Good signal';
+            el.className = 'vs-signal-quality vs-signal-good';
+        }
     }
 
     // ========== Population Percentile ==========
@@ -327,7 +414,7 @@ const ActiveAssessment = (() => {
                 </div>
             </div>
             <div class="vs-population-axis">${axisHtml}</div>
-            <div class="vs-population-footnote">Higher than ${pctRound}% of the general U.S. adult population</div>
+            <div class="vs-population-footnote">Your estimated voice-based score falls here on the population curve</div>
         </div>`;
     }
 
@@ -455,24 +542,46 @@ const ActiveAssessment = (() => {
         const anxMapped = data.anxiety_mapped != null ? data.anxiety_mapped : 0;
 
         // Meta
-        document.getElementById('vs-results-meta').textContent =
-            `${data.speech_duration_sec}s speech analyzed`;
+        const metaEl = document.getElementById('vs-results-meta');
+        if (metaEl) metaEl.textContent = `${data.speech_duration_sec}s speech analyzed`;
 
-        // PHQ-9 severity bar
-        const phq9Html = _buildSeverityBar('PHQ-9 (Depression)', depMapped, 27, [
-            { label: 'None', max: 4, cls: 'seg-none' },
-            { label: 'Mild', max: 9, cls: 'seg-mild' },
+        // Recording quality badge
+        if (metaEl) {
+            const speechSec = data.speech_duration_sec || 0;
+            const totalSec = data.total_recording_sec || speechSec;
+            const ratio = totalSec > 0 ? speechSec / totalSec : 0;
+            let qualityLabel, qualityClass;
+            if (speechSec >= 45 && ratio >= 0.6) {
+                qualityLabel = 'Clean recording';
+                qualityClass = 'vs-quality-badge vs-quality-good';
+            } else if (speechSec >= 30 && ratio >= 0.4) {
+                qualityLabel = 'Good recording';
+                qualityClass = 'vs-quality-badge vs-quality-fair';
+            } else {
+                qualityLabel = 'Short recording — rescan for more accuracy';
+                qualityClass = 'vs-quality-badge vs-quality-short';
+            }
+            const badge = document.createElement('span');
+            badge.className = qualityClass;
+            badge.textContent = qualityLabel;
+            metaEl.appendChild(badge);
+        }
+
+        // Mood estimate (PHQ-9 mapped)
+        const phq9Html = _buildSeverityBar('Mood Estimate', depMapped, 27, [
+            { label: 'Stable', max: 4, cls: 'seg-none' },
+            { label: 'Mild dip', max: 9, cls: 'seg-mild' },
             { label: 'Moderate', max: 14, cls: 'seg-moderate' },
-            { label: 'Mod. Severe', max: 19, cls: 'seg-modsev' },
-            { label: 'Severe', max: 27, cls: 'seg-severe' },
+            { label: 'Elevated', max: 19, cls: 'seg-modsev' },
+            { label: 'High', max: 27, cls: 'seg-severe' },
         ], data.depression_ci_lower, data.depression_ci_upper, 'phq9');
 
-        // GAD-7 severity bar
-        const gad7Html = _buildSeverityBar('GAD-7 (Anxiety)', anxMapped, 21, [
-            { label: 'Minimal', max: 4, cls: 'seg-minimal' },
-            { label: 'Mild', max: 9, cls: 'seg-mild' },
+        // Tension estimate (GAD-7 mapped)
+        const gad7Html = _buildSeverityBar('Tension Estimate', anxMapped, 21, [
+            { label: 'Calm', max: 4, cls: 'seg-minimal' },
+            { label: 'Mild tension', max: 9, cls: 'seg-mild' },
             { label: 'Moderate', max: 14, cls: 'seg-moderate' },
-            { label: 'Severe', max: 21, cls: 'seg-severe' },
+            { label: 'High tension', max: 21, cls: 'seg-severe' },
         ], data.anxiety_ci_lower, data.anxiety_ci_upper, 'gad7');
 
         // Extra scores
@@ -503,14 +612,20 @@ const ActiveAssessment = (() => {
         const phq9Pct = _getPercentile(depMapped, 'phq9');
         const gad7Pct = _getPercentile(anxMapped, 'gad7');
         const phq9CurveHtml = _buildPopulationCurveHtml(
-            'vs-pop-phq9', 'Population Comparison — PHQ-9', depMapped, 27, phq9Pct);
+            'vs-pop-phq9', 'Mood Score — Population Range', depMapped, 27, phq9Pct);
         const gad7CurveHtml = _buildPopulationCurveHtml(
-            'vs-pop-gad7', 'Population Comparison — GAD-7', anxMapped, 21, gad7Pct);
+            'vs-pop-gad7', 'Tension Score — Population Range', anxMapped, 21, gad7Pct);
+
+        // Return hook — bottom of results
+        const returnHookHtml = `<div class="vs-return-hook">
+            Scan again tomorrow to track your first trend
+        </div>`;
 
         container.innerHTML = phq9Html + phq9CurveHtml + gad7Html + gad7CurveHtml +
             `<div id="vs-comparison-container"></div>` +
             `<div class="vs-extra-scores">${extrasHtml}</div>` +
-            notesHtml;
+            notesHtml +
+            returnHookHtml;
 
         // Draw canvases after DOM insertion
         requestAnimationFrame(() => {
@@ -571,14 +686,22 @@ const ActiveAssessment = (() => {
 
         // Interpretation
         const interpMap = {
-            'None': 'Minimal or no symptoms detected',
-            'Minimal': 'Minimal or no symptoms detected',
-            'Mild': 'Mild symptoms — may benefit from monitoring',
-            'Moderate': 'Moderate symptoms — consider follow-up',
-            'Mod. Severe': 'Moderately severe — clinical attention recommended',
-            'Severe': 'Severe symptoms — professional support recommended',
+            'Stable': 'Voice patterns suggest stable mood',
+            'Calm': 'Voice patterns suggest low tension',
+            'Mild dip': 'Mild dip detected — worth monitoring over time',
+            'Mild tension': 'Mild tension detected — worth monitoring over time',
+            'Moderate': 'Moderate signal detected — consider checking in with yourself',
+            'Elevated': 'Elevated signal — consider speaking with someone you trust',
+            'High': 'High signal — talking to a mental health professional may help',
+            'High tension': 'High tension signal — talking to a mental health professional may help',
         };
         const interp = interpMap[severityLabel] || '';
+
+        // Crisis resource for high-severity readings
+        const highSeverity = ['Elevated', 'High', 'High tension'].includes(severityLabel);
+        const crisisHtml = highSeverity
+            ? `<div class="vs-crisis-note">If you're struggling, the 988 Suicide &amp; Crisis Lifeline is available 24/7 — call or text <strong>988</strong>.</div>`
+            : '';
 
         return `<div class="vs-scale-card">
             <div class="vs-scale-title">${title}</div>
@@ -594,6 +717,7 @@ const ActiveAssessment = (() => {
                 <div class="vs-severity-label">${severityLabel}</div>
             </div>
             <div class="vs-scale-interpretation">${interp}</div>
+            ${crisisHtml}
         </div>`;
     }
 
@@ -692,6 +816,11 @@ const ActiveAssessment = (() => {
     // ========== Public API ==========
 
     function onNavigateAway() {
+        _stopAnalyzingMessages();
+        if (_waveformAnimFrame) {
+            cancelAnimationFrame(_waveformAnimFrame);
+            _waveformAnimFrame = null;
+        }
         if (state === 'recording') {
             cancelRecording();
         }

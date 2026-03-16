@@ -111,6 +111,19 @@
     max-width: 340px;
 }
 
+.vs-privacy-badge {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--steel);
+    background: rgba(91, 141, 184, 0.08);
+    border: 1px solid rgba(91, 141, 184, 0.18);
+    border-radius: var(--radius-full);
+    padding: 4px 14px;
+    text-align: center;
+    letter-spacing: 0.03em;
+    margin-bottom: 8px;
+}
+
 /* ===== Idle Stats Cards ===== */
 .vs-idle-stats {
     display: flex;
@@ -178,9 +191,42 @@
     width: 100%;
     max-width: 500px;
     height: 160px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     border-radius: 12px;
     background: rgba(91, 141, 184, 0.03);
+}
+
+/* Signal quality indicator */
+.vs-signal-quality {
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+    transition: background 0.3s, color 0.3s;
+}
+.vs-signal-listening {
+    background: rgba(90,98,112,0.08);
+    color: var(--text-secondary);
+}
+.vs-signal-low {
+    background: rgba(180, 60, 60, 0.1);
+    color: var(--signal-low-text, #b44);
+}
+.vs-signal-soft {
+    background: rgba(180, 120, 30, 0.1);
+    color: var(--signal-soft-text, #8a6020);
+}
+.vs-signal-good {
+    background: rgba(60, 140, 90, 0.1);
+    color: var(--signal-good-text, #2e7d52);
+}
+.vs-signal-strong {
+    background: rgba(91, 141, 184, 0.12);
+    color: var(--steel);
 }
 
 /* Timers */
@@ -319,6 +365,16 @@
     color: var(--text-secondary);
 }
 
+.vs-analyzing-sub {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-align: center;
+    min-height: 18px;
+    transition: opacity 0.4s ease;
+}
+
 /* ===== Results State ===== */
 .vs-results {
     width: 100%;
@@ -338,6 +394,33 @@
     color: var(--text-secondary);
     text-align: center;
     margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* Recording quality badge */
+.vs-quality-badge {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 2px 9px;
+    border-radius: 20px;
+}
+.vs-quality-good {
+    background: rgba(77, 155, 111, 0.12);
+    color: #2e7d52;
+}
+.vs-quality-fair {
+    background: rgba(91, 141, 184, 0.12);
+    color: var(--steel);
+}
+.vs-quality-short {
+    background: rgba(200, 140, 40, 0.1);
+    color: #9a6b1e;
 }
 
 /* Severity bars */
@@ -436,6 +519,17 @@
     margin-top: 6px;
 }
 
+.vs-crisis-note {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(91, 141, 184, 0.06);
+    border-left: 2px solid var(--steel);
+    border-radius: 0 6px 6px 0;
+    line-height: 1.5;
+}
+
 /* Comparison section */
 .vs-comparison {
     background: var(--card-bg-strong);
@@ -521,6 +615,18 @@
 }
 
 /* Notes field */
+/* Return hook — bottom of results */
+.vs-return-hook {
+    text-align: center;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-muted);
+    font-style: italic;
+    padding: 16px 0 8px;
+    border-top: 1px solid var(--void-light);
+    margin-top: 8px;
+}
+
 .vs-notes-card {
     background: var(--card-bg-strong);
     border: 1px solid var(--void-light);
@@ -543,6 +649,12 @@
     resize: vertical;
     outline: none;
     transition: border-color 0.2s;
+}
+
+.vs-notes-textarea:focus-visible {
+    border-color: var(--steel);
+    outline: 2px solid rgba(91, 141, 184, 0.3);
+    outline-offset: 0;
 }
 
 .vs-notes-textarea::placeholder {

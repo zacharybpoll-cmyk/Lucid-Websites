@@ -7,7 +7,8 @@
     <title>Lucid</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"></noscript>
     <link rel="stylesheet" href="css/main.css?v=23">
     <link rel="stylesheet" href="css/gauges.css?v=16">
     <link rel="stylesheet" href="css/anxiety_timeline.css?v=16">
@@ -18,13 +19,16 @@
     <link rel="stylesheet" href="css/lab.css?v=1">
     <link rel="stylesheet" href="css/clarity.css?v=1">
     <link rel="stylesheet" href="css/reports.css?v=1">
-    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous"></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7" crossorigin="anonymous" defer></script>
 </head>
 <body>
     <a href="#view-container" class="skip-link">Skip to main content</a>
 
     <!-- Background layer -->
     <div class="bg-layer"></div>
+
+    <!-- Accessibility: live region for dynamic score/status announcements -->
+    <div id="a11y-live" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
     <!-- Sanctuary overlay (micro-celebrations) -->
     <div id="sanctuary-overlay" class="sanctuary-overlay" style="display: none;">
@@ -125,7 +129,7 @@
                         <circle id="morning-ring-stress" cx="170" cy="170" r="75" class="morning-ring-progress" stroke="#c4584c"
                             stroke-dasharray="471.2" stroke-dashoffset="471.2" transform="rotate(-90 170 170)"/>
                         <!-- Center text -->
-                        <text x="170" y="142" text-anchor="middle" class="morning-ring-center-label">HEALTH SCORE</text>
+                        <text x="170" y="142" text-anchor="middle" class="morning-ring-center-label">VOICE SCORE</text>
                         <text x="170" y="184" text-anchor="middle" class="morning-ring-score-text" id="morning-ring-score">--</text>
                         <text x="170" y="214" text-anchor="middle" class="morning-ring-verdict-text" id="morning-ring-verdict"></text>
                     </svg>
@@ -301,7 +305,7 @@
                     <circle cx="130" cy="130" r="110" class="evening-ring-track"/>
                     <circle cx="130" cy="130" r="110" class="evening-ring-progress" id="evening-ring-arc"
                         stroke-dasharray="691.2" stroke-dashoffset="691.2" transform="rotate(-90 130 130)"/>
-                    <text x="130" y="110" text-anchor="middle" class="evening-wellness-label">AVG HEALTH SCORE</text>
+                    <text x="130" y="110" text-anchor="middle" class="evening-wellness-label">AVG VOICE SCORE</text>
                     <text x="130" y="160" text-anchor="middle" class="evening-wellness-score" id="evening-wellness-score">--</text>
                     <text x="130" y="185" text-anchor="middle" class="evening-wellness-verdict" id="evening-wellness-verdict"></text>
                 </svg>
@@ -367,59 +371,19 @@
     <div class="app-layout">
         <!-- Sidebar -->
         <nav class="sidebar" role="navigation" aria-label="Main navigation">
-            <button class="sidebar-icon active" data-view="today" title="Dashboard" aria-label="Dashboard">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                    <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="trends" title="Trends" aria-label="Trends">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="echoes" title="Echoes" aria-label="Echoes" style="position:relative;">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 18V5l12-2v13"/>
-                    <circle cx="6" cy="18" r="3"/>
-                    <circle cx="18" cy="16" r="3"/>
-                </svg>
+            <button class="sidebar-nav-text active" data-view="today" title="Dashboard" aria-label="Dashboard">TODAY</button>
+            <button class="sidebar-nav-text" data-view="trends" title="Trends" aria-label="Trends">TRENDS</button>
+            <button class="sidebar-nav-text" data-view="echoes" title="Echoes" aria-label="Echoes" style="position:relative;">ECHOES
                 <div class="echo-sidebar-badge-wrap" id="echo-sidebar-badge-wrap" style="display:none;">
                     <span class="echo-count-badge" id="echo-count-badge">0</span>
                     <span class="echo-eureka-pill" id="echo-eureka-pill" style="display:none;">&#9679; Eureka</span>
                 </div>
             </button>
-            <button class="sidebar-icon" data-view="lab" title="Biomarker Lab" aria-label="Biomarker Lab">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v11l-4 7h14l-4-7V3"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="voicescan" title="Voice Scan" aria-label="Voice Scan">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="waypoints" title="Waypoints" aria-label="Waypoints">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
-                    <line x1="4" y1="22" x2="4" y2="15"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="reports" title="Reports" aria-label="Reports">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                </svg>
-            </button>
-            <button class="sidebar-icon" data-view="journey" title="Clarity Journey" aria-label="Clarity Journey">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88"/>
-                </svg>
-            </button>
+            <button class="sidebar-nav-text" data-view="lab" title="Biomarker Lab" aria-label="Biomarker Lab">LAB</button>
+            <button class="sidebar-nav-text" data-view="voicescan" title="Voice Scan" aria-label="Voice Scan">SCAN</button>
+            <button class="sidebar-nav-text" data-view="waypoints" title="Waypoints" aria-label="Waypoints">WAYPOINTS</button>
+            <button class="sidebar-nav-text" data-view="reports" title="Reports" aria-label="Reports">REPORTS</button>
+            <button class="sidebar-nav-text" data-view="journey" title="Clarity Journey" aria-label="Clarity Journey">JOURNEY</button>
             <div class="sidebar-spacer"></div>
             <button class="sidebar-icon" data-view="faq" title="FAQ" aria-label="FAQ">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -468,9 +432,9 @@
             <!-- Science Banner -->
             <div class="science-banner" id="science-banner" onclick="openScienceModal()">
                 <span class="science-banner-text">
-                    <em>Clinically validated</em> on 14,898 participants (<em>Annals of Family Medicine</em>, 2025) | 35,000 training voices | 100% on-device | Powered by Kintsugi DAM
+                    <em>Runs entirely on your Mac</em> — your voice is never uploaded &nbsp;·&nbsp; Clinically validated across 14,898 people, <em>Annals of Family Medicine</em> 2025
                 </span>
-                <span class="science-banner-link">Learn more</span>
+                <span class="science-banner-link">About the science</span>
             </div>
 
             <!-- Views -->
@@ -484,8 +448,8 @@
                         <!-- State 1: Awaiting first reading -->
                         <div id="speak-hero-state-waiting">
                             <div class="speak-hero-content">
-                                <h2 class="speak-hero-headline">Your first reading starts here</h2>
-                                <p class="speak-hero-body">Speak naturally for 30 seconds — describe your morning, read an email aloud, or simply say what's on your mind. No questionnaires. No self-reporting. Just your voice.</p>
+                                <h2 class="speak-hero-headline">Just 30 seconds of your voice</h2>
+                                <p class="speak-hero-body">Describe your morning, read an email aloud, or say what's on your mind. No questionnaires. No effort. Lucid listens and does the rest.</p>
                                 <div class="speak-hero-quote">
                                     <span class="speak-hero-quote-text">"Good morning. I'm starting my day and feeling..."</span>
                                 </div>
@@ -551,19 +515,20 @@
 
                     <!-- Calibration Banner (legacy fallback) -->
                     <div id="calibration-banner" class="calibration-banner" style="display: none;">
-                        <strong>Calibrating...</strong> Building your personal baseline.
+                        <strong>Building your baseline</strong>
                         <span id="calibration-progress"></span>
                     </div>
 
                     <!-- Ring Gauge Hero (Wellness + 6 metric bars) -->
                     <div class="dashboard-card ring-gauge-card" data-card-id="rings-hero">
                         <div class="ring-gauge-header">
-                            <span class="wellness-label" id="wellness-label" style="position: relative;">HEALTH SCORE
+                            <span class="wellness-label" id="wellness-label" style="position: relative;">VOICE SCORE
                                 <button class="info-btn" data-info="wellness">i</button>
                                 <div class="info-popover" id="info-wellness">Your real-time wellness score (0-100), derived from involuntary vocal biomarkers — signals your autonomic nervous system produces that you can't control or fake. Combines seven voice dimensions weighted by clinical validation strength, plus your calm-time recovery ratio. Updated every time you speak.</div>
                             </span>
                             <span class="ring-gauge-tagline">Clarity through voice.</span>
                         </div>
+                        <p class="wellness-disclaimer-note">Wellness indicator — not a clinical diagnosis</p>
 
                         <!-- Ring gauge SVG — JS fills this -->
                         <svg id="ring-gauge-svg" viewBox="0 0 460 460" class="ring-gauge-svg"></svg>
@@ -590,7 +555,32 @@
                             <div class="wellness-progress-msg">Get 1 reading to unlock your Health Score</div>
                         </div>
 
+                        <!-- 4-Card At a Glance Signal Section -->
+                        <div class="signal-glance-grid" id="signal-glance-grid">
+                            <div class="glance-card" id="glance-overview">
+                                <div class="glance-label">TODAY AT A GLANCE</div>
+                                <div class="glance-value" id="glance-value-overview">--</div>
+                                <div class="glance-sentence" id="glance-sentence-overview"></div>
+                            </div>
+                            <div class="glance-card" id="glance-tension">
+                                <div class="glance-label">TENSION</div>
+                                <div class="glance-value" id="glance-value-tension">--</div>
+                                <div class="glance-sentence" id="glance-sentence-tension"></div>
+                            </div>
+                            <div class="glance-card" id="glance-energy">
+                                <div class="glance-label">ENERGY</div>
+                                <div class="glance-value" id="glance-value-energy">--</div>
+                                <div class="glance-sentence" id="glance-sentence-energy"></div>
+                            </div>
+                            <div class="glance-card" id="glance-trajectory">
+                                <div class="glance-label">TRAJECTORY</div>
+                                <div class="glance-value" id="glance-value-trajectory">--</div>
+                                <div class="glance-sentence" id="glance-sentence-trajectory"></div>
+                            </div>
+                        </div>
+
                         <!-- 6 Metric Bars (3-column grid) -->
+                        <p class="metbars-calibrating-note" id="metbars-calibrating-note" style="display:none;">Building your personal baseline — values appear after your first completed voice scan.</p>
                         <div class="metric-bars-grid" id="metric-bars-grid">
                             <div class="metbar-item" id="metbar-stability">
                                 <div class="metbar-header"><span class="metbar-name">STABILITY</span><button class="metbar-info-btn" data-metric="emotional-stability">i</button><span class="metbar-val" id="metbar-val-stability">--</span></div>
@@ -609,7 +599,7 @@
                                 <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-activation" style="width:0%"></div></div>
                             </div>
                             <div class="metbar-item" id="metbar-anxiety">
-                                <div class="metbar-header"><span class="metbar-name">ANXIETY</span><button class="metbar-info-btn" data-metric="anxiety">i</button><span class="metbar-val" id="metbar-val-anxiety">--</span></div>
+                                <div class="metbar-header"><span class="metbar-name">TENSION</span><button class="metbar-info-btn" data-metric="anxiety">i</button><span class="metbar-val" id="metbar-val-anxiety">--</span></div>
                                 <div class="metbar-track"><div class="metbar-fill" id="metbar-fill-anxiety" style="width:0%"></div></div>
                             </div>
                             <div class="metbar-item" id="metbar-stress">
@@ -757,10 +747,14 @@
                     <!-- Grove (Feature #2) -->
                     <div class="dashboard-card" data-card-id="grove">
                         <div class="grove-section glass-card">
-                            <h3 class="section-label" style="position: relative;">GROVE
-                                <button class="info-btn" data-info="grove">i</button>
-                                <div class="info-popover" id="info-grove">Your streak forest. Each day of use grows a tree. Miss a day and one wilts. Use Rainfall points to revive wilted trees.</div>
+                            <h3 class="section-label" style="position: relative; display: flex; align-items: center; gap: 8px;">GROVE
+                                <span id="streak-counter" class="streak-counter-badge" style="display:none;"></span>
+                                <button class="info-btn" data-info="grove" style="margin-left: auto;">i</button>
+                                <div class="info-popover" id="info-grove">Your streak forest. Each day you take a voice scan, a new tree grows. Consecutive days grow more trees. Miss a day and a tree wilts.</div>
                             </h3>
+                            <div id="engagement-stats" class="engagement-stats-row"></div>
+                            <div id="milestone-badges" class="milestone-badges-row" style="display:none;"></div>
+                            <div id="next-milestone" class="next-milestone-card" style="display:none;"></div>
                             <div id="grove-container" class="grove-content"></div>
                         </div>
                     </div>
@@ -769,6 +763,15 @@
                     <div class="dashboard-card meetings-section glass-card" data-card-id="meetings" style="display: none;">
                         <h3>Meetings Detected: <span id="meeting-count">0</span></h3>
                         <div id="meetings-list"></div>
+                    </div>
+
+                    <!-- Report Ready CTA (shown after 7+ days of data) -->
+                    <div id="report-cta-card" class="dashboard-card report-cta-card" style="display:none;">
+                        <div class="report-cta-content glass-card">
+                            <div class="report-cta-label">CLINICAL REPORT</div>
+                            <p class="report-cta-text">You have enough data to generate a full wellness report — suitable for sharing with a therapist or healthcare provider.</p>
+                            <button class="report-cta-btn" onclick="switchView('reports')">View Report</button>
+                        </div>
                     </div>
                 </div>
 
@@ -880,6 +883,7 @@
                 <div id="voicescan-view" class="view" role="region" aria-label="Voice Scan">
                     <div class="vs-title">Voice Scan</div>
                     <div class="vs-subtitle">Focused voice assessment for mental health insights</div>
+                    <div class="vs-privacy-badge">Analyzed entirely on your Mac — never sent to any server</div>
 
                     <!-- Idle State -->
                     <div class="vs-state active" data-state="idle">
@@ -931,6 +935,7 @@
                             <div class="vs-recording-label">Recording...</div>
                         </div>
                         <canvas class="vs-waveform-canvas" id="vs-waveform-canvas" width="500" height="160"></canvas>
+                        <div class="vs-signal-quality vs-signal-listening" id="vs-signal-quality">Listening...</div>
                         <div class="vs-timers">
                             <div class="vs-timer">
                                 <div class="vs-timer-value" id="vs-total-time">0:00</div>
@@ -961,6 +966,7 @@
                         <div class="vs-analyzing">
                             <div class="vs-analyzing-ring"></div>
                             <div class="vs-analyzing-text">Analyzing your voice sample...</div>
+                            <div class="vs-analyzing-sub" id="vs-analyzing-sub">Measuring vocal energy patterns</div>
                         </div>
                     </div>
 

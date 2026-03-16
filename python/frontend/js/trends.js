@@ -69,6 +69,9 @@ class TrendsView {
         });
         this.container.appendChild(toggleDiv);
 
+        // Arc chart hero — after day toggle
+        this.renderArcChart();
+
         // Score Trends (Plotly) — moved up
         this.renderScoreTrends();
 
@@ -92,6 +95,163 @@ class TrendsView {
         this.renderHeatmap();
     }
 
+    renderArcChart() {
+        const summaries = [...this.data.daily_summaries].sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Use wellness score if available, fall back to wellbeing, then 50
+        const scores = summaries.map(s => s.avg_wellness ?? s.avg_wellbeing ?? s.avg_mood ?? 50);
+
+        const card = document.createElement('div');
+        card.className = 'arc-chart-card';
+
+        const label = document.createElement('div');
+        label.className = 'arc-chart-label';
+        label.textContent = 'YOUR ARC — ' + this.days + ' DAYS';
+
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('class', 'trends-arc-svg');
+        svg.setAttribute('viewBox', '0 0 800 160');
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+        const narrative = document.createElement('p');
+        narrative.className = 'arc-narrative';
+
+        card.appendChild(label);
+        card.appendChild(svg);
+        card.appendChild(narrative);
+        this.container.appendChild(card);
+
+        if (scores.length < 2) {
+            narrative.textContent = 'Not enough data yet to draw your arc.';
+            return;
+        }
+
+        const W = 800, H = 160;
+        const padL = 14, padR = 14, padT = 24, padB = 32;
+        const plotW = W - padL - padR;
+        const plotH = H - padT - padB;
+
+        const minScore = Math.min(...scores);
+        const maxScore = Math.max(...scores);
+        const range = maxScore - minScore || 10; // avoid divide-by-zero
+
+        const xOf = (i) => padL + (i / (scores.length - 1)) * plotW;
+        const yOf = (v) => padT + plotH - ((v - minScore) / range) * plotH;
+
+        // Build smooth catmull-rom cubic bezier path
+        // Each segment P[i]→P[i+1] uses control points derived from neighbours
+        function catmullRomPath(pts) {
+            if (pts.length < 2) return '';
+            let d = `M ${pts[0][0]},${pts[0][1]}`;
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p0 = pts[Math.max(i - 1, 0)];
+                const p1 = pts[i];
+                const p2 = pts[i + 1];
+                const p3 = pts[Math.min(i + 2, pts.length - 1)];
+                // Catmull-Rom tension = 0.5
+                const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+                const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+                const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+                const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+                d += ` C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2[0]},${p2[1]}`;
+            }
+            return d;
+        }
+
+        const pts = scores.map((v, i) => [xOf(i), yOf(v)]);
+        const pathD = catmullRomPath(pts);
+
+        // Axis reference lines (draw first, behind everything)
+        const addAxisLine = (idx, labelText) => {
+            const x = xOf(idx);
+            const line = document.createElementNS(svgNS, 'line');
+            line.setAttribute('x1', x); line.setAttribute('y1', padT);
+            line.setAttribute('x2', x); line.setAttribute('y2', padT + plotH);
+            line.setAttribute('stroke', 'rgba(90,98,112,0.12)');
+            line.setAttribute('stroke-width', '1');
+            svg.appendChild(line);
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', H - 6);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.setAttribute('font-size', '9');
+            text.setAttribute('fill', 'rgba(90,98,112,0.45)');
+            text.setAttribute('letter-spacing', '0.04em');
+            text.textContent = labelText;
+            svg.appendChild(text);
+        };
+
+        const fmtDate = (dateStr) => {
+            const d = new Date(dateStr + 'T12:00:00');
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+
+        const midIdx = Math.floor((scores.length - 1) / 2);
+        addAxisLine(0, fmtDate(summaries[0].date));
+        addAxisLine(midIdx, fmtDate(summaries[midIdx].date));
+        addAxisLine(scores.length - 1, 'Today');
+
+        // Main smooth arc line
+        const path = document.createElementNS(svgNS, 'path');
+        path.setAttribute('d', pathD);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', '#5B8DB8');
+        path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('stroke-linecap', 'round');
+        svg.appendChild(path);
+
+        // Milestone detection
+        const floorIdx = scores.indexOf(minScore);
+        let turnIdx = -1;
+        if (floorIdx < scores.length - 3) {
+            for (let i = floorIdx + 1; i <= scores.length - 3; i++) {
+                if (scores[i] > minScore + 5 && scores[i+1] > minScore + 5 && scores[i+2] > minScore + 5) {
+                    turnIdx = i;
+                    break;
+                }
+            }
+        }
+        const currentIdx = scores.length - 1;
+
+        const addDot = (idx, strokeColor, fillColor, labelText, labelBelow) => {
+            const cx = xOf(idx);
+            const cy = yOf(scores[idx]);
+            const circle = document.createElementNS(svgNS, 'circle');
+            circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+            circle.setAttribute('r', '4.5');
+            circle.setAttribute('fill', fillColor);
+            circle.setAttribute('stroke', strokeColor);
+            circle.setAttribute('stroke-width', '1.5');
+            svg.appendChild(circle);
+
+            const text = document.createElementNS(svgNS, 'text');
+            text.setAttribute('x', cx);
+            text.setAttribute('y', labelBelow ? cy + 17 : cy - 9);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-family', 'Inter, sans-serif');
+            text.setAttribute('font-size', '8');
+            text.setAttribute('fill', strokeColor);
+            text.setAttribute('font-weight', '600');
+            text.setAttribute('letter-spacing', '0.08em');
+            text.textContent = labelText;
+            svg.appendChild(text);
+        };
+
+        addDot(floorIdx, '#B45309', '#FEF3C7', 'THE FLOOR', true);
+        if (turnIdx >= 0) addDot(turnIdx, '#5B8DB8', '#DBEAFE', 'THE TURN', false);
+        // Current altitude — solid dot with score number
+        addDot(currentIdx, '#5B8DB8', '#5B8DB8', Math.round(scores[currentIdx]) + '', false);
+
+        // Narrative sentence
+        const climb = Math.round(scores[currentIdx] - minScore);
+        const lookback = Math.min(scores.length - 1, 6);
+        const recentChange = scores[currentIdx] - scores[currentIdx - lookback];
+        const direction = recentChange > 3 ? 'pointing up' : recentChange < -3 ? 'pointing down' : 'holding steady';
+        narrative.textContent = `You've climbed ${climb} points from your floor. The arc is ${direction}.`;
+    }
+
     renderLineCharts() {
         const chartsContainer = document.createElement('div');
         chartsContainer.className = 'trends-charts';
@@ -103,8 +263,8 @@ class TrendsView {
             { key: 'avg_activation', label: 'Activation', color: '#6a90a8', fallback: 'avg_energy' },
             { key: 'avg_calm', label: 'Calm', color: '#7a9eb8' },
             { key: 'avg_emotional_stability', label: 'Stability', color: '#7B68EE' },
-            { key: 'avg_depression', label: 'Depression', color: '#8B6E8B' },
-            { key: 'avg_anxiety', label: 'Anxiety', color: '#C4884E' }
+            { key: 'avg_depression', label: 'Low Mood', color: '#8B6E8B' },
+            { key: 'avg_anxiety', label: 'Tension', color: '#C4884E' }
         ];
 
         metrics.forEach(metric => {
@@ -229,7 +389,7 @@ class TrendsView {
         title.setAttribute('y', 15);
         title.setAttribute('text-anchor', 'middle');
         title.setAttribute('font-size', '14');
-        title.setAttribute('fill', 'rgba(168,192,208,0.75)');
+        title.setAttribute('fill', 'rgba(90,98,112,0.75)');
         title.textContent = metric.label;
         svg.appendChild(title);
 
@@ -253,15 +413,26 @@ class TrendsView {
         xAxis.setAttribute('stroke-width', '1');
         svg.appendChild(xAxis);
 
-        // Y-axis labels (0, 50, 100)
-        [0, 50, 100].forEach(val => {
+        // Y-axis labels + gridlines (0, 25, 50, 75, 100)
+        [0, 25, 50, 75, 100].forEach(val => {
             const y = yScale(val);
+            // Horizontal gridline
+            const gridLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            gridLine.setAttribute('x1', margin.left);
+            gridLine.setAttribute('y1', y);
+            gridLine.setAttribute('x2', margin.left + plotWidth);
+            gridLine.setAttribute('y2', y);
+            gridLine.setAttribute('stroke', 'rgba(90,98,112,0.08)');
+            gridLine.setAttribute('stroke-width', '1');
+            gridLine.setAttribute('stroke-dasharray', val === 0 || val === 100 ? 'none' : '3,3');
+            svg.appendChild(gridLine);
+            // Label
             const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             label.setAttribute('x', margin.left - 5);
             label.setAttribute('y', y + 4);
             label.setAttribute('text-anchor', 'end');
-            label.setAttribute('font-size', '10');
-            label.setAttribute('fill', 'rgba(168,192,208,0.45)');
+            label.setAttribute('font-size', '9');
+            label.setAttribute('fill', 'rgba(90,98,112,0.45)');
             label.textContent = val;
             svg.appendChild(label);
         });

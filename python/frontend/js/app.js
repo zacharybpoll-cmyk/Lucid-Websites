@@ -10,6 +10,14 @@ function sanitizeHTML(str) {
     return div.innerHTML;
 }
 
+// Accessibility: announce status to screen readers via aria-live region
+function announceToScreenReader(message) {
+    const region = document.getElementById('a11y-live');
+    if (!region) return;
+    region.textContent = '';
+    requestAnimationFrame(() => { region.textContent = message; });
+}
+
 // Debounce utility — delays execution until calls stop for `delay` ms
 function debounce(fn, delay = 250) {
     let timer;
@@ -279,7 +287,7 @@ function waitForBackend() {
 // ========== Navigation ==========
 
 function setupNavigation() {
-    const sidebarIcons = document.querySelectorAll('.sidebar-icon[data-view]');
+    const sidebarIcons = document.querySelectorAll('.sidebar-nav-text[data-view], .sidebar-icon[data-view]');
     sidebarIcons.forEach(icon => {
         icon.addEventListener('click', () => {
             const view = icon.dataset.view;
@@ -360,7 +368,7 @@ function switchView(view) {
     }
 
     // Update sidebar + view visibility
-    document.querySelectorAll('.sidebar-icon[data-view]').forEach(icon => {
+    document.querySelectorAll('.sidebar-nav-text[data-view], .sidebar-icon[data-view]').forEach(icon => {
         icon.classList.toggle('active', icon.dataset.view === view);
     });
     document.querySelectorAll('.view').forEach(viewEl => {
@@ -465,7 +473,7 @@ async function pollStatus() {
         if (!status.is_analyzing && _ringAnalyzing) {
             finishRingGaugeProgress();
             AppState.wellnessRevealed = false;  // Re-arm reveal overlay for new score
-            console.log('[Lucid] Analysis complete, refreshing data...');
+            // console.log('[Lucid] Analysis complete');
             // Show readiness overlay immediately on analysis completion (first of the day only)
             if (shouldShowReadinessOverlay()) {
                 showReadinessOverlayAnalyzing();
@@ -473,7 +481,7 @@ async function pollStatus() {
             // Small delay to let backend persist reading before fetching
             setTimeout(async () => {
                 await loadTodayData();
-                console.log('[Lucid] Data refreshed after analysis');
+                // console.log('[Lucid] Data refreshed');
             }, 500);
         }
         // Show analysis error if present (only once per unique error)
@@ -501,10 +509,8 @@ function _showBackendBanner() {
     if (document.getElementById('backend-unreachable-banner')) return;
     const banner = document.createElement('div');
     banner.id = 'backend-unreachable-banner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:10px 16px;' +
-        'background:rgba(180,80,60,0.95);color:#fff;text-align:center;font-size:13px;' +
-        'font-weight:600;z-index:10000;backdrop-filter:blur(8px);';
-    banner.textContent = 'Backend unreachable — reconnecting...';
+    banner.className = 'backend-unreachable-banner';
+    banner.textContent = 'Service restarting — reconnecting...';
     document.body.appendChild(banner);
 }
 
@@ -924,13 +930,11 @@ function shouldShowReadinessOverlay() {
 }
 
 async function showReadinessOverlayAnalyzing() {
-    console.log('[Lucid] showReadinessOverlayAnalyzing called, readinessShown:', AppState.readinessShown);
     if (AppState.readinessShown) return;
     AppState.readinessShown = true;
     // Mark as seen today immediately — prevents re-trigger on dismiss-without-reveal
     localStorage.setItem(`lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`, '1');
     const overlay = document.getElementById('readiness-overlay');
-    console.log('[Lucid] readiness overlay element:', overlay ? 'found' : 'NOT FOUND');
     if (!overlay) return;
 
     // Prefetch wellness data in the background
@@ -1018,6 +1022,9 @@ function revealReadinessScore() {
     const labelEl = document.getElementById('readiness-label-text');
     if (labelEl) labelEl.textContent = label;
 
+    // Announce score to screen readers
+    announceToScreenReader(`Your mental readiness score is ${target}. ${label}.`);
+
     // Fade in stats after 1.5s
     setTimeout(() => {
         const stats = document.getElementById('readiness-stats');
@@ -1029,6 +1036,20 @@ function revealReadinessScore() {
         const buttons = document.getElementById('readiness-buttons');
         if (buttons) { buttons.style.opacity = '1'; buttons.style.pointerEvents = ''; }
     }, 2200);
+
+    // Low score support nudge — show after 3s if score < 40
+    if (target < 40) {
+        setTimeout(() => {
+            const existing = document.getElementById('readiness-support-nudge');
+            if (existing) return;
+            const nudge = document.createElement('p');
+            nudge.id = 'readiness-support-nudge';
+            nudge.className = 'readiness-support-nudge';
+            nudge.textContent = 'Scores fluctuate — a low reading reflects today\'s voice patterns, not your worth. If you\'re struggling, talking to someone always helps.';
+            const scoreState = document.getElementById('readiness-state-score');
+            if (scoreState) scoreState.appendChild(nudge);
+        }, 3000);
+    }
 }
 
 function dismissReadinessOverlay() {
@@ -1037,6 +1058,10 @@ function dismissReadinessOverlay() {
 
     overlay.classList.remove('visible');
     overlay.classList.add('fade-out');
+
+    // Remove low-score nudge if present
+    const nudge = document.getElementById('readiness-support-nudge');
+    if (nudge) nudge.remove();
 
     setTimeout(() => {
         overlay.style.display = 'none';
@@ -1123,13 +1148,31 @@ function hideDeeperInsights() {
     setTimeout(() => { overlay.style.display = 'none'; }, 400);
 }
 
-function updateDailyGreeting() {
+function updateDailyGreeting(context) {
     const greetingText = document.getElementById('daily-greeting-text');
     if (!greetingText) return;
     const hour = new Date().getHours();
-    if (hour < 12) greetingText.textContent = 'Good morning';
-    else if (hour < 17) greetingText.textContent = 'Good afternoon';
-    else greetingText.textContent = 'Good evening';
+    let base;
+    if (hour < 12) base = 'Good morning';
+    else if (hour < 17) base = 'Good afternoon';
+    else base = 'Good evening';
+
+    // Add contextual suffix when data is available
+    if (context) {
+        const score = context.lastScore;
+        const streak = context.streak;
+        if (score != null && streak > 1) {
+            greetingText.textContent = `${base}. You scored ${score} yesterday — ${streak} day streak.`;
+        } else if (score != null) {
+            greetingText.textContent = `${base}. Yesterday you scored ${score}.`;
+        } else if (streak > 1) {
+            greetingText.textContent = `${base}. ${streak} day streak — keep it going.`;
+        } else {
+            greetingText.textContent = base;
+        }
+    } else {
+        greetingText.textContent = base;
+    }
 }
 
 // ========== Load Today's Data ==========
@@ -1152,6 +1195,29 @@ async function loadTodayData() {
             el.dataset.loaded = 'true';
         });
 
+        // --- Report CTA (full at 7+, teaser at 3-6) ---
+        const reportCtaCard = document.getElementById('report-cta-card');
+        if (reportCtaCard) {
+            const totalForCta = data.total_readings || 0;
+            if (totalForCta >= 7) {
+                reportCtaCard.style.display = '';
+                // Ensure full CTA text
+                const ctaText = reportCtaCard.querySelector('.report-cta-text');
+                if (ctaText) ctaText.textContent = 'You have enough data to generate a full wellness report — suitable for sharing with a therapist or healthcare provider.';
+                const ctaBtn = reportCtaCard.querySelector('.report-cta-btn');
+                if (ctaBtn) { ctaBtn.textContent = 'View Report'; ctaBtn.disabled = false; }
+            } else if (totalForCta >= 3) {
+                // Teaser state
+                reportCtaCard.style.display = '';
+                const ctaText = reportCtaCard.querySelector('.report-cta-text');
+                if (ctaText) ctaText.textContent = `${7 - totalForCta} more scan${7 - totalForCta !== 1 ? 's' : ''} to unlock your full wellness report.`;
+                const ctaBtn = reportCtaCard.querySelector('.report-cta-btn');
+                if (ctaBtn) { ctaBtn.textContent = 'Coming Soon'; ctaBtn.disabled = true; }
+            } else {
+                reportCtaCard.style.display = 'none';
+            }
+        }
+
         // --- Speak Hero / Daily Greeting / Readiness Logic ---
         const totalReadings = data.total_readings || 0;
         const todayReadings = data.readings ? data.readings.length : 0;
@@ -1159,13 +1225,8 @@ async function loadTodayData() {
             `lucid_readiness_seen_${new Date().toISOString().slice(0, 10)}`
         );
 
-        console.log('[Lucid] loadTodayData readiness check:', {
-            todayReadings, totalReadings,
-            readinessSeenToday: !!readinessSeenToday,
-            readinessShown: AppState.readinessShown,
-            previousReadingCount: AppState.previousReadingCount,
-            speakHeroVisible: AppState.speakHeroVisible,
-        });
+        // Debug: readiness state (remove in production)
+        // console.log('[Lucid] loadTodayData readiness check:', { todayReadings, totalReadings });
 
         if (totalReadings === 0 && todayReadings === 0) {
             // First-time-ever: show hero card
@@ -1185,8 +1246,7 @@ async function loadTodayData() {
                 // Reopened-app case: show overlay for first time today
                 showReadinessOverlay();
             } else if (todayReadings > AppState.previousReadingCount) {
-                // New reading detected
-                console.log('[Lucid] New reading detected:', todayReadings, '>', AppState.previousReadingCount);
+                // New reading detected — show readiness overlay
                 showReadinessOverlayAnalyzing();
             }
         }
@@ -1225,6 +1285,13 @@ async function loadTodayData() {
             && wellnessScore !== AppState.morningBaselineScore) {
             wellnessDelta = Math.round(wellnessScore - AppState.morningBaselineScore);
         }
+
+        // Update greeting with contextual info (score + streak)
+        const engagementForGreeting = await API.getEngagement().catch(() => null);
+        updateDailyGreeting({
+            lastScore: wellnessScore != null ? Math.round(wellnessScore) : null,
+            streak: engagementForGreeting ? (engagementForGreeting.streak || 0) : 0,
+        });
 
         updateCurrentScores(data.current_scores, data.readings);
         updateScoreCircles(data.current_scores, wellnessScore, wellnessDelta);
@@ -1458,6 +1525,9 @@ function _updateWellnessUI(data) {
     const readingCountEl = document.getElementById('wellness-reading-count');
 
     AppState.currentReadingCount = data.reading_count || 0;
+    // Show/hide metbars calibrating note
+    const metbarsNote = document.getElementById('metbars-calibrating-note');
+    if (metbarsNote) metbarsNote.style.display = data.has_data ? 'none' : 'block';
     if (!data.has_data) {
         const count = data.reading_count || 0;
         if (progressState) progressState.style.display = 'flex';
@@ -2015,7 +2085,7 @@ async function loadCompass() {
             <label class="compass-intention-label">This week's intention:</label>
             <div class="compass-intention-row">
                 <input type="text" class="compass-intention-input" id="compass-intention-input"
-                    placeholder="e.g., Take a 5-min break after meetings"
+                    placeholder="e.g., Speak more slowly and deliberately today"
                     value="${sanitizeHTML(data.intention || '')}" maxlength="120" />
                 <button class="btn btn-primary compass-intention-btn" onclick="saveIntention()">Set</button>
             </div>
@@ -2306,7 +2376,12 @@ function updateCalibrationBanner(status) {
     }
 
     banner.style.display = 'block';
-    if (progress) progress.textContent = `${status.total_readings || 0} readings collected (need ${status.min_readings || 10} minimum)`;
+    const collected = status.total_readings || 0;
+    const needed = status.min_readings || 10;
+    const remaining = Math.max(0, needed - collected);
+    if (progress) progress.textContent = remaining === 1
+        ? `One more day of speaking naturally to unlock your personal baseline.`
+        : `Building your baseline — ${remaining} more day${remaining !== 1 ? 's' : ''} of natural speech to go.`;
 }
 
 // ========== Briefings ==========
