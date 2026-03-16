@@ -2721,6 +2721,20 @@ body {
     text-underline-offset: 2px;
 }
 
+.science-banner-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.science-banner-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--gold-dark);
+    flex-shrink: 0;
+}
+
 /* ============ About the Science Modal ============ */
 .science-modal {
     position: fixed;
