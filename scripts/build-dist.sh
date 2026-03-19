@@ -22,7 +22,8 @@ rsync -a --progress python/ python-dist/ \
   --exclude='__pycache__/' \
   --exclude='*.pyc' \
   --exclude='.pytest_cache/' \
-  --exclude='*.dist-info/'
+  --exclude='.git'
+  # NOTE: Do NOT exclude *.dist-info — PyTorch/tqdm need metadata at runtime
 
 # 2b. Fix venv symlinks — replace with actual binary + relative links
 echo "--- Fixing venv python symlinks..."
@@ -46,28 +47,60 @@ if [ -n "$SITE_PACKAGES" ]; then
   echo "  Site-packages: $SITE_PACKAGES"
 
   # Remove unused large packages
-  for pkg in onnxruntime pip setuptools _pytest pytest pygments pkg_resources; do
+  for pkg in onnxruntime pip setuptools _pytest pytest pygments pkg_resources pyarrow jieba modelscope datasets cryptography Crypto wheel pandas sklearn funasr aliyunsdkcore aliyun_python_sdk_core aliyun_python_sdk_kms oss2 Pillow PIL hf_xet; do
     if [ -d "$SITE_PACKAGES/$pkg" ]; then
       echo "  Removing $pkg..."
       rm -rf "$SITE_PACKAGES/$pkg"
     fi
   done
 
-  # Strip PyTorch test/debug files
+  # Strip PyTorch test/debug files (conservative — torch imports its own submodules)
   TORCH_DIR="$SITE_PACKAGES/torch"
   if [ -d "$TORCH_DIR" ]; then
-    echo "  Stripping torch test/include/distributed..."
+    echo "  Stripping torch test/include..."
     rm -rf "$TORCH_DIR/test" "$TORCH_DIR/include" 2>/dev/null || true
-    find "$TORCH_DIR" -name "_C/_distributed*" -delete 2>/dev/null || true
     find "$TORCH_DIR" -name "*.pdb" -delete 2>/dev/null || true
   fi
 
-  # Strip dist-info directories
-  find "$SITE_PACKAGES" -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
+  # NOTE: Do NOT strip dist-info — PyTorch/tqdm need package metadata at runtime
 
   # Strip __pycache__ from site-packages
   find "$SITE_PACKAGES" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 fi
+
+# 3b. Remove unused Whisper HF cache (whisper uses ~/.cache/whisper/, not HF_HOME)
+echo "  Removing unused Whisper HF cache..."
+rm -rf python-dist/bundled_models/hf_home/hub/models--openai--whisper-small.en
+
+# 3c. Remove entire SpeechBrain HF cache (speaker_model/ is used directly via savedir)
+echo "  Removing SpeechBrain HF cache (redundant with speaker_model/)..."
+rm -rf python-dist/bundled_models/hf_home/hub/models--speechbrain--spkrec-ecapa-voxceleb
+
+# 3d. Remove torch build tools (keep torch_shm_manager, needed at runtime)
+echo "  Removing torch/bin build tools (keeping torch_shm_manager)..."
+rm -f python-dist/venv/lib/python3.13/site-packages/torch/bin/protoc*
+
+# 3e. NOTE: Do NOT strip transformers/models — auto module has deep cross-dependencies
+# (e.g. auto/tokenization_auto.py imports encoder_decoder). Selective stripping breaks DAM loading.
+
+# 3f. Strip Silero VAD examples/docs (keep only model files + python source)
+SILERO_DIR="python-dist/bundled_models/torch_home/hub/snakers4_silero-vad_master"
+if [ -d "$SILERO_DIR" ]; then
+  echo "  Stripping Silero VAD repo bloat..."
+  rm -rf "$SILERO_DIR/examples" "$SILERO_DIR/docs" "$SILERO_DIR"/*.md 2>/dev/null || true
+fi
+
+# 3g. Remove .c/.cpp/.pyx/.h source files from site-packages (compiled .so files are sufficient)
+echo "  Removing source files from site-packages..."
+find python-dist/venv/lib/python3.13/site-packages -name "*.c" -delete 2>/dev/null || true
+find python-dist/venv/lib/python3.13/site-packages -name "*.cpp" -delete 2>/dev/null || true
+find python-dist/venv/lib/python3.13/site-packages -name "*.pyx" -delete 2>/dev/null || true
+find python-dist/venv/lib/python3.13/site-packages -name "*.h" -not -path "*/torch/*" -delete 2>/dev/null || true
+
+# 3g. Remove test directories from site-packages
+echo "  Removing test directories from site-packages..."
+find python-dist/venv/lib/python3.13/site-packages -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+find python-dist/venv/lib/python3.13/site-packages -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
 
 # 4. Strip __pycache__ and .pyc from python-dist top-level too
 find python-dist -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
@@ -81,7 +114,8 @@ echo "  python-dist size: $DIST_SIZE"
 echo "--- Running electron-packager..."
 npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
   --icon=assets/icon.icns --app-bundle-id=com.electron.lucid \
-  --app-version=1.0.0 --extra-resource=python-dist \
+  --app-version=$(node -p "require('./package.json').version") \
+  --extra-resource=python-dist --extra-resource=app-update.yml \
   --ignore='^/python$' --ignore='^/python/' \
   --ignore='^/python-dist$' --ignore='^/python-dist/' \
   --ignore='^/\.pytest_cache' --ignore='^/claude-dashboard' \
@@ -89,7 +123,7 @@ npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
   --ignore='^/dist$' --ignore='^/dist/' \
   --ignore='^/tasks$' --ignore='^/tasks/' \
   --ignore='^/scripts$' --ignore='^/scripts/' \
-  --ignore='^/CLAUDE\.md$' --ignore='^/Lucid_' --ignore='^/~\$' \
+  --ignore='^/CLAUDE\.md$' --ignore='^/Lucid_' --ignore='^/Lucid ' --ignore='^/~\$' \
   --ignore='^/Screenshot' --ignore='^/first-breath-preview\.html$' \
   --ignore='^/Lucid-darwin-arm64$' --ignore='^/Lucid-darwin-arm64/' \
   --ignore='^/lucid-website$' --ignore='^/lucid-website/' \
@@ -121,7 +155,7 @@ fi
 # 8. Final cleanup inside the app bundle
 echo "--- Final cleanup inside app bundle..."
 find "$RESOURCES/python" -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-find "$RESOURCES/python" -type d -name "*.dist-info" -exec rm -rf {} + 2>/dev/null || true
+# NOTE: Do NOT strip dist-info — PyTorch/tqdm need package metadata at runtime
 find "$RESOURCES/python" -name "*.pyc" -delete 2>/dev/null || true
 
 # 9. Move to Desktop
