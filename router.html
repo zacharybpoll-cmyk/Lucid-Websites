@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucid — Which version is right for you?</title>
+    <meta name="description" content="Lucid monitors your mental health through your voice. Choose the experience that fits you best.">
+    <meta property="og:title" content="Lucid — Find your version">
+    <meta property="og:description" content="Voice biomarker technology — clinically validated on 14,898 patients — now running on your Mac. Choose the experience that fits you.">
+    <meta property="og:image" content="https://zacharybpoll-cmyk.github.io/Lucid-Websites/images/og-hero.jpg">
+    <meta property="og:url" content="https://zacharybpoll-cmyk.github.io/Lucid-Websites/router.html">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --accent: #5B8DB8;
+            --accent-hover: #4a7a9e;
+            --section-dark-bg: #1a3a4f;
+        }
+
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1a1d21;
+            background: #f8f9fa;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+        a { color: inherit; text-decoration: none; }
+        h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; line-height: 1.2; }
+        em { font-family: 'Playfair Display', Georgia, serif; font-style: italic; }
+
+        /* ========== NAVIGATION ========== */
+        .nav {
+            padding: 1.25rem 0;
+            background: #f8f9fa;
+        }
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            letter-spacing: -0.02em;
+        }
+        .nav-logo span { color: var(--accent); }
+
+        /* ========== HERO SECTION ========== */
+        .hero {
+            background: #f8f9fa;
+            text-align: center;
+            padding: 2.5rem 2rem 3rem;
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            color: #1a1d21;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+        }
+        .hero p {
+            font-size: 1.125rem;
+            color: #5a6270;
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        /* ========== CARD SECTION ========== */
+        .cards-section {
+            background: #f0f2f4;
+            padding: 4rem 2rem 5rem;
+        }
+        .cards-container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+        .persona-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.125rem;
+            list-style: none;
+        }
+        .persona-grid li:last-child {
+            grid-column: 1 / -1;
+            max-width: 380px;
+            justify-self: center;
+            width: 100%;
+        }
+
+        .persona-card {
+            display: block;
+            background: #fff;
+            border: 1px solid #e4e8ec;
+            border-radius: 12px;
+            padding: 1.75rem 1.5rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .persona-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--accent);
+            border-radius: 12px 0 0 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .persona-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 20px rgba(91, 141, 184, 0.12);
+            transform: translateY(-2px);
+        }
+        .persona-card:hover::before {
+            opacity: 1;
+        }
+        .persona-card:hover .card-headline {
+            color: var(--accent);
+        }
+        .persona-card:hover .card-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .card-headline {
+            font-family: 'Playfair Display', Georgia, serif;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1a1d21;
+            line-height: 1.35;
+            letter-spacing: -0.01em;
+            transition: color 0.3s ease;
+        }
+        .card-arrow {
+            color: var(--accent);
+            font-size: 1.125rem;
+            opacity: 0;
+            transform: translateX(-6px);
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            margin-top: 0.15rem;
+        }
+        .card-desc {
+            font-size: 0.875rem;
+            color: #5a6270;
+            line-height: 1.6;
+        }
+
+        /* ========== FOOTER SECTION ========== */
+        .footer-section {
+            background: var(--section-dark-bg);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        .footer-section p {
+            font-size: 0.875rem;
+            color: rgba(240, 244, 248, 0.6);
+            max-width: 520px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+        .footer-section a {
+            color: var(--accent);
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-decoration-color: rgba(91, 141, 184, 0.4);
+            transition: text-decoration-color 0.2s;
+        }
+        .footer-section a:hover {
+            text-decoration-color: var(--accent);
+        }
+        .footer-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #f8f9fa;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.75rem;
+        }
+        .footer-logo span { color: var(--accent); }
+
+        /* ========== MOBILE ========== */
+        @media (max-width: 640px) {
+            .hero {
+                padding: 3.5rem 1.5rem 3rem;
+            }
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+            .hero p {
+                font-size: 1rem;
+            }
+            .cards-section {
+                padding: 2.5rem 1.25rem 3rem;
+            }
+            .persona-grid {
+                grid-template-columns: 1fr;
+                gap: 0.875rem;
+            }
+            .persona-grid li:last-child {
+                max-width: none;
+            }
+            .persona-card {
+                padding: 1.5rem 1.25rem;
+            }
+            .card-headline {
+                font-size: 1.0625rem;
+            }
+            .footer-section {
+                padding: 2.5rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-inner">
+            <div class="nav-logo">Lucid<span>.</span></div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+        <h1>Which describes you best?</h1>
+        <p>Same clinical-grade technology, tailored to you.</p>
+    </section>
+
+    <!-- Cards -->
+    <section class="cards-section">
+        <div class="cards-container">
+            <ul class="persona-grid">
+                <li>
+                    <a class="persona-card" href="burnedout.html">
+                        <div class="card-top">
+                            <span class="card-headline">"I want to be my sharpest at work."</span>
+                            <span class="card-arrow">&rarr;</span>
+                        </div>
+                        <p class="card-desc">I want to be at my best emotional state during work.</p>
+                    </a>
+                </li>
+                <li>
+                    <a class="persona-card" href="Lucid-founder.html">
+                        <div class="card-top">
+                            <span class="card-headline">"I want to lead with a clear head."</span>
+                            <span class="card-arrow">&rarr;</span>
+                        </div>
+                        <p class="card-desc">The best decisions come from your sharpest moments. Specifically made for founders.</p>
+                    </a>
+                </li>
+                <li>
+                    <a class="persona-card" href="systemskeptic.html">
+                        <div class="card-top">
+                            <span class="card-headline">"I want to improve my mental health. Without the healthcare system."</span>
+                            <span class="card-arrow">&rarr;</span>
+                        </div>
+                        <p class="card-desc">No cloud, no subscriptions to someone else's platform. Your Mac, your data.</p>
+                    </a>
+                </li>
+                <li>
+                    <a class="persona-card" href="wall-street.html">
+                        <div class="card-top">
+                            <span class="card-headline">"I want a competitive edge — mentally."</span>
+                            <span class="card-arrow">&rarr;</span>
+                        </div>
+                        <p class="card-desc">Cognitive sharpness is the one metric nobody else is tracking.</p>
+                    </a>
+                </li>
+                <li>
+                    <a class="persona-card" href="Base.html">
+                        <div class="card-top">
+                            <span class="card-headline">"I want to understand my mind better."</span>
+                            <span class="card-arrow">&rarr;</span>
+                        </div>
+                        <p class="card-desc">Clinical-grade insights on your mental and emotional health.</p>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <section class="footer-section">
+        <div class="footer-logo">Lucid<span>.</span></div>
+        <p>All versions include the same core technology — clinically validated voice biomarkers processed entirely on your Mac. Not sure? <a href="Base.html">Start with the general experience</a>.</p>
+    </section>
+</body>
+</html>
