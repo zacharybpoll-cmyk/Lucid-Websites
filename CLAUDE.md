@@ -39,18 +39,10 @@ pkill -f "Lucid" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/n
 ### Full Rebuild (many files or structural changes)
 ```bash
 cd "/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid" && \
-pkill -f "Lucid" 2>/dev/null || true; lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 2 && \
-npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
-  --icon=assets/icon.icns --app-bundle-id=com.electron.lucid \
-  --app-version=1.0.0 \
-  --ignore='^/.*-darwin-arm64$' --ignore='^/\.git' --ignore='^/python' \
-  --ignore='^\/(Business|claude-dashboard|lucid-website|scripts|build)' \
-  --ignore='\.(docx|pdf|zip|png|pptx)$' \
-  --overwrite && \
-cp -R python "./Lucid-darwin-arm64/Lucid.app/Contents/Resources/" && \
-rm -rf ~/Desktop/"Lucid.app" && \
-mv "./Lucid-darwin-arm64/Lucid.app" ~/Desktop/"Lucid.app" && \
-ENTITLEMENTS="/Users/zacharypoll/Desktop/Documents/Claude Code/Lucid/entitlements.plist" && \
+pkill -f "Lucid" 2>/dev/null || true; \
+lsof -ti TCP:8767 | xargs kill -9 2>/dev/null || true; sleep 2 && \
+./scripts/build-dist.sh && \
+ENTITLEMENTS="entitlements.plist" && \
 find ~/Desktop/"Lucid.app"/Contents/Frameworks -name "*.app" -exec codesign --sign "Lucid Dev Signing" --force --entitlements "$ENTITLEMENTS" {} \; && \
 find ~/Desktop/"Lucid.app"/Contents/Frameworks -name "*.framework" -exec codesign --sign "Lucid Dev Signing" --force {} \; && \
 codesign --sign "Lucid Dev Signing" --force --entitlements "$ENTITLEMENTS" --deep ~/Desktop/"Lucid.app"
@@ -73,7 +65,7 @@ curl -s http://localhost:8767/api/dashboard | python3 -c "import sys,json; json.
 ```
 
 ## Current Version
-v1.1.0
+v1.2.0
 
 ## Shared Lessons
 All app variants share one lessons file: `/Users/zacharypoll/Desktop/Documents/Claude Code/shared/lucid-lessons.md`
