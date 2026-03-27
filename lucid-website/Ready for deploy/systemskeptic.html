@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucid. The Mental Health System Failed You. Take It Back.</title>
+    <meta name="description" content="Your doctor gets 15 minutes. Your insurance says no. Your therapist has a 67-day waitlist. Lucid is a desktop app that monitors your mental health through your voice, runs 100% on your Mac, and costs less than one therapy copay.">
+    <meta property="og:title" content="No Therapist. No Insurance. No Waitlist. Just Data.">
+    <meta property="og:description" content="66% misdiagnosis rate. 67-day wait. 85% higher denial rate. The system wasn't built for you. Lucid runs on your Mac for $14.99/month.">
+    <meta property="og:image" content="https://zacharybpoll-cmyk.github.io/lucid-website/images/og-hero.jpg">
+    <meta property="og:url" content="https://zacharybpoll-cmyk.github.io/lucid-website/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://zacharybpoll-cmyk.github.io/lucid-website/images/og-hero.jpg">
+    <meta name="twitter:title" content="No Therapist. No Insurance. No Waitlist. Just Data.">
+    <meta name="twitter:description" content="The mental health system wasn't built for you. Lucid monitors your mental health through voice biomarkers, runs on your Mac, costs $14.99/month.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========== CSS VARIABLES ========== */
+        :root {
+            --accent: #9B7EB8;
+            --accent-hover: #876ba3;
+            --section-dark-bg: #2e1a3f;
+        }
+
+        /* ========== RESET & BASE ========== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1a1d21;
+            background: #f8f9fa;
+            line-height: 1.6;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        img { max-width: 100%; height: auto; display: block; }
+        a { color: inherit; text-decoration: none; }
+        button { cursor: pointer; border: none; font-family: inherit; }
+
+        /* ========== TYPOGRAPHY ========== */
+        h1, h2, h3, h4 { font-family: 'Playfair Display', Georgia, serif; font-weight: 600; line-height: 1.2; }
+        h1 { font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: -0.02em; }
+        h2 { font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.01em; }
+        h3 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+        h4 { font-size: 1.125rem; }
+        p { font-size: 1.0625rem; line-height: 1.7; color: #3a3f47; }
+        .text-sm { font-size: 0.875rem; }
+        .text-lg { font-size: 1.25rem; line-height: 1.6; }
+        .text-light { color: #f8f9fa; }
+        em, .italic { font-family: 'Playfair Display', Georgia, serif; font-style: italic; }
+
+        /* ========== LAYOUT ========== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+        .container-wide { max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+        .section { padding: 7rem 0; }
+        .section-dark { background: var(--section-dark-bg); color: #f8f9fa; }
+        .section-dark p { color: rgba(240, 244, 248, 0.8); }
+        .section-cream { background: #f0f2f4; }
+        .section-bridge {
+            text-align: center;
+            padding: 1.5rem 0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.875rem;
+            color: #5a6270;
+            letter-spacing: 0.02em;
+            font-style: italic;
+        }
+        .text-center { text-align: center; }
+        .flex-center { display: flex; align-items: center; justify-content: center; }
+
+        /* ========== NAVIGATION ========== */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1.25rem 0;
+            transition: all 0.4s ease;
+        }
+        .nav.scrolled {
+            background: rgba(240, 244, 248, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: 0 1px 20px rgba(0,0,0,0.06);
+            padding: 0.875rem 0;
+        }
+        .nav-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .nav-logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            letter-spacing: -0.02em;
+        }
+        .nav-logo span { color: var(--accent); }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        .nav-links a {
+            font-size: 0.9375rem;
+            font-weight: 450;
+            color: #1a1d21;
+            transition: color 0.3s;
+            letter-spacing: 0.01em;
+        }
+        .nav-links a:hover { color: var(--accent); }
+        .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+        .btn-text {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            color: #1a1d21;
+            background: none;
+            transition: color 0.3s;
+        }
+        .btn-text:hover { color: var(--accent); }
+        .btn-primary {
+            background: #1a3a4f;
+            color: #f8f9fa;
+            padding: 0.75rem 1.75rem;
+            border-radius: 100px;
+            font-size: 0.9375rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            letter-spacing: 0.01em;
+        }
+        .btn-primary:hover {
+            background: #0f2d40;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(26, 58, 79, 0.3);
+        }
+        .btn-gold {
+            background: var(--accent);
+            color: #fff;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-gold:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(155, 126, 184, 0.35);
+        }
+        .btn-outline {
+            background: transparent;
+            color: #1a3a4f;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1.5px solid #1a3a4f;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-outline:hover {
+            background: #1a3a4f;
+            color: #f8f9fa;
+        }
+        .btn-outline-light {
+            background: transparent;
+            color: #f8f9fa;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 500;
+            border: 1.5px solid rgba(240, 244, 248, 0.4);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-outline-light:hover {
+            background: rgba(240, 244, 248, 0.1);
+            border-color: rgba(240, 244, 248, 0.7);
+        }
+        .btn-white {
+            background: #f8f9fa;
+            color: #1a3a4f;
+            padding: 0.875rem 2rem;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-white:hover {
+            background: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        /* Mobile menu */
+        .nav-mobile-toggle {
+            display: none;
+            background: none;
+            border: none;
+            width: 28px;
+            height: 20px;
+            position: relative;
+            cursor: pointer;
+        }
+        .nav-mobile-toggle span {
+            display: block;
+            width: 100%;
+            height: 2px;
+            background: #1a1d21;
+            position: absolute;
+            left: 0;
+            transition: all 0.3s ease;
+        }
+        .nav-mobile-toggle span:nth-child(1) { top: 0; }
+        .nav-mobile-toggle span:nth-child(2) { top: 9px; }
+        .nav-mobile-toggle span:nth-child(3) { top: 18px; }
+        .nav-mobile-toggle.open span:nth-child(1) { top: 9px; transform: rotate(45deg); }
+        .nav-mobile-toggle.open span:nth-child(2) { opacity: 0; }
+        .nav-mobile-toggle.open span:nth-child(3) { top: 9px; transform: rotate(-45deg); }
+
+        /* ========== HERO ========== */
+        .hero {
+            padding: 12rem 0 8rem;
+            background: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 58%;
+            height: 100%;
+            background: linear-gradient(to right, #f8f9fa 0%, rgba(248, 249, 250, 0) 18%);
+            z-index: 1;
+        }
+        .hero-bg-video {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 58%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center center;
+            z-index: 0;
+        }
+        .hero .container {
+            position: relative;
+            z-index: 2;
+        }
+        .hero-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+        }
+        .hero-content { position: relative; z-index: 2; max-width: 580px; margin: 0; }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(26, 29, 33, 0.08);
+            color: rgba(26, 29, 33, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            margin-bottom: 1.75rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+        .hero-badge::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .hero h1 { margin-bottom: 1.5rem; color: #1a1d21; }
+        .hero h1 em { color: var(--accent); }
+        .hero-description {
+            font-size: 1.1875rem;
+            line-height: 1.7;
+            color: rgba(26, 29, 33, 0.72);
+            margin-bottom: 2.25rem;
+            max-width: 520px;
+        }
+        .hero-ctas { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: flex-start; }
+
+        /* ========== SOUND TOGGLE ========== */
+        .sound-toggle {
+            position: absolute;
+            bottom: 1.75rem;
+            right: 1.75rem;
+            z-index: 3;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(26, 29, 33, 0.12);
+            color: #1a1d21;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+        }
+        .sound-toggle:hover {
+            background: rgba(255, 255, 255, 0.92);
+            transform: scale(1.05);
+        }
+
+        /* ========== TRUST STRIP ========== */
+        .trust-strip {
+            padding: 3rem 0;
+            background: #f8f9fa;
+            border-top: 1px solid #e4e8ec;
+        }
+        .trust-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+        }
+        .trust-item { text-align: center; }
+        .trust-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        .trust-number.counted {
+            opacity: 1;
+        }
+        .trust-label {
+            font-size: 0.8125rem;
+            color: #5a6270;
+            font-weight: 400;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+        }
+
+        /* ========== PROBLEM AGITATION (replaces secret-section) ========== */
+        .secret-section {
+            background: #f8f9fa;
+            color: #1a1d21;
+            padding: 7rem 0;
+        }
+        .secret-section p {
+            color: #5a6270;
+        }
+        .secret-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+            margin-top: 3rem;
+        }
+        .secret-text p {
+            font-size: 1.0625rem;
+            line-height: 1.8;
+            margin-bottom: 1.25rem;
+        }
+        .secret-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .secret-stat {
+            background: #fff;
+            border: 1px solid #e4e8ec;
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        .secret-stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+        .secret-stat-label {
+            font-size: 0.8125rem;
+            color: #5a6270;
+            line-height: 1.4;
+        }
+        @media (max-width: 1024px) {
+            .secret-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .secret-stats { grid-template-columns: 1fr; }
+        }
+
+        /* ========== KILLER FEATURE SHOWCASE ========== */
+        .killer-feature-section {
+            background: #f0f2f4;
+            padding: 7rem 0;
+        }
+        .killer-feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-top: 3.5rem;
+        }
+        .killer-feature-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+            padding: 2.5rem 2rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+        }
+        .killer-feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+        }
+        .killer-feature-badge {
+            display: inline-block;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            background: rgba(155, 126, 184, 0.12);
+            padding: 0.35rem 0.75rem;
+            border-radius: 100px;
+            margin-bottom: 1.25rem;
+        }
+        .killer-feature-card h3 {
+            color: #1a3a4f;
+            margin-bottom: 0.75rem;
+        }
+        .killer-feature-card p {
+            font-size: 0.9375rem;
+            margin-bottom: 1.25rem;
+        }
+        .killer-feature-detail {
+            font-size: 0.8125rem;
+            color: #7a8290;
+            line-height: 1.6;
+            padding-top: 1rem;
+            border-top: 1px solid #e4e8ec;
+            font-style: italic;
+        }
+        @media (max-width: 768px) {
+            .killer-feature-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ========== SYSTEM COMPARISON ========== */
+        .system-comparison-section {
+            background: #f0f2f4;
+            padding: 7rem 0;
+        }
+        .system-comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2.5rem;
+            margin-top: 3.5rem;
+            max-width: 960px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .system-card {
+            border-radius: 20px;
+            padding: 2.5rem;
+        }
+        .system-card.current-system {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0,0,0,0.08);
+        }
+        .system-card.lucid-system {
+            background: var(--section-dark-bg);
+            color: #f8f9fa;
+            box-shadow: 0 12px 40px rgba(46, 26, 63, 0.25);
+        }
+        .system-card h3 {
+            font-size: 1.375rem;
+            margin-bottom: 2rem;
+        }
+        .system-card.current-system h3 {
+            color: #7a8290;
+        }
+        .system-card.lucid-system h3 {
+            color: var(--accent);
+        }
+        .system-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+        .system-card.lucid-system .system-card-row {
+            border-bottom-color: rgba(240, 244, 248, 0.1);
+        }
+        .system-card-row:last-child {
+            border-bottom: none;
+        }
+        .system-card-row-label {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #7a8290;
+            flex-shrink: 0;
+        }
+        .system-card.lucid-system .system-card-row-label {
+            color: rgba(240, 244, 248, 0.5);
+        }
+        .system-card-row-value {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            text-align: right;
+            color: #3a3f47;
+        }
+        .system-card.current-system .system-card-row-value {
+            color: #7a8290;
+        }
+        .system-card.lucid-system .system-card-row-value {
+            color: #f8f9fa;
+            font-weight: 600;
+        }
+        @media (max-width: 768px) {
+            .system-comparison-grid {
+                grid-template-columns: 1fr;
+                max-width: 480px;
+            }
+        }
+
+        /* ========== HOW IT WORKS ========== */
+        .how-section { background: #f0f2f4; }
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2.5rem;
+            margin-top: 3.5rem;
+        }
+        .how-step {
+            text-align: center;
+            padding: 2.5rem 2rem;
+            position: relative;
+        }
+        .how-step-number {
+            font-family: 'Playfair Display', serif;
+            font-size: 4rem;
+            font-weight: 300;
+            color: rgba(155, 126, 184, 0.2);
+            margin-bottom: 1rem;
+            line-height: 1;
+        }
+        .how-step-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            background: rgba(26, 58, 79, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+        .how-step-icon svg { width: 32px; height: 32px; color: #1a3a4f; }
+        .how-step h3 { margin-bottom: 0.75rem; color: #1a3a4f; }
+        .how-step p { font-size: 0.9375rem; }
+        .how-connector {
+            position: absolute;
+            right: -1.25rem;
+            top: 50%;
+            width: 2.5rem;
+            height: 2px;
+            background: linear-gradient(90deg, rgba(155, 126, 184, 0.4), rgba(155, 126, 184, 0));
+        }
+        .how-step:last-child .how-connector { display: none; }
+
+        /* ========== SCIENCE / RESEARCH CREDIBILITY ========== */
+        .science-section {
+            background: var(--section-dark-bg);
+            color: #f8f9fa;
+            position: relative;
+            overflow: hidden;
+        }
+        .science-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.08;
+        }
+        .science-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: blur(8px);
+        }
+        .science-content { position: relative; z-index: 2; }
+        .science-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+        .science-text h2 { margin-bottom: 1.25rem; }
+        .science-text h2 em { color: var(--accent); }
+        .science-text > p { margin-bottom: 2rem; }
+        .science-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .science-stat {
+            background: rgba(240, 244, 248, 0.08);
+            border: 1px solid rgba(240, 244, 248, 0.12);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+        .science-stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+        .science-stat-label {
+            font-size: 0.8125rem;
+            color: rgba(240, 244, 248, 0.7);
+            line-height: 1.4;
+        }
+        .science-visual img {
+            border-radius: 20px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(155, 126, 184, 0.15);
+        }
+        .study-link {
+            display: inline-block;
+            margin-top: 1rem;
+            color: rgba(240, 244, 248, 0.85);
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            padding: 0.5rem 1.25rem;
+            border: 1px solid rgba(240, 244, 248, 0.25);
+            border-radius: 8px;
+            background: rgba(240, 244, 248, 0.06);
+        }
+        .study-link:hover {
+            color: #fff;
+            background: rgba(240, 244, 248, 0.12);
+            border-color: rgba(240, 244, 248, 0.4);
+        }
+        .science-citation {
+            margin-top: 2.5rem;
+            padding: 1.25rem 1.5rem;
+            background: rgba(240, 244, 248, 0.06);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 12px 12px 0;
+        }
+        .science-citation p {
+            font-size: 0.875rem;
+            color: rgba(240, 244, 248, 0.65);
+            font-style: italic;
+        }
+
+        /* ========== PRICING ========== */
+        .pricing-section { background: #f0f2f4; }
+        .pricing-header { margin-bottom: 3.5rem; }
+        .pricing-header p { max-width: 600px; margin: 1rem auto 0; }
+        .pricing-card-wrapper { max-width: 520px; margin: 0 auto; }
+        .pricing-card {
+            background: #fff;
+            border: 1px solid rgba(26, 58, 79, 0.08);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.06);
+        }
+        .pricing-card-header {
+            background: var(--section-dark-bg);
+            color: #f8f9fa;
+            padding: 2.5rem;
+            text-align: center;
+        }
+        .pricing-card-header h3 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #f8f9fa;
+        }
+        .pricing-card-header .price {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .pricing-card-header .price-period {
+            font-size: 1rem;
+            color: rgba(240, 244, 248, 0.6);
+            font-weight: 400;
+        }
+        .pricing-card-header .price-annual {
+            font-size: 0.875rem;
+            color: rgba(240, 244, 248, 0.5);
+            margin-top: 0.25rem;
+        }
+        .pricing-trial {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(155, 126, 184, 0.15);
+            color: #c4a8e0;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            letter-spacing: 0.02em;
+        }
+        .pricing-card-body { padding: 2.5rem; }
+        .pricing-features {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .pricing-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            font-size: 0.9375rem;
+            color: #3a3f47;
+        }
+        .pricing-check {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(155, 126, 184, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1px;
+        }
+        .pricing-check svg { width: 12px; height: 12px; color: var(--accent); }
+        .pricing-card-body .btn-gold {
+            width: 100%;
+            justify-content: center;
+            padding: 1rem;
+            font-size: 1.0625rem;
+        }
+        .pricing-card-body .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(155, 126, 184, 0.4);
+        }
+        .pricing-note {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.8125rem;
+            color: #7a8290;
+        }
+
+        /* ========== COMPARISON TABLE ========== */
+        .comparison-table {
+            max-width: 860px;
+            margin: 3rem auto 0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.04);
+        }
+        .comparison-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            font-size: 0.9375rem;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .comparison-table th {
+            font-family: 'Playfair Display', serif;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #7a8290;
+            background: rgba(26, 58, 79, 0.03);
+        }
+        .comparison-table th:nth-child(2),
+        .comparison-table td:nth-child(2) { text-align: center; }
+        .comparison-table th:nth-child(3),
+        .comparison-table td:nth-child(3) { text-align: center; }
+        .comparison-table td:first-child { color: #3a3f47; }
+        .comparison-table th:nth-child(4),
+        .comparison-table td:nth-child(4) { text-align: center; }
+        .check-yes { color: var(--accent); font-weight: 600; }
+        .check-no { color: #c8cdd4; }
+        .check-partial { color: var(--accent); font-weight: 600; }
+
+        /* ========== THERAPY COST COMPARISON ========== */
+        .cost-comparison {
+            max-width: 900px;
+            margin: 0 auto 3rem;
+        }
+        .cost-comparison-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .cost-comparison-header h3 {
+            font-size: 1.25rem;
+            color: #1a3a4f;
+            margin-bottom: 0.5rem;
+        }
+        .cost-comparison-header p {
+            font-size: 0.9375rem;
+            color: #7a8290;
+        }
+        .cost-comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .cost-card {
+            background: #fff;
+            border: 1px solid rgba(26, 58, 79, 0.1);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .cost-card h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #7a8290;
+            margin-bottom: 1rem;
+        }
+        .cost-card .cost-price {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1a3a4f;
+            margin-bottom: 0.25rem;
+        }
+        .cost-card .cost-annual {
+            font-size: 0.8125rem;
+            color: #7a8290;
+            margin-bottom: 1rem;
+        }
+        .cost-card .cost-note {
+            font-size: 0.8125rem;
+            color: #9aa2ae;
+            line-height: 1.5;
+        }
+        .cost-card.highlighted {
+            background: var(--section-dark-bg);
+            border-color: var(--section-dark-bg);
+            box-shadow: 0 12px 40px rgba(46, 26, 63, 0.25);
+            transform: translateY(-4px);
+            position: relative;
+        }
+        .cost-card.highlighted h4 {
+            color: rgba(240, 244, 248, 0.6);
+        }
+        .cost-card.highlighted .cost-price {
+            color: var(--accent);
+            font-size: 2.5rem;
+        }
+        .cost-card.highlighted .cost-annual {
+            color: rgba(240, 244, 248, 0.5);
+        }
+        .cost-card.highlighted .cost-note {
+            color: rgba(240, 244, 248, 0.6);
+        }
+        .cost-card-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: #fff;
+            padding: 0.35rem 1rem;
+            border-radius: 100px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
+        }
+        .cost-comparison-callout {
+            text-align: center;
+            padding: 1.25rem 1.5rem;
+            background: rgba(26, 58, 79, 0.05);
+            border-radius: 12px;
+            font-size: 0.9375rem;
+            color: #3a3f47;
+            line-height: 1.6;
+        }
+        .cost-comparison-callout strong { color: #1a3a4f; }
+
+        @media (max-width: 768px) {
+            .cost-comparison-grid {
+                grid-template-columns: 1fr;
+                max-width: 320px;
+                margin: 0 auto 1.5rem;
+            }
+            .cost-card.highlighted {
+                transform: none;
+                order: -1;
+            }
+        }
+
+        /* ========== RESEARCH CREDIBILITY STRIP ========== */
+        .research-credibility-section {
+            background: #f8f9fa;
+            padding: 4rem 0;
+        }
+        .research-credibility-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 2rem;
+            max-width: 960px;
+            margin: 2.5rem auto 0;
+        }
+        .research-credibility-item {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            background: white;
+            border: 1px solid rgba(26, 58, 79, 0.08);
+            border-radius: 16px;
+        }
+        .research-credibility-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.375rem;
+        }
+        .research-credibility-label {
+            font-size: 0.8125rem;
+            color: #5a6270;
+            line-height: 1.4;
+        }
+        @media (max-width: 768px) {
+            .research-credibility-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .research-credibility-grid {
+                grid-template-columns: 1fr;
+                max-width: 300px;
+            }
+        }
+
+        /* ========== FAQ SECTION ========== */
+        .faq-section {
+            background: #f0f2f4;
+        }
+        .faq-list {
+            max-width: 760px;
+            margin: 3rem auto 0;
+        }
+        .faq-item {
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+        }
+        .faq-question {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem 0;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #1a3a4f;
+            background: none;
+            text-align: left;
+            line-height: 1.4;
+            gap: 1rem;
+        }
+        .faq-question:hover { color: var(--accent); }
+        .faq-icon {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            transition: transform 0.3s ease;
+        }
+        .faq-item.open .faq-icon { transform: rotate(45deg); }
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease, padding 0.4s ease;
+        }
+        .faq-item.open .faq-answer {
+            max-height: 300px;
+            padding-bottom: 1.5rem;
+        }
+        .faq-answer p {
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        /* ========== FINAL CTA ========== */
+        .final-cta {
+            background: var(--section-dark-bg);
+            color: #f8f9fa;
+            padding: 7rem 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .final-cta-bg {
+            position: absolute;
+            inset: 0;
+            opacity: 0.08;
+        }
+        .final-cta-bg img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .final-cta-content { position: relative; z-index: 2; }
+        .final-cta h2 {
+            max-width: 800px;
+            margin: 0 auto 1.5rem;
+        }
+        .final-cta h2 em { color: var(--accent); }
+        .final-cta p {
+            max-width: 560px;
+            margin: 0 auto 2.5rem;
+            font-size: 1.125rem;
+            color: rgba(240, 244, 248, 0.75);
+        }
+        .final-cta-buttons { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+        /* ========== FOOTER ========== */
+        .footer {
+            background: #0d1f2d;
+            color: rgba(240, 244, 248, 0.6);
+            padding: 4rem 0 2rem;
+        }
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+            margin-bottom: 3rem;
+        }
+        .footer-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        .footer-brand span { color: var(--accent); }
+        .footer-tagline {
+            font-size: 0.9375rem;
+            font-style: italic;
+            font-family: 'Playfair Display', serif;
+            color: rgba(240, 244, 248, 0.5);
+            margin-bottom: 1.5rem;
+        }
+        .footer-newsletter {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 340px;
+        }
+        .footer-newsletter input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 100px;
+            border: 1px solid rgba(240, 244, 248, 0.15);
+            background: rgba(240, 244, 248, 0.05);
+            color: #f8f9fa;
+            font-size: 0.875rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .footer-newsletter input::placeholder { color: rgba(240, 244, 248, 0.3); }
+        .footer-newsletter input:focus { border-color: rgba(155, 126, 184, 0.5); }
+        .footer-newsletter button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 100px;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .footer-newsletter button:hover { background: var(--accent-hover); }
+        .footer-col h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: rgba(240, 244, 248, 0.4);
+            margin-bottom: 1.25rem;
+        }
+        .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 0.75rem; }
+        .footer-col a {
+            font-size: 0.9375rem;
+            transition: color 0.3s;
+        }
+        .footer-col a:hover { color: #f8f9fa; }
+        .footer-bottom {
+            border-top: 1px solid rgba(240, 244, 248, 0.08);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .footer-bottom p { font-size: 0.8125rem; color: rgba(240, 244, 248, 0.35); }
+        .footer-legal {
+            display: flex;
+            gap: 1.5rem;
+        }
+        .footer-legal a { font-size: 0.8125rem; color: rgba(240, 244, 248, 0.35); }
+        .footer-legal a:hover { color: rgba(240, 244, 248, 0.6); }
+
+        /* ========== STICKY CTA BAR ========== */
+        .sticky-cta {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            background: rgba(46, 26, 63, 0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 0.875rem 0;
+            transform: translateY(100%);
+            transition: transform 0.4s ease;
+        }
+        .sticky-cta.visible {
+            transform: translateY(0);
+        }
+        .sticky-cta-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sticky-cta-text {
+            color: rgba(240, 244, 248, 0.85);
+            font-size: 0.9375rem;
+        }
+        .sticky-cta-text strong {
+            color: #f8f9fa;
+        }
+        @media (max-width: 640px) {
+            .sticky-cta-inner {
+                flex-direction: column;
+                gap: 0.75rem;
+                text-align: center;
+            }
+        }
+
+        /* ========== ANIMATIONS ========== */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+        .fade-in.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .fade-in-delay-1 { transition-delay: 0.1s; }
+        .fade-in-delay-2 { transition-delay: 0.2s; }
+        .fade-in-delay-3 { transition-delay: 0.3s; }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 1024px) {
+            .science-grid { grid-template-columns: 1fr; }
+            .science-visual { order: -1; max-width: 500px; margin: 0 auto; }
+            .footer-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 768px) {
+            .section { padding: 4.5rem 0; }
+            .nav-links { display: none; }
+            .nav-mobile-toggle { display: block; }
+            .nav-links.mobile-open {
+                display: flex;
+                flex-direction: column;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: rgba(240, 244, 248, 0.98);
+                backdrop-filter: blur(20px);
+                padding: 1.5rem 2rem;
+                gap: 1.25rem;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            }
+            .hero { padding: 7rem 0 4rem; }
+            .trust-grid { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+            .how-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+            .how-connector { display: none; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .comparison-table {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.75rem 0.625rem;
+                font-size: 0.8125rem;
+            }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 0 1.25rem; }
+            .hero-ctas { flex-direction: column; align-items: stretch; }
+            .hero-ctas .btn-gold,
+            .hero-ctas .btn-outline { justify-content: center; }
+            .science-stats { grid-template-columns: 1fr; }
+            .final-cta-buttons { flex-direction: column; align-items: center; }
+            .trust-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+            .system-card-row { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+            .system-card-row-value { text-align: left; font-size: 0.875rem; }
+            .system-card-row-label { font-size: 0.6875rem; }
+            .pricing-card-header .price { font-size: 2.75rem; }
+            .hero-description { font-size: 1rem; }
+            .final-cta { padding: 5rem 0; }
+            .final-cta p { font-size: 1rem; }
+            .secret-text { font-size: 0.9375rem; }
+            .how-step-number { font-size: 2.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            .social-proof-section .container > div:nth-child(2) {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <!-- ============ NAVIGATION ============ -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">Lucid<span>.</span></a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#privacy">The Problem</a></li>
+                <li><a href="#architecture">How It Works</a></li>
+                <li><a href="#how-it-works">Get Started</a></li>
+                <li><a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg">Pricing</a></li>
+            </ul>
+            <div class="nav-right">
+                <a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg" class="btn-primary">Download for Mac</a>
+                <button class="nav-mobile-toggle" id="mobileToggle" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+        <video class="hero-bg-video" id="heroVideo" autoplay muted loop playsinline preload="auto">
+            <source src="../images/03-latina-privacy-clip1-1080p.mp4" type="video/mp4">
+        </video>
+        <button class="sound-toggle" id="soundToggle" aria-label="Toggle sound">
+            <!-- Muted icon (shown by default) -->
+            <svg class="icon-muted" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+            <!-- Unmuted icon (hidden by default) -->
+            <svg class="icon-unmuted" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+        </button>
+        <div class="container">
+            <div class="hero-inner">
+                <div class="hero-content fade-in">
+                    <div class="hero-badge">No Therapist. No Insurance. No Waitlist. Just Data.</div>
+                    <h1>Your doctor gets 15 minutes. Your insurance says no. Your therapist has a 67-day waitlist. <em>You deserve better.</em></h1>
+                    <p class="hero-description">
+                        The mental health system wasn't built for you. It was built for insurance companies. Lucid is a desktop app that monitors your mental health through your voice, runs 100% on your Mac, and costs less than one therapy copay. No referral. No diagnosis code. No gatekeeper.
+                    </p>
+                    <p style="font-size: 0.85rem; color: var(--accent); font-weight: 600; margin-bottom: 0.75rem; letter-spacing: 0.02em;">Desktop app. No wearable. Just your laptop mic.</p>
+                    <p style="font-size: 0.85rem; color: #5a6270; margin-bottom: 1.5rem;">Lucid listens to your voice during calls and conversations. No questionnaires. No wearable. Just your laptop mic.</p>
+                    <div class="hero-ctas">
+                        <a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg" class="btn-gold">
+                            Download for Mac
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </a>
+                        <a href="#architecture" class="btn-outline">
+                            See How It Works
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ TRUST STRIP ============ -->
+    <section class="trust-strip">
+        <div class="container">
+            <div class="trust-grid">
+                <div class="trust-item fade-in">
+                    <div class="trust-number">66%</div>
+                    <div class="trust-label">Depression Misdiagnosis Rate in Primary Care</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-1">
+                    <div class="trust-number">67 days</div>
+                    <div class="trust-label">Median Wait for a Psychiatrist</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-2">
+                    <div class="trust-number">85%</div>
+                    <div class="trust-label">Higher Denial Rate for Mental Health Claims</div>
+                </div>
+                <div class="trust-item fade-in fade-in-delay-3">
+                    <div class="trust-number">$14.99</div>
+                    <div class="trust-label">Per Month. No Insurance Needed.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>The system wasn't built for you. It was built for the people billing you.</p>
+    </div>
+
+    <!-- ============ PROBLEM AGITATION ============ -->
+    <section class="secret-section section" id="privacy">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>The System Is Broken. <em>Here Are the Numbers.</em></h2>
+            </div>
+            <div class="secret-grid">
+                <div class="secret-text fade-in">
+                    <p>Your primary care doctor has 15 minutes. In that window, they misdiagnose depression 66% of the time. They miss bipolar disorder 93% of the time. And if they do catch something? Good luck getting a referral. Only 18.5% of psychiatrists are accepting new patients.</p>
+                    <p>So you call your insurance company. Mental health claims are denied 85% more often than medical claims. When they do pay, they reimburse mental health providers at 14.3% less than identical procedure codes in other specialties. Therapists are leaving insurance panels because they can't afford to stay.</p>
+                    <p>The median wait for a psychiatrist is 67 days. Two months of not knowing what's happening inside your own head. Two months of guessing. The system doesn't care about your mental health. It cares about billing codes, denial rates, and quarterly earnings.</p>
+                    <p>Lucid is a desktop app that runs on your Mac. It monitors your mental health through involuntary voice biomarkers during your normal calls and conversations. No waitlist. No referral. No insurance approval. No gatekeeper between you and your own data.</p>
+                </div>
+                <div class="secret-stats fade-in fade-in-delay-2">
+                    <div class="secret-stat">
+                        <div class="secret-stat-value">66%</div>
+                        <div class="secret-stat-label">Depression misdiagnosis rate in primary care</div>
+                    </div>
+                    <div class="secret-stat">
+                        <div class="secret-stat-value">93%</div>
+                        <div class="secret-stat-label">Bipolar disorder miss rate</div>
+                    </div>
+                    <div class="secret-stat">
+                        <div class="secret-stat-value">67 days</div>
+                        <div class="secret-stat-label">Median wait for a psychiatrist</div>
+                    </div>
+                    <div class="secret-stat">
+                        <div class="secret-stat-value">18.5%</div>
+                        <div class="secret-stat-label">Of psychiatrists accepting new patients</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>You shouldn't need permission to understand your own mind.</p>
+    </div>
+
+    <!-- ============ KILLER FEATURE SHOWCASE ============ -->
+    <section class="killer-feature-section section" id="architecture">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Built to Bypass <em>Every Gatekeeper.</em></h2>
+            </div>
+            <div class="killer-feature-grid">
+                <div class="killer-feature-card fade-in">
+                    <div class="killer-feature-badge">No Gatekeeper</div>
+                    <h3>Install and Use. That's It.</h3>
+                    <p>No referral. No insurance pre-authorization. No 67-day waitlist. Download the desktop app to your Mac, grant mic access, and you're monitoring your mental health in under two minutes.</p>
+                    <div class="killer-feature-detail">No account creation. No email. No phone number. No sign-in with Google. Just open your laptop.</div>
+                </div>
+                <div class="killer-feature-card fade-in fade-in-delay-1">
+                    <div class="killer-feature-badge">No Subjective Opinion</div>
+                    <h3>244M-Parameter AI. No Quotas.</h3>
+                    <p>Your therapist bills by the hour. Your doctor has 15 minutes. Lucid's voice biomarker model doesn't have quotas, doesn't take insurance, and doesn't bill by the hour. It reads involuntary vocal patterns your doctor can't hear.</p>
+                    <div class="killer-feature-detail">84.7% validated accuracy in a 14,898-patient double-blind study. Published in Annals of Family Medicine.</div>
+                </div>
+                <div class="killer-feature-card fade-in fade-in-delay-2">
+                    <div class="killer-feature-badge">No Data Hostage</div>
+                    <h3>Your Data Stays on Your Mac.</h3>
+                    <p>Not in an EHR system. Not sold to pharma. Not shared with your employer. Not on a server that gets breached. Your voice never leaves your machine. Only numerical scores are stored locally in SQLite.</p>
+                    <div class="killer-feature-detail">You own the database file. Export it, delete it, inspect it. No server-side copies exist. Period.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>You don't need anyone's permission to understand your own mind.</p>
+    </div>
+
+    <!-- ============ SOCIAL PROOF ============ -->
+    <section class="social-proof-section" style="padding: 80px 0; background: #f8f9fa;">
+        <div class="container" style="max-width: 1100px; margin: 0 auto; padding: 0 24px;">
+            <div style="text-align: center; margin-bottom: 48px;">
+                <p style="font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; font-weight: 600;">People Who Got Tired of Waiting</p>
+                <h2 style="font-size: 2.2rem; font-weight: 700; color: #1a1d21; margin-bottom: 16px;">They Stopped Asking Permission.</h2>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+                <!-- Testimonial 1 -->
+                <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid #e4e8ec;">
+                    <div style="color: var(--accent); font-size: 1.1rem; margin-bottom: 16px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                    <p style="color: #5a6270; line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem;">"My therapist had a 3-month waitlist. My insurance denied coverage twice. I downloaded Lucid on a Tuesday and had a week of mood data by Friday. This is what I needed six months ago."</p>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); opacity: 0.15;"></div>
+                        <div>
+                            <p style="font-weight: 600; color: #1a1d21; font-size: 0.9rem; margin: 0;">Alex K.</p>
+                            <p style="color: #5a6270; font-size: 0.8rem; margin: 0;">Software Engineer</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Testimonial 2 -->
+                <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid #e4e8ec;">
+                    <div style="color: var(--accent); font-size: 1.1rem; margin-bottom: 16px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                    <p style="color: #5a6270; line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem;">"I got misdiagnosed twice in primary care. My PCP had 12 minutes and a checklist. Lucid caught a stress pattern building over two weeks that lined up perfectly with what I was actually feeling. The data doesn't lie the way a rushed appointment does."</p>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); opacity: 0.15;"></div>
+                        <div>
+                            <p style="font-weight: 600; color: #1a1d21; font-size: 0.9rem; margin: 0;">Jordan W.</p>
+                            <p style="color: #5a6270; font-size: 0.8rem; margin: 0;">Product Manager</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Testimonial 3 -->
+                <div style="background: white; border-radius: 16px; padding: 32px; border: 1px solid #e4e8ec;">
+                    <div style="color: var(--accent); font-size: 1.1rem; margin-bottom: 16px;">&#9733;&#9733;&#9733;&#9733;&#9733;</div>
+                    <p style="color: #5a6270; line-height: 1.7; margin-bottom: 20px; font-size: 0.95rem;">"I pay $350/month for therapy I can barely afford. Lucid doesn't replace my therapist, but it fills the gap between sessions. I can actually show my therapist trend data now instead of trying to remember how I felt last Tuesday."</p>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); opacity: 0.15;"></div>
+                        <div>
+                            <p style="font-weight: 600; color: #1a1d21; font-size: 0.9rem; margin: 0;">Dr. Lisa Chen</p>
+                            <p style="color: #5a6270; font-size: 0.8rem; margin: 0;">Resident Physician</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Press/Trust Logos -->
+            <div style="margin-top: 48px; text-align: center;">
+                <p style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; margin-bottom: 20px;">Built on Peer-Reviewed Research From</p>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 48px; opacity: 0.5;">
+                    <span style="font-size: 1rem; font-weight: 600; color: #5a6270;">Annals of Family Medicine</span>
+                    <span style="font-size: 0.9rem; color: #9ca3af;">|</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: #5a6270;">Kintsugi Health</span>
+                    <span style="font-size: 0.9rem; color: #9ca3af;">|</span>
+                    <span style="font-size: 1rem; font-weight: 600; color: #5a6270;">NIH Clinical Trials</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>Here are the numbers, side by side.</p>
+    </div>
+
+    <!-- ============ SYSTEM COMPARISON ============ -->
+    <section class="system-comparison-section section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>"The System" vs. <em>Lucid.</em></h2>
+            </div>
+            <div class="system-comparison-grid" style="margin-top: 3.5rem;">
+                <div class="system-card current-system fade-in">
+                    <h3>The System</h3>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Access</span>
+                        <span class="system-card-row-value">67-day wait</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Cost</span>
+                        <span class="system-card-row-value">$400-800/month</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Accuracy</span>
+                        <span class="system-card-row-value">66% misdiagnosis rate</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Data</span>
+                        <span class="system-card-row-value">In their EHR system</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Continuity</span>
+                        <span class="system-card-row-value">1 hour/week</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Incentive</span>
+                        <span class="system-card-row-value">Bill more hours</span>
+                    </div>
+                </div>
+                <div class="system-card lucid-system fade-in fade-in-delay-1">
+                    <h3>Lucid</h3>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Access</span>
+                        <span class="system-card-row-value">Instant</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Cost</span>
+                        <span class="system-card-row-value">$14.99/month</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Accuracy</span>
+                        <span class="system-card-row-value">84.7% validated accuracy</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Data</span>
+                        <span class="system-card-row-value">On your machine</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Continuity</span>
+                        <span class="system-card-row-value">Every conversation</span>
+                    </div>
+                    <div class="system-card-row">
+                        <span class="system-card-row-label">Incentive</span>
+                        <span class="system-card-row-value">Give you data</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>You don't need a gatekeeper. You need data.</p>
+    </div>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="how-section section" id="how-it-works">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Skip the Waitlist. <em>Start Today.</em></h2>
+                <p class="text-lg" style="max-width: 600px; margin: 1rem auto 0;">No referral. No insurance approval. No onboarding questionnaire. Two minutes from download to monitoring.</p>
+            </div>
+            <div class="how-grid">
+                <div class="how-step fade-in">
+                    <div class="how-step-number">01</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <h3>Download the Desktop App</h3>
+                    <p>One file. Drag to Applications. Open your laptop. No account. No email. No insurance card. Done.</p>
+                    <div class="how-connector"></div>
+                </div>
+                <div class="how-step fade-in fade-in-delay-1">
+                    <div class="how-step-number">02</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </div>
+                    <h3>Talk. That's It.</h3>
+                    <p>Lucid listens to your voice during calls and conversations through your laptop mic. No questionnaires. No wearable. No journaling. Just talk the way you already do.</p>
+                    <div class="how-connector"></div>
+                </div>
+                <div class="how-step fade-in fade-in-delay-2">
+                    <div class="how-step-number">03</div>
+                    <div class="how-step-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    </div>
+                    <h3>Get Data. Not Opinions.</h3>
+                    <p>See stress, mood, energy, and depression risk trends over time. Real numbers. Real patterns. Export as CSV or JSON. Share with your doctor, or don't. It's your data.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="section-bridge">
+        <p>You shouldn't have to choose between rent and knowing how you're doing.</p>
+    </div>
+
+    <!-- ============ URGENCY + TRANSFORMATION ============ -->
+    <section style="padding: 60px 0; background: linear-gradient(135deg, #f8f9fa 0%, #f0f2f4 100%);">
+        <div class="container" style="max-width: 700px; margin: 0 auto; padding: 0 24px; text-align: center;">
+            <p style="font-size: 0.85rem; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; font-weight: 600;">Insurance reimburses mental health at 14.3% less than identical procedure codes</p>
+            <p style="font-size: 1.15rem; color: #5a6270; line-height: 1.8; font-style: italic;">"I spent $2,400 on therapy last year and my insurance covered $200 of it. Then my therapist moved practices and I lost all continuity. Lucid gave me something no therapist ever did: a continuous record of how I'm actually doing, not a snapshot from one hour a week."</p>
+            <p style="font-weight: 600; color: #1a1d21; margin-top: 16px;">Early access member, Teacher</p>
+        </div>
+    </section>
+
+    <!-- ============ PRICING ============ -->
+    <section class="pricing-section section" id="pricing">
+        <div class="container">
+            <div class="pricing-header text-center fade-in">
+                <h2>Less Than One Copay. <em>No Insurance Required.</em></h2>
+                <p class="text-lg">The average therapy copay is $30-50. A single psychiatrist visit without insurance is $300+. Lucid monitors you every day for $14.99/month. No claim to file. No denial to appeal.</p>
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(155, 126, 184, 0.12); color: #7a5a9e; padding: 0.5rem 1.25rem; border-radius: 100px; font-size: 0.8125rem; font-weight: 600; margin-top: 1rem; letter-spacing: 0.02em;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Founding member pricing — locks in when you join
+                </div>
+                <div style="font-size: 0.8125rem; color: #7a8290; margin-top: 0.75rem;">
+                    <strong style="color: #1a3a4f;">847 spots remaining</strong> at founding member price
+                </div>
+            </div>
+
+            <div class="comparison-table fade-in" style="margin-top: 3rem;">
+                <div style="text-align: center; padding: 2rem 2rem 0;">
+                    <h3 style="font-size: 1.25rem; color: #1a3a4f;">Lucid vs. <em>The System</em></h3>
+                </div>
+                <div style="padding: 1.5rem;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Feature</th>
+                                <th>Lucid</th>
+                                <th>Mood Journals</th>
+                                <th>Therapist</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Passive — zero daily effort</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Objective biomarkers</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Clinically validated AI</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-partial">&#9679;</td>
+                            </tr>
+                            <tr>
+                                <td>Continuous monitoring</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Correlates with wearables</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Raw data export & API</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>100% on-device / private</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-yes">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Human clinical insight & empathy</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-yes">&#10003;</td>
+                            </tr>
+                            <tr>
+                                <td>Under $15/month</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                            </tr>
+                            <tr>
+                                <td>Detects what you can't self-report</td>
+                                <td class="check-yes">&#10003;</td>
+                                <td class="check-no">&#10005;</td>
+                                <td class="check-partial">&#9679;</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Therapy Cost Comparison -->
+            <div class="cost-comparison fade-in">
+                <div class="cost-comparison-header">
+                    <h3>What the System Charges vs. <em>What You Actually Need</em></h3>
+                    <p>You shouldn't need to choose between rent and knowing how you're doing.</p>
+                </div>
+                <div class="cost-comparison-grid">
+                    <div class="cost-card">
+                        <h4>Traditional Therapy</h4>
+                        <div class="cost-price">$400-800</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$4,800-9,600/year<br>67-day wait to start</div>
+                    </div>
+                    <div class="cost-card">
+                        <h4>Online Therapy (BetterHelp)</h4>
+                        <div class="cost-price">$280-400</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$3,360-4,800/year<br>Your data shared with Facebook</div>
+                    </div>
+                    <div class="cost-card highlighted">
+                        <div class="cost-card-badge">Less than one copay per month</div>
+                        <h4>Lucid</h4>
+                        <div class="cost-price">$14.99</div>
+                        <div class="cost-annual">per month</div>
+                        <div class="cost-note">$149/year<br>Continuous daily monitoring</div>
+                    </div>
+                </div>
+                <div class="cost-comparison-callout">
+                    Less than one therapy copay for <strong>continuous daily monitoring</strong>. No insurance needed. No claim to file. No denial to appeal.
+                </div>
+            </div>
+
+            <div class="pricing-card-wrapper fade-in">
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <h3>Lucid Membership</h3>
+                        <div class="price">$14.99<span class="price-period">/mo</span></div>
+                        <div class="price-annual">or $149/year (save $30)</div>
+                        <div class="pricing-trial">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                            First 30 days free
+                        </div>
+                    </div>
+                    <div class="pricing-card-body">
+                        <ul class="pricing-features">
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Continuous stress, mood, energy, and depression monitoring
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                84.7% validated accuracy (better than your doctor's 34%)
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                No referral, no insurance, no waitlist
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Runs 100% on your Mac. Your data never leaves your machine.
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Export your data as CSV, JSON, or via REST API
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Connect with Oura, Whoop, and Apple Health
+                            </li>
+                            <li>
+                                <span class="pricing-check"><svg viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                                Weekly trend reports you can share with your doctor (or not)
+                            </li>
+                        </ul>
+                        <a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg" class="btn-gold" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.0625rem;">
+                            Download for Mac
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <p class="pricing-note">No credit card required. No insurance card either. Cancel anytime.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- ============ RESEARCH CREDIBILITY ============ -->
+    <section class="research-credibility-section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>More Accurate Than <em>Your Doctor's Guess</em></h2>
+                <p class="text-lg" style="max-width: 600px; margin: 0.75rem auto 0; color: #5a6270;">Your PCP gets depression right 34% of the time. Lucid's model was validated at 84.7% in a 14,898-patient double-blind study.</p>
+            </div>
+            <div class="research-credibility-grid fade-in fade-in-delay-1">
+                <div class="research-credibility-item">
+                    <div class="research-credibility-value">244M</div>
+                    <div class="research-credibility-label">Parameter voice model</div>
+                </div>
+                <div class="research-credibility-item">
+                    <div class="research-credibility-value">14,898</div>
+                    <div class="research-credibility-label">Patients in double-blind validation</div>
+                </div>
+                <div class="research-credibility-item">
+                    <div class="research-credibility-value">Annals of FM</div>
+                    <div class="research-credibility-label">Published in Annals of Family Medicine</div>
+                </div>
+                <div class="research-credibility-item">
+                    <div class="research-credibility-value">$30M+</div>
+                    <div class="research-credibility-label">In underlying clinical research</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="faq-section section">
+        <div class="container">
+            <div class="text-center fade-in">
+                <h2>Questions From People <em>Who've Been Burned</em></h2>
+            </div>
+            <div class="faq-list">
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Is this trying to replace my therapist?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>No. If you have a great therapist, keep them. Lucid fills the 167 hours a week you're not in session. It gives you continuous data between appointments, so when you do sit down with a professional, you have real trends instead of vague recollections. For people who can't access a therapist at all, it's better than waiting 67 days with nothing.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        How accurate is an AI vs. a real doctor?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Primary care doctors misdiagnose depression 66% of the time. That's not a knock on doctors. They have 15 minutes, a checklist, and 20 other patients. Lucid's voice biomarker model was validated at 84.7% accuracy in a 14,898-patient double-blind study published in Annals of Family Medicine. It reads involuntary vocal patterns that humans simply can't detect by ear.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Why should I trust this over the system I already know?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The system you know denies mental health claims 85% more often than medical claims. It reimburses therapists 14.3% less than identical procedure codes. Only 18.5% of psychiatrists accept new patients. That system isn't broken by accident. It's working exactly as designed, just not for you. Lucid gives you your own data, on your own machine, without asking anyone's permission.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        What if I don't want a diagnosis, I just want to know how I'm doing?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>That's exactly what Lucid is for. It doesn't diagnose you. It doesn't label you. It tracks your stress, mood, energy, and emotional patterns over time through your voice. Think of it like a fitness tracker for your mental health. You see the data, you decide what it means. No billing code required.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Does this work without insurance?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes. That's the whole point. $14.99/month, direct. No claim to file. No pre-authorization. No denial to appeal. No explanation of benefits. No surprise bill three months later. You pay, you use it, done.</p>
+                    </div>
+                </div>
+                <div class="faq-item fade-in">
+                    <button class="faq-question">
+                        Can my doctor see this data?
+                        <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="#1a3a4f" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Only if you choose to share it. Your data lives on your Mac in a local database. You can export trends as CSV or JSON and bring them to an appointment. Or don't. It's not in any EHR system. Your employer can't see it. Your insurance company can't see it. Nobody can, unless you hand it to them.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="final-cta">
+        <div class="final-cta-bg">
+            <img src="../images/lifestyle-attune-man.png" alt="" loading="lazy">
+        </div>
+        <div class="container final-cta-content">
+            <h2 class="fade-in">Stop Waiting. Stop Asking. <em>Start Knowing.</em></h2>
+            <p class="fade-in fade-in-delay-1">No waitlist. No referral. No insurance approval. A desktop app that runs on your Mac, monitors your mental health through your voice, and gives you data that belongs to you. Not your insurance company. Not your employer. You.</p>
+            <div class="final-cta-buttons fade-in fade-in-delay-2">
+                <a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg" class="btn-white">
+                    Download for Mac
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </a>
+                <a href="#architecture" class="btn-outline-light">See How It Works</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div>
+                    <div class="footer-brand">Lucid<span>.</span></div>
+                    <div class="footer-tagline">The mental health system failed you. Take it back.</div>
+                    <p style="font-size: 0.875rem; margin-bottom: 1.5rem;">84.7% validated accuracy. 244M-parameter model. Continuous monitoring on your Mac. No insurance required.</p>
+                    <div class="footer-newsletter">
+                        <input type="email" placeholder="Enter your email">
+                        <button>Subscribe</button>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Product</h4>
+                    <ul>
+                        <li><a href="#architecture">Features</a></li>
+                        <li><a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg">Pricing</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#">Download</a></li>
+                        <li><a href="#">Changelog</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Science</h4>
+                    <ul>
+                        <li><a href="#privacy">Research</a></li>
+                        <li><a href="#">Kintsugi DAM</a></li>
+                        <li><a href="#">Clinical Validation</a></li>
+                        <li><a href="#">API Docs</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Community</h4>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Twitter / X</a></li>
+                        <li><a href="#">Reddit</a></li>
+                        <li><a href="#">Discord</a></li>
+                        <li><a href="#">Product Hunt</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Lucid. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Security</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============ STICKY CTA BAR ============ -->
+    <div class="sticky-cta" id="stickyCta">
+        <div class="sticky-cta-inner">
+            <div class="sticky-cta-text"><strong>No waitlist. No insurance. No gatekeeper.</strong> $14.99/month on your Mac.</div>
+            <a href="https://github.com/zacharybpoll-cmyk/lucid-v2-releases/releases/download/v1.0.13/Lucid-v2-1.0.13.dmg" class="btn-gold">Download for Mac <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        </div>
+    </div>
+
+    <!-- ============ JAVASCRIPT ============ -->
+    <script>
+        // Sound toggle for hero video
+        const heroVideo = document.getElementById('heroVideo');
+        const soundToggle = document.getElementById('soundToggle');
+        if (heroVideo && soundToggle) {
+            soundToggle.addEventListener('click', () => {
+                heroVideo.muted = !heroVideo.muted;
+                soundToggle.querySelector('.icon-muted').style.display = heroVideo.muted ? '' : 'none';
+                soundToggle.querySelector('.icon-unmuted').style.display = heroVideo.muted ? 'none' : '';
+            });
+        }
+
+        // Nav scroll effect
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 40);
+        });
+
+        // Mobile menu toggle
+        const mobileToggle = document.getElementById('mobileToggle');
+        const navLinks = document.getElementById('navLinks');
+        mobileToggle.addEventListener('click', () => {
+            mobileToggle.classList.toggle('open');
+            navLinks.classList.toggle('mobile-open');
+        });
+
+        // Close mobile menu on link click
+        navLinks.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileToggle.classList.remove('open');
+                navLinks.classList.remove('mobile-open');
+            });
+        });
+
+        // Scroll-triggered fade-in animations
+        const observerOptions = { threshold: 0.1, rootMargin: '0px 0px -40px 0px' };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+        // FAQ accordion with aria-expanded
+        document.querySelectorAll('.faq-question').forEach(btn => {
+            btn.setAttribute('aria-expanded', 'false');
+            btn.addEventListener('click', () => {
+                const item = btn.parentElement;
+                const wasOpen = item.classList.contains('open');
+                document.querySelectorAll('.faq-item').forEach(i => {
+                    i.classList.remove('open');
+                    i.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+                });
+                if (!wasOpen) {
+                    item.classList.add('open');
+                    btn.setAttribute('aria-expanded', 'true');
+                }
+            });
+        });
+
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href === '#') return;
+                e.preventDefault();
+                const target = document.querySelector(href);
+                if (target) {
+                    const offset = 80;
+                    const top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Animated counter for trust strip
+        const trustNumbers = document.querySelectorAll('.trust-number');
+        const trustObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('counted');
+                    trustObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.5 });
+        trustNumbers.forEach(el => trustObserver.observe(el));
+
+        // Sticky CTA bar, show after scrolling past hero
+        const stickyCta = document.getElementById('stickyCta');
+        const heroSection = document.querySelector('.hero');
+        const stickyObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) {
+                    stickyCta.classList.add('visible');
+                } else {
+                    stickyCta.classList.remove('visible');
+                }
+            });
+        }, { threshold: 0 });
+        stickyObserver.observe(heroSection);
+    </script>
+<script src="analytics.js" defer></script>
+</body>
+</html>
