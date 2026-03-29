@@ -154,6 +154,9 @@ class ReadingInsert(BaseModel):
     zone_confidence: Optional[str] = None
     # Linguistic analysis status
     linguistic_status: Optional[str] = None
+    # Emotion analysis (emotion2vec+)
+    emotion_class: Optional[str] = None
+    emotion_confidence: Optional[float] = None
 
     @field_validator('stress_score', 'mood_score', 'energy_score', 'calm_score',
                      'stress_score_raw', 'mood_score_raw', 'energy_score_raw', 'calm_score_raw',
@@ -215,8 +218,6 @@ class DailySummary(BaseModel):
     time_in_calm_min: Optional[float] = None
     total_speech_min: Optional[float] = None
     total_meetings: Optional[int] = None
-    burnout_risk: Optional[float] = None
-    resilience_score: Optional[float] = None
     avg_wellbeing: Optional[float] = None
     avg_activation: Optional[float] = None
     avg_depression_risk: Optional[float] = None
@@ -260,9 +261,6 @@ class MeetingToggleRequest(BaseModel):
 
 class IntentionRequest(BaseModel):
     intention: str
-
-class ReviveRequest(BaseModel):
-    date: str
 
 class LayoutRequest(BaseModel):
     cards: List[str]

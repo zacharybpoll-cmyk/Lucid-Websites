@@ -35,6 +35,8 @@ class NotificationManager:
         self._ring_close_notified_today = False
         # Previous zone for transition detection
         self._previous_zone = None
+        # Guard against re-entrant curtain call firing
+        self._curtain_firing = False
 
     # ================================================================
     #  Core: send_notification
@@ -232,19 +234,6 @@ class NotificationManager:
         )
 
     # ================================================================
-    #  Streak Insurance Prompt
-    # ================================================================
-
-    def prompt_streak_insurance(self, streak: int):
-        """Prompt user to use streak insurance when streak is at risk."""
-        self.send_notification(
-            "Lucid",
-            f"Your {streak}-day streak is at risk! Use your resilience day to save it.",
-            subtitle="Streak Insurance",
-            notif_type="streak_insurance"
-        )
-
-    # ================================================================
     #  Voice Weather — Morning Readiness Ritual
     # ================================================================
 
@@ -319,6 +308,10 @@ class NotificationManager:
 
     def _schedule_next_curtain(self):
         """Schedule curtain call at 5:30pm or reschedule for tomorrow."""
+        if self._shutdown_event.is_set():
+            return
+        if self._curtain_firing:
+            return  # Prevent re-entrant thread spawning
         now = datetime.now()
         target = now.replace(hour=17, minute=30, second=0, microsecond=0)
 
@@ -336,10 +329,14 @@ class NotificationManager:
 
     def _fire_curtain_call(self):
         """Generate and send the Curtain Call notification."""
+        if self._shutdown_event.is_set():
+            return
         if self._curtain_sent_today:
+            self._curtain_firing = False
             self._schedule_next_curtain()
             return
 
+        self._curtain_firing = True
         try:
             readings = self.db.get_today_readings()
             if not readings or len(readings) < 2:
@@ -399,6 +396,8 @@ class NotificationManager:
             self._curtain_sent_today = True
         except Exception as e:
             logger.error(f"Curtain call error: {e}")
+        finally:
+            self._curtain_firing = False
 
         # Schedule for tomorrow
         self._schedule_next_curtain()

@@ -22,6 +22,7 @@ from backend.linguistic_features import extract_linguistic_features
 from backend.linguistic_echo_generator import LinguisticEchoGenerator
 from backend.score_engine import ScoreEngine
 from backend.baseline_calibrator import BaselineCalibrator
+from backend.emotion_analyzer import EmotionAnalyzer
 from backend.database import Database
 import app_config as config
 
@@ -92,6 +93,9 @@ class AnalysisOrchestrator:
         # TS-003: Graceful shutdown event — replaces daemon=True termination
         self._shutdown_event = threading.Event()
 
+        # Cancellation flag: watchdog sets this so analysis can save partial data
+        self._analysis_cancelled = threading.Event()
+
         # Mic disconnect tracking (for user notification)
         self._mic_disconnected = False
         # EDGE-003: Audio reconnect debounce
@@ -119,6 +123,9 @@ class AnalysisOrchestrator:
 
         # Score engine (instant)
         self.score_engine = ScoreEngine(calibrator=self.calibrator)
+
+        # Emotion analyzer (lazy-loaded on first use)
+        self.emotion_analyzer = EmotionAnalyzer()
 
         # Audio capture (instant - doesn't open stream until start())
         self.audio_capture = AudioCapture(
@@ -164,44 +171,81 @@ class AnalysisOrchestrator:
 
     def load_models(self):
         """Load slow models (VAD + DAM + Speaker). Call from background thread."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+
+        self._load_vad()
+        self._load_dam()
+        self._load_speaker()
+
+        self.models_ready.set()
+        if self.dam_analyzer is None:
+            logger.error("CRITICAL: DAM model failed to load — analysis will be unavailable")
+        logger.info("All models loaded and ready" if self.dam_analyzer else "Models loaded (DAM MISSING — analysis unavailable)")
+
+    def _load_vad(self):
+        """Load VAD model with 60s timeout."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
         from backend.vad_processor import VADProcessor
-        from backend.dam_analyzer import DAMAnalyzer
-        from backend.speaker_verifier import SpeakerVerifier
-
         logger.info("Loading VAD model...")
-        self.vad_processor = VADProcessor(sample_rate=config.SAMPLE_RATE)
+        try:
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(VADProcessor, sample_rate=config.SAMPLE_RATE)
+                self.vad_processor = future.result(timeout=60)
+        except FuturesTimeout:
+            logger.error("VAD model load timed out after 60s (non-fatal)")
+            self.vad_processor = None
+        except (RuntimeError, ImportError, OSError) as e:
+            logger.warning(f"VAD model failed to load (non-fatal): {e}")
+            self.vad_processor = None
 
+    def _load_dam(self):
+        """Load DAM model with 60s timeout per attempt, 3 retries."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+        from backend.dam_analyzer import DAMAnalyzer
+        import time as _time
         logger.info("Loading DAM model...")
         for attempt in range(3):
             try:
-                self.dam_analyzer = DAMAnalyzer()
-                break
+                with ThreadPoolExecutor(max_workers=1) as ex:
+                    future = ex.submit(DAMAnalyzer)
+                    self.dam_analyzer = future.result(timeout=60)
+                return
+            except FuturesTimeout:
+                logger.error(f"DAM model load attempt {attempt + 1}/3 timed out after 60s")
             except (RuntimeError, ImportError, OSError) as e:
-                delay = 2 ** attempt  # 1s, 2s, 4s
+                delay = 2 ** attempt
                 if attempt < 2:
                     logger.warning(f"DAM model load attempt {attempt + 1}/3 failed: {e}. Retrying in {delay}s...")
-                    import time
-                    time.sleep(delay)
+                    _time.sleep(delay)
                 else:
                     logger.warning(f"DAM model failed to load after 3 attempts (non-fatal): {e}")
-                    self.dam_analyzer = None
+        self.dam_analyzer = None
 
+    def _load_speaker(self):
+        """Load Speaker Verification model with 60s timeout."""
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
+        from backend.speaker_verifier import SpeakerVerifier
         logger.info("Loading Speaker Verification model...")
         try:
-            self.speaker_verifier = SpeakerVerifier(db=self.db)
-            self.speaker_verifier.load_model()
+            def _init_speaker():
+                sv = SpeakerVerifier(db=self.db)
+                sv.load_model()
+                return sv
+            with ThreadPoolExecutor(max_workers=1) as ex:
+                future = ex.submit(_init_speaker)
+                self.speaker_verifier = future.result(timeout=60)
 
             # Initialize SpeakerGate if enrolled
             if self.speaker_verifier.is_enrolled():
                 self._init_speaker_gate()
                 # Load bootstrap state
                 self._bootstrap_done = self.db.get_user_state('speaker_bootstrap_done', '0') == '1'
+        except FuturesTimeout:
+            logger.error("Speaker verifier load timed out after 60s (non-fatal)")
+            self.speaker_verifier = None
         except (RuntimeError, ImportError, OSError) as e:
             logger.warning(f"Speaker verifier failed to load (non-fatal): {e}")
             self.speaker_verifier = None
-
-        self.models_ready.set()
-        logger.info("All models loaded and ready")
 
     def _init_speaker_gate(self):
         """Initialize segment-level speaker gate."""
@@ -317,6 +361,7 @@ class AnalysisOrchestrator:
         with self._state_lock:
             self._last_analysis_error = None
 
+        self._analysis_cancelled.clear()
         self._analysis_start_time = time.time()  # EDGE-001: watchdog timestamp
         self._analysis_thread = threading.Thread(
             target=self._run_analysis,
@@ -400,19 +445,40 @@ class AnalysisOrchestrator:
                 logger.warning("DAM analysis returned None, skipping segment")
                 return
 
+            # Check cancellation after DAM
+            if self._analysis_cancelled.is_set():
+                logger.warning("Analysis cancelled by watchdog after DAM — saving partial reading")
+
             # Extract acoustic features (includes shimmer + voice_breaks + alpha_ratio + mfcc3 + hnr)
             acoustic_features = self.feature_extractor.extract(speech_audio)
 
             # Extract linguistic features via Whisper (parallel path)
             # Privacy: transcript is extracted and discarded within the function
-            enhanced_ling = self.db.get_user_state('linguistic_analysis_enhanced', 'true').lower() == 'true'
-            linguistic_features = extract_linguistic_features(speech_audio, config.SAMPLE_RATE, enhanced=enhanced_ling)
-            linguistic_status = linguistic_features.pop('_linguistic_status', 'unknown')
-            if linguistic_status != 'ok':
-                logger.warning(f"Linguistic analysis status: {linguistic_status}")
+            linguistic_status = 'skipped'
+            if not self._analysis_cancelled.is_set():
+                enhanced_ling = self.db.get_user_state('linguistic_analysis_enhanced', 'true').lower() == 'true'
+                linguistic_features = extract_linguistic_features(speech_audio, config.SAMPLE_RATE, enhanced=enhanced_ling)
+                linguistic_status = linguistic_features.pop('_linguistic_status', 'unknown')
+                if linguistic_status != 'ok':
+                    logger.warning(f"Linguistic analysis status: {linguistic_status}")
+                else:
+                    logger.info(f"Linguistic analysis OK — filler_rate={linguistic_features.get('filler_rate', 0):.1f}")
+                acoustic_features.update(linguistic_features)
+
+            # Emotion analysis (supplementary signal via emotion2vec+)
+            # Runs on a daemon thread with hard 30s timeout to prevent hanging
+            if not self._analysis_cancelled.is_set():
+                try:
+                    emotion_result = self._run_emotion_with_timeout(speech_audio, timeout=30)
+                    if emotion_result:
+                        acoustic_features.update(emotion_result)
+                        if emotion_result.get('emotion_class', 'unknown') != 'unknown':
+                            logger.info(f"Emotion: {emotion_result['emotion_class']} "
+                                        f"({emotion_result['emotion_confidence']:.2f})")
+                except (RuntimeError, ValueError, OSError) as ee:
+                    logger.warning(f"Emotion analysis error (non-fatal): {ee}")
             else:
-                logger.info(f"Linguistic analysis OK — filler_rate={linguistic_features.get('filler_rate', 0):.1f}")
-            acoustic_features.update(linguistic_features)
+                logger.warning("Skipping emotion analysis — cancelled by watchdog")
 
             # Compute derived scores (includes EMA smoothing)
             scores = self.score_engine.compute_scores(dam_output, acoustic_features)
@@ -539,6 +605,41 @@ class AnalysisOrchestrator:
             self._analysis_lock.release()
             logger.debug("Analysis thread finished")
 
+    def _run_emotion_with_timeout(self, speech_audio: np.ndarray, timeout: int = 30):
+        """Run emotion analysis on a daemon thread with a hard timeout.
+
+        Uses a daemon thread + Event instead of ThreadPoolExecutor because
+        funasr can block the GIL during model loading, preventing
+        future.result(timeout) from working. A daemon thread is abandoned
+        on timeout and cleaned up at process exit.
+        """
+        result_holder = {}
+        done_event = threading.Event()
+
+        def _worker():
+            try:
+                r = self.emotion_analyzer.analyze(speech_audio, sample_rate=config.SAMPLE_RATE)
+                result_holder['result'] = r
+            except Exception as e:
+                result_holder['error'] = e
+            finally:
+                done_event.set()
+
+        t = threading.Thread(target=_worker, daemon=True, name="emotion-worker")
+        t.start()
+
+        if done_event.wait(timeout=timeout):
+            if 'error' in result_holder:
+                logger.warning(f"Emotion analysis error (non-fatal): {result_holder['error']}")
+                return None
+            return result_holder.get('result')
+        else:
+            logger.warning(f"Emotion analysis timed out ({timeout}s) — skipping. "
+                           f"Disabling emotion2vec+ for this session.")
+            # Mark as unavailable so future calls skip instantly
+            self.emotion_analyzer._available = False
+            return None
+
     def _compute_emotional_stability(self, scores: dict, af: dict) -> float:
         """Compute emotional stability from rolling score variance + acoustic CV.
         100 = perfectly stable, 0 = highly volatile.
@@ -644,7 +745,9 @@ class AnalysisOrchestrator:
                 if (self._analysis_start_time and
                     time.time() - self._analysis_start_time > self._ANALYSIS_TIMEOUT):
                     logger.critical(
-                        f"Analysis thread stuck for >{self._ANALYSIS_TIMEOUT}s — force-releasing lock")
+                        f"Analysis thread stuck for >{self._ANALYSIS_TIMEOUT}s — "
+                        f"signalling cancellation and force-releasing lock")
+                    self._analysis_cancelled.set()
                     self._analysis_start_time = None
                     try:
                         self._analysis_lock.release()

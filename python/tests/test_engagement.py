@@ -1,8 +1,7 @@
 """
 Tests for backend.engagement.EngagementTracker
 
-Covers streak computation, grove growth/wilting, waypoints milestones,
-rhythm rings, and CSV export.
+Covers milestones, rhythm rings, and CSV export.
 """
 from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock, PropertyMock, patch
@@ -22,8 +21,6 @@ def _make_mock_db():
     db.get_daily_summaries.return_value = []
     db.get_readings.return_value = []
     db.get_today_readings.return_value = []
-    db.get_grove_trees.return_value = []
-    db.get_user_state.return_value = '1'
     db.get_all_baselines.return_value = {}
     db.get_echoes.return_value = []
     db.get_current_goals.return_value = None
@@ -71,263 +68,6 @@ def _make_reading(**overrides):
     }
     base.update(overrides)
     return base
-
-
-# ---------------------------------------------------------------------------
-# Streak Computation
-# ---------------------------------------------------------------------------
-
-class TestComputeStreak:
-    def test_zero_streak_no_data(self):
-        """No summaries should return streak of 0."""
-        db = _make_mock_db()
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 0
-
-    def test_zero_streak_no_today(self):
-        """Summaries exist but none for today should return 0."""
-        db = _make_mock_db()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=1),
-            _make_summary(day_offset=2),
-        ]
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 0
-
-    def test_one_day_streak(self):
-        """Only today's summary should yield streak of 1."""
-        db = _make_mock_db()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=0),
-        ]
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 1
-
-    def test_consecutive_days_streak(self):
-        """Consecutive days including today should count correctly."""
-        db = _make_mock_db()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=0),
-            _make_summary(day_offset=1),
-            _make_summary(day_offset=2),
-            _make_summary(day_offset=3),
-        ]
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 4
-
-    def test_gap_breaks_streak(self):
-        """A gap in days should break the streak."""
-        db = _make_mock_db()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=0),
-            _make_summary(day_offset=1),
-            # Day offset 2 is missing (gap)
-            _make_summary(day_offset=3),
-            _make_summary(day_offset=4),
-        ]
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 2  # Only today + yesterday
-
-    def test_seven_day_streak(self):
-        """7 consecutive days should return 7."""
-        db = _make_mock_db()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=i) for i in range(7)
-        ]
-        tracker = EngagementTracker(db)
-        assert tracker.compute_streak() == 7
-
-
-# ---------------------------------------------------------------------------
-# Grove
-# ---------------------------------------------------------------------------
-
-class TestUpdateGrove:
-    def test_grove_no_data(self):
-        """No summaries should return current grove state unchanged."""
-        db = _make_mock_db()
-        db.get_grove_trees.return_value = []
-        tracker = EngagementTracker(db)
-        result = tracker.update_grove()
-        assert 'trees' in result
-        assert 'rainfall' in result
-        assert result['total_trees'] == 0
-
-    def test_grove_state_structure(self):
-        """get_grove_state returns expected keys."""
-        db = _make_mock_db()
-        db.get_grove_trees.return_value = [
-            {'date': date.today().isoformat(), 'tree_state': 'growing', 'growth_stage': 1},
-        ]
-        tracker = EngagementTracker(db)
-        state = tracker.get_grove_state()
-        assert 'trees' in state
-        assert 'rainfall' in state
-        assert 'wilted_count' in state
-        assert 'growing_count' in state
-        assert 'total_trees' in state
-        assert state['growing_count'] == 1
-        assert state['wilted_count'] == 0
-
-    def test_grove_counts_wilted(self):
-        """Wilted trees are counted separately."""
-        db = _make_mock_db()
-        db.get_grove_trees.return_value = [
-            {'date': '2025-01-01', 'tree_state': 'growing', 'growth_stage': 2},
-            {'date': '2025-01-02', 'tree_state': 'wilted', 'growth_stage': 0},
-            {'date': '2025-01-03', 'tree_state': 'wilted', 'growth_stage': 0},
-        ]
-        tracker = EngagementTracker(db)
-        state = tracker.get_grove_state()
-        assert state['growing_count'] == 1
-        assert state['wilted_count'] == 2
-        assert state['total_trees'] == 3
-
-    def test_grove_adds_trees_for_active_days(self):
-        """update_grove should call add_grove_tree for new active days."""
-        db = _make_mock_db()
-        today = date.today()
-        db.get_daily_summaries.return_value = [
-            _make_summary(day_offset=0),
-        ]
-        db.get_grove_trees.return_value = []  # No existing trees
-        db.get_user_state.return_value = '1'
-
-        tracker = EngagementTracker(db)
-        tracker.update_grove()
-
-        # Should have called add_grove_tree for today
-        db.add_grove_tree.assert_called()
-
-
-# ---------------------------------------------------------------------------
-# Revive Tree
-# ---------------------------------------------------------------------------
-
-class TestReviveTree:
-    def test_revive_no_rainfall(self):
-        """Cannot revive without rainfall."""
-        db = _make_mock_db()
-        db.get_user_state.return_value = '0'
-        tracker = EngagementTracker(db)
-        result = tracker.revive_tree('2025-01-01')
-        assert result['success'] is False
-        assert 'No rainfall' in result['message']
-
-    def test_revive_no_wilted_tree(self):
-        """Cannot revive a non-existent wilted tree."""
-        db = _make_mock_db()
-        db.get_user_state.return_value = '3'
-        db.get_grove_trees.return_value = [
-            {'date': '2025-01-01', 'tree_state': 'growing', 'growth_stage': 2},
-        ]
-        tracker = EngagementTracker(db)
-        result = tracker.revive_tree('2025-01-01')
-        assert result['success'] is False
-
-    def test_revive_success(self):
-        """Reviving a wilted tree consumes rainfall and returns success."""
-        db = _make_mock_db()
-        db.get_user_state.return_value = '3'
-        db.get_grove_trees.return_value = [
-            {'date': '2025-01-05', 'tree_state': 'wilted', 'growth_stage': 0},
-        ]
-        tracker = EngagementTracker(db)
-        result = tracker.revive_tree('2025-01-05')
-        assert result['success'] is True
-        assert result['rainfall_remaining'] == 2
-        db.update_grove_tree.assert_called_once_with('2025-01-05', state='growing', stage=1, revived=1)
-        db.set_user_state.assert_called_with('rainfall', '2')
-
-
-# ---------------------------------------------------------------------------
-# Waypoints
-# ---------------------------------------------------------------------------
-
-class TestWaypoints:
-    def test_waypoints_structure(self):
-        """compute_waypoints returns expected structure."""
-        db = _make_mock_db()
-        # Mock the conn for best_wellness query
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        result = tracker.compute_waypoints()
-
-        assert 'waypoints' in result
-        assert 'by_tier' in result
-        assert 'total' in result
-        assert 'achieved' in result
-        assert 'progress_pct' in result
-        assert result['total'] == 30  # 30 waypoints defined
-
-    def test_auto_waypoints_always_achieved(self):
-        """Waypoints marked auto=True are always achieved."""
-        db = _make_mock_db()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        result = tracker.compute_waypoints()
-
-        auto_wps = [w for w in result['waypoints'] if w['id'] in ('wp_welcome', 'wp_first_voice')]
-        assert len(auto_wps) == 2
-        assert all(w['achieved'] for w in auto_wps)
-
-    def test_waypoints_3_readings_achieved(self):
-        """With 3+ readings, 'wp_3_readings' should be achieved."""
-        db = _make_mock_db()
-        db.count_readings.return_value = 5
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        result = tracker.compute_waypoints()
-
-        wp_3 = next(w for w in result['waypoints'] if w['id'] == 'wp_3_readings')
-        assert wp_3['achieved'] is True
-
-    def test_waypoints_no_readings_not_achieved(self):
-        """With 0 readings, 'wp_3_readings' should not be achieved."""
-        db = _make_mock_db()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        result = tracker.compute_waypoints()
-
-        wp_3 = next(w for w in result['waypoints'] if w['id'] == 'wp_3_readings')
-        assert wp_3['achieved'] is False
-
-    def test_waypoints_grouped_by_tier(self):
-        """by_tier should group waypoints into the expected tier names."""
-        db = _make_mock_db()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        result = tracker.compute_waypoints()
-
-        expected_tiers = ['Seedling', 'Sapling', 'Young Tree', 'Mature Tree', 'Old Growth', 'Ancient']
-        assert set(result['by_tier'].keys()) == set(expected_tiers)
-
-    def test_waypoints_persisted_to_db(self):
-        """Each waypoint should be upserted to the database."""
-        db = _make_mock_db()
-        mock_cursor = MagicMock()
-        mock_cursor.fetchone.return_value = {'max_score': None}
-        db.conn.cursor.return_value = mock_cursor
-
-        tracker = EngagementTracker(db)
-        tracker.compute_waypoints()
-
-        assert db.upsert_achievement.call_count == 30
 
 
 # ---------------------------------------------------------------------------
@@ -473,11 +213,11 @@ class TestLegacyMilestones:
         assert first['achieved'] is False
 
     def test_milestones_count(self):
-        """There should be exactly 7 legacy milestones."""
+        """There should be exactly 5 milestones."""
         db = _make_mock_db()
         tracker = EngagementTracker(db)
         milestones = tracker.compute_milestones()
-        assert len(milestones) == 7
+        assert len(milestones) == 5
 
 
 # ---------------------------------------------------------------------------
@@ -490,11 +230,11 @@ class TestEngagementSummary:
         db = _make_mock_db()
         tracker = EngagementTracker(db)
         summary = tracker.get_engagement_summary()
-        assert 'streak' in summary
         assert 'milestones' in summary
         assert 'total_readings' in summary
         assert 'total_days' in summary
         assert 'total_meetings' in summary
+        assert 'streak' not in summary
 
 
 # ---------------------------------------------------------------------------

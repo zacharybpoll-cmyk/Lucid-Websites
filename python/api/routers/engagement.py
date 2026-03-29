@@ -1,4 +1,4 @@
-"""Engagement endpoints: self-assessment, streak insurance, voice season, notification timing."""
+"""Engagement endpoints: self-assessment, voice season, notification timing."""
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 
@@ -67,26 +67,6 @@ async def get_self_assessments():
     if deps.db is None:
         raise HTTPException(status_code=500, detail="Database not initialized")
     return deps.db.get_self_assessments(limit=100)
-
-
-# ============ Streak Insurance ============
-
-@router.post("/api/streak-insurance")
-async def use_streak_insurance():
-    """Use streak insurance to save the current streak."""
-    if deps.db is None:
-        raise HTTPException(status_code=500, detail="Not initialized")
-    tracker = EngagementTracker(deps.db)
-    return tracker.use_streak_insurance()
-
-
-@router.get("/api/streak-insurance/status")
-async def get_streak_insurance_status():
-    """Get streak insurance availability."""
-    if deps.db is None:
-        raise HTTPException(status_code=500, detail="Not initialized")
-    tracker = EngagementTracker(deps.db)
-    return tracker.get_streak_insurance_status()
 
 
 # ============ Voice Season ============

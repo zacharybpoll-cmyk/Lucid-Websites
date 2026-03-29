@@ -53,11 +53,9 @@ class ReportsView {
                     ${this._renderDepressionAnxiety()}
                     ${this._renderStressChart()}
                     ${this._renderWeekOverWeek()}
-                    ${this._renderAcousticProfile()}
                     ${this._renderLinguisticMarkers()}
                     ${this._renderZoneSummary()}
                     ${this._renderTherapistFlags()}
-                    ${this._renderGroveDots()}
                     ${this._renderFlaggedEvents()}
                 </div>
                 <div class="reports-sidebar">
@@ -74,7 +72,6 @@ class ReportsView {
 
     _renderClinicalSummary() {
         const d = this.data;
-        const acoustic = d.acoustic_summary || {};
         const linguistic = d.linguistic_summary || {};
         const depression = d.depression_anxiety || {};
         const wow = d.week_over_week || {};
@@ -186,37 +183,6 @@ class ReportsView {
         `;
     }
 
-    // ===== Acoustic Profile =====
-
-    _renderAcousticProfile() {
-        const a = this.data.acoustic_summary || {};
-        if (!a.avg_f0 && !a.avg_hnr && !a.avg_speech_rate && !a.avg_alpha_ratio) return '';
-
-        const rows = [
-            { label: 'Fundamental Frequency (F0)', value: a.avg_f0, unit: 'Hz', normal: '100–250 Hz' },
-            { label: 'Harmonics-to-Noise (HNR)', value: a.avg_hnr, unit: 'dB', normal: '15–25 dB' },
-            { label: 'Speech Rate', value: a.avg_speech_rate, unit: 'wpm', normal: '120–180 wpm' },
-            { label: 'Alpha Ratio', value: a.avg_alpha_ratio, unit: 'dB', normal: '-15 to -5 dB' },
-        ].filter(r => r.value != null).map(r => `
-            <tr>
-                <td>${r.label}</td>
-                <td><strong>${r.value.toFixed(1)} ${r.unit}</strong></td>
-                <td>${r.normal}</td>
-            </tr>
-        `).join('');
-
-        if (!rows) return '';
-        return `
-            <div class="reports-acoustic-section">
-                <h3 class="section-label">ACOUSTIC PROFILE</h3>
-                <table class="reports-data-table">
-                    <thead><tr><th>Biomarker</th><th>Your Average</th><th>Normal Range</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-        `;
-    }
-
     // ===== Linguistic Markers =====
 
     _renderLinguisticMarkers() {
@@ -299,21 +265,6 @@ class ReportsView {
                     <span>Tense ${z.tense_pct||0}%</span>
                     <span>Stressed ${z.stressed_pct||0}%</span>
                 </div>
-            </div>
-        `;
-    }
-
-    _renderGroveDots() {
-        const cal = this.data.grove_calendar || [];
-        if (cal.length === 0) return '';
-        const dots = cal.map(entry => {
-            const cls = entry.active ? 'active' : (entry.partial ? 'partial' : '');
-            return `<div class="reports-grove-dot ${cls}" title="${entry.date || ''}"></div>`;
-        }).join('');
-        return `
-            <div class="reports-grove-section">
-                <h3 class="section-label">GROVE PARTICIPATION</h3>
-                <div class="reports-grove-dots">${dots}</div>
             </div>
         `;
     }

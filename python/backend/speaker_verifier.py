@@ -104,7 +104,9 @@ class SpeakerVerifier:
             self._centroid = np.frombuffer(profile['embedding'], dtype=np.float32).copy()
 
             # Load enrollment embeddings first (needed for dimension repair)
-            samples = self.db.get_enrollment_samples()
+            # Use actual profile id — not the default — to match FK relationship
+            profile_id = profile.get('id', 1)
+            samples = self.db.get_enrollment_samples(profile_id)
             if samples:
                 self._enrollment_embeddings = []
                 for s in samples:
@@ -336,7 +338,7 @@ class SpeakerVerifier:
 
         if similarity >= 0.7:
             with self._lock:
-                blended = 0.9 * self._centroid + 0.1 * embedding
+                blended = (0.9 * self._centroid + 0.1 * embedding).astype(np.float32)
                 norm = np.linalg.norm(blended)
                 if norm > 0:
                     blended = blended / norm
@@ -470,6 +472,9 @@ class SpeakerVerifier:
             else:
                 blended = weighted_mean
 
+            # np.average promotes float32→float64; cast back to avoid corrupting DB
+            blended = blended.astype(np.float32)
+
             # Re-normalize
             norm = np.linalg.norm(blended)
             if norm > 0:
@@ -534,9 +539,10 @@ class SpeakerVerifier:
             'threshold': self.threshold,
         }
         if self.db:
-            samples = self.db.get_enrollment_samples()
-            status['enrollment_samples'] = len(samples) if samples else 0
             profile = self.db.get_speaker_profile()
+            profile_id = profile.get('id', 1) if profile else 1
+            samples = self.db.get_enrollment_samples(profile_id)
+            status['enrollment_samples'] = len(samples) if samples else 0
             if profile:
                 status['enrolled_at'] = profile.get('created_at')
                 status['num_enrollment_samples'] = profile.get('num_enrollment_samples', 0)

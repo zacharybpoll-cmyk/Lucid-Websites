@@ -160,9 +160,16 @@ class ActiveAssessmentRunner:
 
             logger.info(f"Voice scan: {speech_duration:.1f}s speech in {recording_duration:.1f}s recording")
 
-        # Run analysis (outside lock to avoid blocking)
+        # Run analysis (outside lock to avoid blocking) with 60s timeout
         try:
-            result = self._run_analysis(speech_audio, speech_duration, recording_duration)
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(self._run_analysis, speech_audio, speech_duration, recording_duration)
+                try:
+                    result = future.result(timeout=60)
+                except concurrent.futures.TimeoutError:
+                    logger.error("Voice scan analysis timed out after 60s")
+                    result = {'error': 'Analysis timed out — please try again'}
         except Exception as e:
             logger.error(f"Voice scan analysis failed: {e}")
             result = {'error': f'Analysis failed: {str(e)}'}

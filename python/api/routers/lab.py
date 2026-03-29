@@ -182,6 +182,10 @@ async def get_biomarkers():
     result: Dict[str, Any] = {}
 
     for col, meta in biomarker_meta.items():
+        # Skip acoustic biomarkers from UI response
+        if meta.get("category") == "acoustic":
+            continue
+
         # Latest non-null value
         latest_value: Optional[float] = None
         for row in rows:
@@ -340,10 +344,10 @@ async def get_fingerprint():
     mood_mean = _col_mean("mood_score")
     energy_mean = _col_mean("energy_score")
     calm_mean = _col_mean("calm_score")
-    jitter_mean = _col_mean("jitter")
-    hnr_mean = _col_mean("hnr")
-    spectral_flux_mean = _col_mean("spectral_flux")
     depression_mapped_mean = _col_mean("depression_mapped")
+    semantic_coherence_mean = _col_mean("semantic_coherence")
+    lexical_diversity_mean = _col_mean("lexical_diversity")
+    sentiment_valence_mean = _col_mean("sentiment_valence")
 
     # ------------------------------------------------------------------
     # 8 radar dimensions — all normalised to 0-100
@@ -351,24 +355,23 @@ async def get_fingerprint():
     def _pct(val: Optional[float], default: float = 50.0) -> float:
         return round(float(val), 1) if val is not None else default
 
-    # vocal_steadiness: invert jitter (jitter ~0.001-0.04, scale x1000, invert)
-    if jitter_mean is not None:
-        # jitter * 1000 gives ~1-40 range; invert and scale to 0-100
-        steadiness = max(0.0, min(100.0, 100.0 - (jitter_mean * 1000 / 0.04) * 100))
+    # thought_coherence: semantic_coherence (0-1) × 100
+    if semantic_coherence_mean is not None:
+        thought_coherence = max(0.0, min(100.0, semantic_coherence_mean * 100.0))
     else:
-        steadiness = 50.0
+        thought_coherence = 50.0
 
-    # voice_clarity: hnr normalised to 0-100 (normal range ~10-25 dB, clamp to 0-30)
-    if hnr_mean is not None:
-        clarity = max(0.0, min(100.0, (hnr_mean / 25.0) * 100.0))
+    # vocabulary_richness: lexical_diversity (0-1) × 100
+    if lexical_diversity_mean is not None:
+        vocab_richness = max(0.0, min(100.0, lexical_diversity_mean * 100.0))
     else:
-        clarity = 50.0
+        vocab_richness = 50.0
 
-    # speech_dynamism: spectral_flux normalised (typical range 0.001-0.05)
-    if spectral_flux_mean is not None:
-        dynamism = max(0.0, min(100.0, (spectral_flux_mean / 0.05) * 100.0))
+    # emotional_tone: sentiment_valence (-0.5 to 0.8) mapped to 0-100
+    if sentiment_valence_mean is not None:
+        emotional_tone = max(0.0, min(100.0, (sentiment_valence_mean + 0.5) / 1.3 * 100.0))
     else:
-        dynamism = 50.0
+        emotional_tone = 50.0
 
     # depression_risk: invert mapped PHQ-9 (0-27 → 100-0)
     if depression_mapped_mean is not None:
@@ -377,14 +380,14 @@ async def get_fingerprint():
         dep_risk = 80.0  # default optimistic when no data
 
     radar = [
-        {"dim": "Stress",            "value": round(100.0 - _pct(stress_mean, 50.0), 1)},
-        {"dim": "Mood",              "value": _pct(mood_mean, 50.0)},
-        {"dim": "Energy",            "value": _pct(energy_mean, 50.0)},
-        {"dim": "Calm",              "value": _pct(calm_mean, 50.0)},
-        {"dim": "Vocal Steadiness",  "value": round(steadiness, 1)},
-        {"dim": "Voice Clarity",     "value": round(clarity, 1)},
-        {"dim": "Speech Dynamism",   "value": round(dynamism, 1)},
-        {"dim": "Depression Guard",  "value": round(dep_risk, 1)},
+        {"dim": "Stress",              "value": round(100.0 - _pct(stress_mean, 50.0), 1)},
+        {"dim": "Mood",                "value": _pct(mood_mean, 50.0)},
+        {"dim": "Energy",              "value": _pct(energy_mean, 50.0)},
+        {"dim": "Calm",                "value": _pct(calm_mean, 50.0)},
+        {"dim": "Thought Coherence",   "value": round(thought_coherence, 1)},
+        {"dim": "Vocabulary Richness", "value": round(vocab_richness, 1)},
+        {"dim": "Emotional Tone",      "value": round(emotional_tone, 1)},
+        {"dim": "Depression Guard",    "value": round(dep_risk, 1)},
     ]
 
     # ------------------------------------------------------------------
@@ -394,6 +397,11 @@ async def get_fingerprint():
 
     z_scores: List[Dict[str, Any]] = []
     for col, meta in biomarker_meta.items():
+        # Skip acoustic biomarkers and hidden internal scores
+        if meta.get("category") == "acoustic":
+            continue
+        if meta.get("display_priority") == "hidden":
+            continue
         col_mean = _col_mean(col)
         if col_mean is None:
             continue
@@ -411,9 +419,9 @@ async def get_fingerprint():
             "pop_std": pop_std,
         })
 
-    # Sort by absolute z-score descending, take top 3
+    # Sort by absolute z-score descending, take top 3 that pass threshold
     z_scores.sort(key=lambda x: abs(x["z"]), reverse=True)
-    top_unique = z_scores[:3]
+    top_unique = [s for s in z_scores[:10] if abs(s["z"]) >= 0.3][:3]
 
     unique_markers: List[Dict[str, Any]] = []
     for item in top_unique:
@@ -421,30 +429,48 @@ async def get_fingerprint():
         meta = item["meta"]
         display_name = meta.get("display_name", item["col"])
 
-        # Express z as a percentile approximation for plain-English description
-        # Using a simple normal CDF approximation
         percentile = _z_to_percentile(z)
+        abs_z = abs(z)
+
+        # Expressiveness based on z magnitude
+        if abs_z >= 1.5:
+            intensity = "distinctively"
+        elif abs_z >= 0.8:
+            intensity = "notably"
+        else:
+            intensity = "slightly"
 
         if z > 0:
             direction = "above average"
-            direction_adv = "higher than"
+            pct_display = round(percentile)
+            pct_display = max(51, min(99, pct_display))
+            description = (
+                f"Your {display_name.lower()} is {intensity} higher than "
+                f"{pct_display}% of voices"
+            )
         else:
             direction = "below average"
-            direction_adv = "lower than"
-
-        pct_other = round(abs(percentile - 50) + 50) if z > 0 else round(50 - abs(percentile - 50))
-        pct_other = max(51, min(99, pct_other))
-
-        description = (
-            f"Your {display_name.lower()} is {direction_adv} "
-            f"{pct_other}% of voices"
-        )
+            pct_display = round(100 - percentile)
+            pct_display = max(51, min(99, pct_display))
+            description = (
+                f"Your {display_name.lower()} is {intensity} lower than "
+                f"{pct_display}% of voices"
+            )
 
         unique_markers.append({
             "name": display_name,
             "direction": direction,
             "description": description,
             "z_score": round(z, 2),
+        })
+
+    # Fallback when no markers pass the threshold
+    if not unique_markers:
+        unique_markers.append({
+            "name": "Close to average",
+            "direction": "average",
+            "description": "Your voice metrics are close to population averages — keep tracking to reveal your unique patterns.",
+            "z_score": 0.0,
         })
 
     return {

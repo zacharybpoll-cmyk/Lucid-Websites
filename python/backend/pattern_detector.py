@@ -26,7 +26,6 @@ TIER_PRIORITY = {      # Lower = higher priority when budget is tight
 
 # Patterns tagged 'alert' are capped at 1/day regardless of tier
 _ALERT_BASES = frozenset({
-    'eureka_burnout_trajectory',
     'trend_stress_up',
 })
 
@@ -71,7 +70,7 @@ class PatternDetector:
         all_candidates.extend(self._detect_meeting_impact(summaries))      # 3. Meeting impact
         all_candidates.extend(self._detect_time_of_day())                  # 4. Time-of-day
         all_candidates.extend(self._detect_milestones(summaries))          # 5. Milestones
-        all_candidates.extend(self._detect_multi_week_trends(summaries))   # 6. Eureka: Burnout trajectory
+        all_candidates.extend(self._detect_multi_week_trends(summaries))   # 6. Eureka: Multi-week trends
         all_candidates.extend(self._detect_recovery_patterns())            # 7. Eureka: Recovery
         all_candidates.extend(self._detect_compound_effects(summaries))    # 8. Eureka: Compound effects
         all_candidates.extend(self._detect_anomalies(summaries))           # 9. Eureka: Anomaly detection
@@ -360,7 +359,7 @@ class PatternDetector:
     # ================================================================
 
     def _detect_multi_week_trends(self, summaries: List[Dict]) -> List[Dict]:
-        """Detect slow-moving multi-week stress trajectories (burnout warning)."""
+        """Detect slow-moving multi-week stress trajectories."""
         patterns = []
         if len(summaries) < 28:
             return patterns
@@ -389,8 +388,8 @@ class PatternDetector:
                 if slope >= 3:
                     total_weeks = len(weeks)
                     patterns.append({
-                        'pattern_type': f'eureka_burnout_trajectory_{total_weeks}w',
-                        'message': f'Your stress has been climbing ~{slope:.0f} points per week for {total_weeks} weeks. This is a burnout trajectory.',
+                        'pattern_type': f'eureka_stress_rising_{total_weeks}w',
+                        'message': f'Your stress has been climbing ~{slope:.0f} points per week for {total_weeks} weeks. Consider adding recovery time.',
                         'detail': f'Weekly averages: {", ".join(f"{w:.0f}" for w in weeks[-4:])}'
                     })
                 elif slope <= -3:

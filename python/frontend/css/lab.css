@@ -37,7 +37,7 @@
     border-radius: 16px;
     padding: 24px;
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 360px 1fr;
     gap: 24px;
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(91, 141, 184, 0.06);
@@ -73,8 +73,8 @@
 /* ── Radar / canvas ─────────────────────────────────────── */
 
 .lab-radar-canvas {
-    width: 240px;
-    height: 240px;
+    width: 360px;
+    height: 280px;
     display: block;
     flex-shrink: 0;
 }
@@ -112,7 +112,7 @@
 .lab-fingerprint-meta {
     font-size: 11px;
     color: #8C96A0;
-    margin-top: 12px;
+    margin-top: auto;
     display: flex;
     gap: 8px;
     align-items: center;
@@ -915,8 +915,8 @@
     }
 
     .lab-radar-canvas {
-        width: 120px;
-        height: 120px;
+        width: 200px;
+        height: 160px;
     }
 
     .lab-cards-grid {

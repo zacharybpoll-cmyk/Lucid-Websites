@@ -20,22 +20,9 @@ class EngagementView {
     render() {
         if (!this.data) return;
 
-        this.renderStreak();
         this.renderStats();
         this.renderMilestones();
         this.renderNextMilestone();
-    }
-
-    renderStreak() {
-        const streakEl = document.getElementById('streak-counter');
-        if (!streakEl) return;
-        const streak = this.data.streak || 0;
-        if (streak > 0) {
-            streakEl.textContent = `${streak} day streak`;
-            streakEl.style.display = 'inline-block';
-        } else {
-            streakEl.style.display = 'none';
-        }
     }
 
     renderStats() {
@@ -44,11 +31,9 @@ class EngagementView {
 
         const readings = this.data.total_readings || 0;
         const days = this.data.total_days || 0;
-        const streak = this.data.streak || 0;
 
         if (readings === 0) {
-            // Empty state — no data yet
-            statsEl.innerHTML = `<p class="engagement-empty-state">Take your first voice scan to start your streak and track your wellbeing over time.</p>`;
+            statsEl.innerHTML = `<p class="engagement-empty-state">Take your first voice scan to track your wellbeing over time.</p>`;
             return;
         }
 
@@ -87,19 +72,12 @@ class EngagementView {
         }
 
         // Estimate progress based on milestone type
-        const streak = this.data.streak || 0;
         const readings = this.data.total_readings || 0;
         let progressText = '';
         let progressPct = 0;
 
         const id = nextMilestone.id;
-        if (id === 'week_warrior') {
-            progressText = `${streak} / 7 days`;
-            progressPct = (streak / 7) * 100;
-        } else if (id === 'fortnight_strong') {
-            progressText = `${streak} / 14 days`;
-            progressPct = (streak / 14) * 100;
-        } else if (id === 'calibrated') {
+        if (id === 'calibrated') {
             const calibDays = Math.min(readings, 7);
             progressText = `${calibDays} / 7 days of voice data`;
             progressPct = (calibDays / 7) * 100;

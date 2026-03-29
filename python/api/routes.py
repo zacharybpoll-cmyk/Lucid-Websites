@@ -18,7 +18,11 @@ app = FastAPI(title="Lucid API")
 # CORS middleware for local development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8765", "http://localhost:8765"],
+    allow_origins=[
+        "http://127.0.0.1:8765", "http://localhost:8765",
+        "http://127.0.0.1:8766", "http://localhost:8766",
+        "http://127.0.0.1:8767", "http://localhost:8767",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -185,6 +189,10 @@ def test_analysis():
 # Analytics router
 from api.routers.analytics import router as analytics_router
 app.include_router(analytics_router)
+
+# Feedback router
+from api.routers.feedback import router as feedback_router
+app.include_router(feedback_router)
 
 # Mount static files (frontend) - must be AFTER API routes
 from pathlib import Path

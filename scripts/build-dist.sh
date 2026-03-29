@@ -47,7 +47,8 @@ if [ -n "$SITE_PACKAGES" ]; then
   echo "  Site-packages: $SITE_PACKAGES"
 
   # Remove unused large packages
-  for pkg in onnxruntime pip setuptools _pytest pytest pygments pkg_resources pyarrow jieba modelscope datasets cryptography Crypto wheel pandas sklearn funasr aliyunsdkcore aliyun_python_sdk_core aliyun_python_sdk_kms oss2 Pillow PIL hf_xet; do
+  # NOTE: funasr KEPT — required for emotion2vec+ emotion recognition
+  for pkg in onnxruntime pip setuptools _pytest pytest pygments pkg_resources pyarrow jieba modelscope datasets cryptography Crypto wheel pandas sklearn aliyunsdkcore aliyun_python_sdk_core aliyun_python_sdk_kms oss2 Pillow PIL hf_xet; do
     if [ -d "$SITE_PACKAGES/$pkg" ]; then
       echo "  Removing $pkg..."
       rm -rf "$SITE_PACKAGES/$pkg"
@@ -131,6 +132,21 @@ npx electron-packager . "Lucid" --platform=darwin --arch=arm64 \
   --ignore='^/Claude_Code' --ignore='^/README-INSTALL' \
   --ignore='^/Vision Care' --ignore='^/lucid_assessment' \
   --ignore='^/\.git$' --ignore='^/\.git/' \
+  --ignore='^/\.wrangler' \
+  --ignore='^/\.claude' \
+  --ignore='^/\.github' \
+  --ignore='^/Lucid alternate' \
+  --ignore='^/spokesperson' \
+  --ignore='^/Business Documents' \
+  --ignore='^/potential posts' \
+  --ignore='^/mockups' \
+  --ignore='^/screenshots' \
+  --ignore='^/persona-prototypes' \
+  --ignore='\.png$' --ignore='\.jpg$' --ignore='\.jpeg$' \
+  --ignore='\.mp4$' --ignore='\.mov$' --ignore='\.wav$' \
+  --ignore='^/gemini research' \
+  --ignore='^/generate_audit' \
+  --ignore='^/I want you' \
   --overwrite
 
 # 7. Rename python-dist -> python inside the .app bundle

@@ -1,6 +1,7 @@
 {
   "biomarkers": {
     "f0_mean": {
+      "display_priority": "hidden",
       "display_name": "Pitch Center",
       "technical_name": "Fundamental Frequency Mean (F0)",
       "category": "acoustic",
@@ -14,6 +15,7 @@
       "population_std": 35.0
     },
     "f0_std": {
+      "display_priority": "hidden",
       "display_name": "Pitch Variability",
       "technical_name": "Fundamental Frequency Standard Deviation",
       "category": "acoustic",
@@ -27,6 +29,7 @@
       "population_std": 12.0
     },
     "jitter": {
+      "display_priority": "hidden",
       "display_name": "Vocal Steadiness",
       "technical_name": "Pitch Perturbation (Jitter)",
       "category": "acoustic",
@@ -40,6 +43,7 @@
       "population_std": 0.007
     },
     "shimmer": {
+      "display_priority": "hidden",
       "display_name": "Amplitude Stability",
       "technical_name": "Amplitude Perturbation (Shimmer)",
       "category": "acoustic",
@@ -53,6 +57,7 @@
       "population_std": 0.015
     },
     "hnr": {
+      "display_priority": "hidden",
       "display_name": "Voice Clarity",
       "technical_name": "Harmonics-to-Noise Ratio (HNR)",
       "category": "acoustic",
@@ -66,6 +71,7 @@
       "population_std": 3.5
     },
     "rms_energy": {
+      "display_priority": "hidden",
       "display_name": "Voice Energy",
       "technical_name": "RMS Amplitude (Energy)",
       "category": "acoustic",
@@ -79,6 +85,7 @@
       "population_std": 0.020
     },
     "speech_rate": {
+      "display_priority": "hidden",
       "display_name": "Speaking Rate",
       "technical_name": "Speech Rate (Syllables/Second)",
       "category": "acoustic",
@@ -92,6 +99,7 @@
       "population_std": 0.9
     },
     "spectral_centroid": {
+      "display_priority": "hidden",
       "display_name": "Vocal Brightness",
       "technical_name": "Spectral Centroid",
       "category": "acoustic",
@@ -105,6 +113,7 @@
       "population_std": 450.0
     },
     "spectral_entropy": {
+      "display_priority": "hidden",
       "display_name": "Voice Complexity",
       "technical_name": "Spectral Entropy",
       "category": "acoustic",
@@ -118,6 +127,7 @@
       "population_std": 0.12
     },
     "zcr": {
+      "display_priority": "hidden",
       "display_name": "Vocal Tension",
       "technical_name": "Zero Crossing Rate (ZCR)",
       "category": "acoustic",
@@ -131,6 +141,7 @@
       "population_std": 0.04
     },
     "voice_breaks": {
+      "display_priority": "hidden",
       "display_name": "Voice Continuity",
       "technical_name": "Voice Break Count",
       "category": "acoustic",
@@ -144,6 +155,7 @@
       "population_std": 2.5
     },
     "alpha_ratio": {
+      "display_priority": "hidden",
       "display_name": "Vocal Stress Index",
       "technical_name": "Alpha Ratio (Low/High Band Energy)",
       "category": "acoustic",
@@ -157,6 +169,7 @@
       "population_std": 5.0
     },
     "mfcc3": {
+      "display_priority": "hidden",
       "display_name": "Vocal Timbre",
       "technical_name": "MFCC Coefficient 3",
       "category": "acoustic",
@@ -170,6 +183,7 @@
       "population_std": 8.0
     },
     "f1_mean": {
+      "display_priority": "hidden",
       "display_name": "First Formant",
       "technical_name": "First Formant Frequency (F1)",
       "category": "acoustic",
@@ -183,6 +197,7 @@
       "population_std": 100.0
     },
     "f2_mean": {
+      "display_priority": "hidden",
       "display_name": "Second Formant",
       "technical_name": "Second Formant Frequency (F2)",
       "category": "acoustic",
@@ -196,6 +211,7 @@
       "population_std": 250.0
     },
     "spectral_flux": {
+      "display_priority": "hidden",
       "display_name": "Vocal Dynamism",
       "technical_name": "Spectral Flux",
       "category": "acoustic",

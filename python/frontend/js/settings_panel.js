@@ -16,6 +16,11 @@
             loadNotificationSettings();
             loadAdaptiveTiming();
             loadSpeakerStatus();
+            // Load version into About section
+            fetch(`${API_BASE}/version`).then(r => r.json()).then(d => {
+                const el = document.getElementById('settings-version');
+                if (el) el.textContent = 'v' + d.version;
+            }).catch(() => {});
         });
 
         closeBtn.addEventListener('click', () => {

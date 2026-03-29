@@ -222,32 +222,6 @@
     margin-bottom: 12px;
 }
 
-/* Grove participation */
-.reports-grove-section {
-    margin-bottom: 24px;
-}
-.reports-grove-dots {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 12px;
-    background: white;
-    border-radius: 10px;
-    border: 1px solid #e4e8ec;
-}
-.reports-grove-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 3px;
-    background: #e4e8ec;
-}
-.reports-grove-dot.active {
-    background: #5a9a6e;
-}
-.reports-grove-dot.partial {
-    background: #b8d4a8;
-}
-
 /* Flagged events */
 .reports-events-section {
     margin-bottom: 24px;

@@ -147,6 +147,20 @@ async def complete_first_light_task(req: FirstLightTaskRequest):
     return {"success": True}
 
 
+@router.get("/api/version")
+async def get_version():
+    """Return the current Lucid version."""
+    import json, os
+    version = "1.1.0"
+    try:
+        pkg_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'package.json')
+        with open(pkg_path) as f:
+            version = json.load(f).get('version', version)
+    except Exception:
+        pass
+    return {"version": version}
+
+
 @router.get("/api/config")
 async def get_config():
     """Serve runtime configuration to frontend."""

@@ -175,7 +175,6 @@ async function init() {
     initTrendsView();
     initEngagementView();
     initCorrelationExplorer();
-    initGrove();
     initLayout();
     if (typeof ActiveAssessment !== 'undefined') ActiveAssessment.init();
     initReportsView();
@@ -1376,7 +1375,6 @@ async function loadFeatures() {
     Promise.allSettled([
         loadRhythmRings(),
         loadRecoveryPulse(),
-        updateGrove(),
         pollBeacon(),
         loadEchoesNotificationDot(),
         applyBadgeStreakFusion(),
@@ -2843,10 +2841,7 @@ function showSelfAssessmentModal(readingId) {
     });
 }
 
-// Check for self-assessment prompt every 30 minutes
-TimerRegistry.setInterval('global', checkSelfAssessmentPrompt, 30 * 60 * 1000);
-// Also check 60 seconds after startup
-TimerRegistry.setTimeout('global', checkSelfAssessmentPrompt, 60 * 1000);
+// Self-assessment prompt disabled — user found it intrusive
 
 // ========== Topic Correlations (Phase 2) ==========
 

@@ -41,6 +41,10 @@ NORM = {
     'spectral_flux_max': 0.05,   # Typical max flux (normalized spectrum)
 }
 
+# Power-curve calibration exponent.
+# Shifts average healthy readings from ~66 composite to ~78 (mid-Steady).
+CALIBRATION_EXPONENT = 0.6
+
 
 class ScoreEngine:
     def __init__(self, calibrator=None):
@@ -53,6 +57,13 @@ class ScoreEngine:
         # EMA state for temporal smoothing (Step 3)
         self._prev_smoothed: Optional[Dict[str, float]] = None
         self._ema_alpha = config.EMA_ALPHA
+
+    @staticmethod
+    def _calibrate(raw_score: float) -> float:
+        """Apply power curve to shift average healthy readings to ~78 composite."""
+        if raw_score <= 0:
+            return 0.0
+        return float(np.clip(100.0 * (raw_score / 100.0) ** CALIBRATION_EXPONENT, 0, 100))
 
     def compute_scores(self, dam_output: Dict, acoustic_features: Dict) -> Dict:
         """
@@ -76,6 +87,9 @@ class ScoreEngine:
             raw_scores = self._compute_personalized(dam_output, acoustic_features)
         else:
             raw_scores = self._compute_population(dam_output, acoustic_features)
+
+        # Apply power-curve calibration (avg healthy → ~78 composite)
+        raw_scores = {k: self._calibrate(v) for k, v in raw_scores.items()}
 
         # Apply temporal smoothing (EMA)
         smoothed = self._apply_ema(raw_scores)
@@ -190,6 +204,20 @@ class ScoreEngine:
         # Spectral flux: higher flux → more dynamic speech (arousal indicator)
         norm_spectral_flux = min(100.0, (spectral_flux / NORM['spectral_flux_max']) * 100.0)
 
+        # Emotion features (from emotion2vec+, 0 if unavailable)
+        emotion_stress_delta = af.get('emotion_stress_delta', 0.0)
+        emotion_mood_delta = af.get('emotion_mood_delta', 0.0)
+        emotion_energy_delta = af.get('emotion_energy_delta', 0.0)
+        emotion_calm_delta = af.get('emotion_calm_delta', 0.0)
+        has_emotion = af.get('emotion_class', 'unknown') != 'unknown'
+
+        # Normalize emotion deltas to 0-100 scale
+        # Raw deltas are -40 to +35 range; map to 0-100 where 50 = neutral
+        norm_emotion_stress = min(100.0, max(0.0, 50.0 + emotion_stress_delta))
+        norm_emotion_mood = min(100.0, max(0.0, 50.0 + emotion_mood_delta))
+        norm_emotion_energy = min(100.0, max(0.0, 50.0 + emotion_energy_delta))
+        norm_emotion_calm = min(100.0, max(0.0, 50.0 + emotion_calm_delta))
+
         # Linguistic features (from Whisper transcription, 0 if unavailable)
         filler_rate = max(0.0, af.get('filler_rate', 0.0))
         hedging_score = max(0.0, af.get('hedging_score', 0.0))
@@ -231,93 +259,124 @@ class ScoreEngine:
         norm_pitch_range = norm_pitch_var
 
         # === STRESS ===
-        # Evidence-aligned weights (v2 audit, March 2026)
-        # Two formulas: with and without linguistic features (graceful degradation)
-        # Jitter REMOVED — unreliable for stress detection (Veiga et al. 2025).
-        # Alpha ratio ADDED — most reliable speech stress marker (Menne et al. 2025).
-        # MFCC3 ADDED — cortisol association (beta=-0.606, p=0.014).
+        # Rebalanced (March 2026): emotion2vec+ boosted from 8% → 20%,
+        # DAM reduced from 38% → 28% to improve momentary affect sensitivity.
+        # Alpha ratio (Menne 2025), MFCC3 (cortisol), F1 elevation retained.
         if has_linguistic:
-            # Full formula: 43% DAM, 19% acoustic, 15% P1 spectral, 23% linguistic
+            # Full formula: 28% DAM, 17% acoustic, 13% spectral, 18% linguistic, 20% emotion, 4% F1
             stress = (
-                0.43 * norm_anx +                  # DAM anxiety (most validated)
-                0.07 * norm_f0_dev +                # F0 deviation
+                0.28 * norm_anx +                  # DAM anxiety (reduced from 0.38)
+                0.06 * norm_f0_dev +                # F0 deviation
                 0.05 * norm_pitch_var +             # Pitch variability
                 0.04 * norm_speech_rate_dev +        # Speech rate deviation
-                0.08 * norm_alpha_ratio_dev +        # Alpha ratio (Menne 2025)
-                0.05 * norm_mfcc3_dev +              # MFCC3 (cortisol)
-                0.02 * norm_f1_elevation +           # F1 elevation (vocal tension)
-                0.07 * norm_filler_rate +             # Fillers (cognitive load)
-                0.05 * norm_hedging +                 # Hedging (uncertainty)
+                0.07 * norm_alpha_ratio_dev +        # Alpha ratio (Menne 2025)
+                0.04 * norm_mfcc3_dev +              # MFCC3 (cortisol)
+                0.04 * norm_f1_elevation +           # F1 elevation (vocal tension, boosted)
+                0.04 * norm_filler_rate +             # Fillers (cognitive load)
+                0.04 * norm_hedging +                 # Hedging (uncertainty)
                 0.04 * norm_negative_sentiment +      # Negative affect
                 0.03 * norm_disfluency +              # Disfluencies (cognitive load)
                 0.04 * norm_valence_stress +          # Sentiment valence (negative = stress)
-                0.03 * norm_absolutist               # Absolutist language
+                0.03 * norm_absolutist +              # Absolutist language
+                (0.20 * norm_emotion_stress if has_emotion else 0.0)  # emotion2vec+ stress (boosted from 0.08)
             )
+            # If no emotion, redistribute to DAM + acoustic
+            if not has_emotion:
+                stress += 0.12 * norm_anx + 0.04 * norm_alpha_ratio_dev + 0.04 * norm_f0_dev
         else:
             # Fallback: acoustic-only (no Whisper available)
             stress = (
-                0.53 * norm_anx +                  # DAM anxiety (boosted without linguistic)
+                0.45 * norm_anx +                  # DAM anxiety (reduced from 0.53)
                 0.11 * norm_f0_dev +                # F0 deviation
                 0.07 * norm_pitch_var +             # Pitch variability
                 0.08 * norm_speech_rate_dev +        # Speech rate deviation
-                0.08 * norm_alpha_ratio_dev +        # Alpha ratio
+                0.10 * norm_alpha_ratio_dev +        # Alpha ratio (boosted)
                 0.06 * norm_mfcc3_dev +              # MFCC3
-                0.04 * norm_f1_elevation +           # F1 elevation
-                0.03 * norm_spectral_centroid        # Spectral centroid
+                0.06 * norm_f1_elevation +           # F1 elevation (boosted)
+                0.07 * norm_spectral_centroid        # Spectral centroid (boosted)
             )
 
         # === MOOD ===
-        # DAM-driven + shimmer (depression biomarker, Cummins 2015)
-        # Phase 2: pronoun_i_ratio + absolutist_ratio add depression signal
-        # Shimmer inverted: higher shimmer -> lower mood
+        # Rebalanced (March 2026): emotion2vec+ boosted from 8% → 20%,
+        # DAM dep reduced from 43% → 28%, sentiment valence boosted to 10%.
+        # Adds jitter (depression biomarker, Cummins 2015) at 5%.
         if has_linguistic:
-            mood = 100.0 - (
-                0.48 * norm_dep +
-                0.30 * norm_anx +
-                0.08 * norm_shimmer +
-                0.07 * norm_pronoun_i +    # High self-focus (Rude et al. 2004)
-                0.04 * norm_absolutist +    # Absolutist thinking
-                0.03 * norm_valence_stress  # Negative sentiment contribution
+            mood_negative = (
+                0.28 * norm_dep +              # DAM depression (reduced from 0.43)
+                0.12 * norm_anx +              # DAM anxiety (reduced from 0.27)
+                0.08 * norm_shimmer +          # Shimmer (depression biomarker)
+                0.05 * norm_jitter +           # Jitter (depression biomarker, Cummins 2015)
+                0.07 * norm_pronoun_i +        # High self-focus (Rude et al. 2004)
+                0.05 * norm_absolutist +       # Absolutist thinking
+                0.15 * norm_valence_stress     # Sentiment valence (boosted from 0.03)
             )
+            # emotion2vec+ mood contribution (inverted: positive delta = higher mood)
+            if has_emotion:
+                mood_negative += 0.20 * (100.0 - norm_emotion_mood)  # boosted from 0.08
+            else:
+                mood_negative += 0.10 * norm_dep + 0.10 * norm_valence_stress  # fallback
+            mood = 100.0 - mood_negative
         else:
-            mood = 100.0 - (0.55 * norm_dep + 0.35 * norm_anx + 0.10 * norm_shimmer)
+            mood = 100.0 - (0.45 * norm_dep + 0.30 * norm_anx + 0.10 * norm_shimmer +
+                            0.08 * norm_jitter + 0.07 * norm_spectral_centroid)
 
         # === ENERGY ===
-        # Acoustic-driven (arousal dimension, well-captured by acoustics)
+        # Rebalanced (March 2026): emotion2vec+ boosted from 10% → 20%,
+        # spectral_centroid + spectral_flux activated (arousal/dynamism indicators).
         depression_modifier = 1.0 - dep_mapped / 54.0  # halves at PHQ-9 max (27)
         depression_modifier = max(0.5, min(1.0, depression_modifier))
 
-        energy_base = (
-            0.30 * norm_rms +
-            0.25 * norm_speech_rate +
-            0.20 * norm_pitch_range +
-            0.15 * (100.0 - norm_spectral_entropy) +  # clarity (inverted)
-            0.10 * (depression_modifier * 100.0)
-        )
+        if has_emotion:
+            energy_base = (
+                0.18 * norm_rms +                           # Loudness
+                0.15 * norm_speech_rate +                    # Speech rate
+                0.12 * norm_pitch_range +                   # Pitch dynamics
+                0.10 * (100.0 - norm_spectral_entropy) +    # Spectral clarity
+                0.05 * (depression_modifier * 100.0) +      # Depression modifier (reduced)
+                0.08 * norm_spectral_centroid +              # Brightness (activated)
+                0.07 * norm_spectral_flux +                  # Dynamism (activated)
+                0.05 * norm_sentiment_arousal +              # Affective arousal
+                0.20 * norm_emotion_energy                   # emotion2vec+ energy (boosted from 0.10)
+            )
+        else:
+            energy_base = (
+                0.22 * norm_rms +
+                0.18 * norm_speech_rate +
+                0.15 * norm_pitch_range +
+                0.12 * (100.0 - norm_spectral_entropy) +
+                0.08 * (depression_modifier * 100.0) +
+                0.10 * norm_spectral_centroid +              # Brightness (activated)
+                0.08 * norm_spectral_flux +                  # Dynamism (activated)
+                0.07 * norm_sentiment_arousal                # Affective arousal
+            )
         energy = energy_base
 
         # === CALM ===
-        # Jitter removed (contradictory evidence). HNR added (higher = clearer/calmer voice).
-        # Sentiment valence: positive valence → calmer; negative arousal → calmer
+        # Rebalanced (March 2026): emotion2vec+ boosted from 8% → 20%.
         speech_rate_steadiness = 100.0 - norm_speech_rate_dev
 
         if has_linguistic:
             calm = (
-                0.27 * (100.0 - norm_anx) +
-                0.22 * (100.0 - norm_pitch_var) +
-                0.13 * norm_hnr +                       # HNR: cleaner voice = calmer
-                0.13 * speech_rate_steadiness +
-                0.12 * (100.0 - norm_spectral_entropy) +
-                0.07 * (100.0 - norm_valence_stress) +  # Positive valence = calmer
-                0.06 * (100.0 - norm_sentiment_arousal) # Low arousal = calmer
+                0.18 * (100.0 - norm_anx) +             # DAM anxiety (reduced from 0.22)
+                0.17 * (100.0 - norm_pitch_var) +        # Pitch stability
+                0.12 * norm_hnr +                        # HNR: cleaner voice = calmer
+                0.10 * speech_rate_steadiness +           # Speech rate consistency
+                0.08 * (100.0 - norm_spectral_entropy) + # Spectral clarity
+                0.08 * (100.0 - norm_valence_stress) +   # Positive valence = calmer (boosted)
+                0.07 * (100.0 - norm_sentiment_arousal)   # Low arousal = calmer (boosted)
             )
+            if has_emotion:
+                calm += 0.20 * norm_emotion_calm          # emotion2vec+ calm (boosted from 0.08)
+            else:
+                calm += 0.10 * (100.0 - norm_anx) + 0.10 * (100.0 - norm_pitch_var)  # fallback
         else:
             calm = (
-                0.30 * (100.0 - norm_anx) +
-                0.25 * (100.0 - norm_pitch_var) +
+                0.28 * (100.0 - norm_anx) +
+                0.22 * (100.0 - norm_pitch_var) +
                 0.15 * norm_hnr +
                 0.15 * speech_rate_steadiness +
-                0.15 * (100.0 - norm_spectral_entropy)
+                0.10 * (100.0 - norm_spectral_entropy) +
+                0.10 * (100.0 - norm_sentiment_arousal)
             )
 
         # === WELLBEING === (positive affect: low depression + low anxiety + voice quality)
@@ -433,78 +492,122 @@ class ScoreEngine:
         has_linguistic = (af.get('filler_rate', 0.0) > 0 or af.get('hedging_score', 0.0) > 0
                          or af.get('negative_sentiment', 0.0) > 0 or af.get('disfluency_rate', 0.0) > 0)
 
-        # === STRESS (personalized, evidence-aligned v2 + Phase 1/2) ===
+        # Emotion features (from emotion2vec+)
+        emotion_stress_delta = af.get('emotion_stress_delta', 0.0)
+        emotion_mood_delta = af.get('emotion_mood_delta', 0.0)
+        emotion_energy_delta = af.get('emotion_energy_delta', 0.0)
+        emotion_calm_delta = af.get('emotion_calm_delta', 0.0)
+        has_emotion = af.get('emotion_class', 'unknown') != 'unknown'
+        norm_emotion_stress = min(100.0, max(0.0, 50.0 + emotion_stress_delta))
+        norm_emotion_mood = min(100.0, max(0.0, 50.0 + emotion_mood_delta))
+        norm_emotion_energy = min(100.0, max(0.0, 50.0 + emotion_energy_delta))
+        norm_emotion_calm = min(100.0, max(0.0, 50.0 + emotion_calm_delta))
+
+        # === STRESS (personalized, rebalanced March 2026) ===
+        p_jitter = cal.normalize_score('jitter', af.get('jitter', 0.0))
+
         if has_linguistic:
             stress = (
-                0.43 * p_anx +
-                0.07 * p_f0_dev +
+                0.28 * p_anx +
+                0.06 * p_f0_dev +
                 0.05 * p_f0_std +
                 0.04 * p_speech_rate_dev +
-                0.08 * p_alpha_dev +
-                0.05 * p_mfcc3_dev +
-                0.02 * p_f1_elevation +
-                0.07 * p_filler +
-                0.05 * p_hedging +
+                0.07 * p_alpha_dev +
+                0.04 * p_mfcc3_dev +
+                0.04 * p_f1_elevation +
+                0.04 * p_filler +
+                0.04 * p_hedging +
                 0.04 * p_neg_sent +
                 0.03 * p_disfluency +
                 0.04 * p_valence_stress +
                 0.03 * p_absolutist
             )
+            if has_emotion:
+                stress += 0.20 * norm_emotion_stress
+            else:
+                stress += 0.12 * p_anx + 0.04 * p_alpha_dev + 0.04 * p_f0_dev
         else:
-            # Fallback: acoustic-only
             stress = (
-                0.53 * p_anx +
+                0.45 * p_anx +
                 0.11 * p_f0_dev +
                 0.07 * p_f0_std +
                 0.08 * p_speech_rate_dev +
-                0.08 * p_alpha_dev +
+                0.10 * p_alpha_dev +
                 0.06 * p_mfcc3_dev +
-                0.04 * p_f1_elevation +
-                0.03 * p_spectral_centroid
+                0.06 * p_f1_elevation +
+                0.07 * p_spectral_centroid
             )
 
-        # === MOOD (personalized, with shimmer + Phase 2) ===
+        # === MOOD (personalized, rebalanced March 2026) ===
         if has_linguistic:
-            mood = 100.0 - (
-                0.48 * p_dep +
-                0.30 * p_anx +
+            mood_negative = (
+                0.28 * p_dep +
+                0.12 * p_anx +
                 0.08 * p_shimmer +
+                0.05 * p_jitter +
                 0.07 * p_pronoun_i +
-                0.04 * p_absolutist +
-                0.03 * p_valence_stress
+                0.05 * p_absolutist +
+                0.15 * p_valence_stress
+            )
+            if has_emotion:
+                mood_negative += 0.20 * (100.0 - norm_emotion_mood)
+            else:
+                mood_negative += 0.10 * p_dep + 0.10 * p_valence_stress
+            mood = 100.0 - mood_negative
+        else:
+            mood = 100.0 - (0.45 * p_dep + 0.30 * p_anx + 0.10 * p_shimmer +
+                            0.08 * p_jitter + 0.07 * p_spectral_centroid)
+
+        # === ENERGY (personalized, rebalanced March 2026) ===
+        depression_modifier = max(0.5, 1.0 - (p_dep / 200.0))
+        if has_emotion:
+            energy = (
+                0.18 * p_rms +
+                0.15 * p_speech_rate +
+                0.12 * p_f0_std +
+                0.10 * (100.0 - p_spectral_entropy) +
+                0.05 * (depression_modifier * 100.0) +
+                0.08 * p_spectral_centroid +
+                0.07 * p_spectral_flux +
+                0.05 * p_sentiment_arousal +
+                0.20 * norm_emotion_energy
             )
         else:
-            mood = 100.0 - (0.55 * p_dep + 0.35 * p_anx + 0.10 * p_shimmer)
+            energy = (
+                0.22 * p_rms +
+                0.18 * p_speech_rate +
+                0.15 * p_f0_std +
+                0.12 * (100.0 - p_spectral_entropy) +
+                0.08 * (depression_modifier * 100.0) +
+                0.10 * p_spectral_centroid +
+                0.08 * p_spectral_flux +
+                0.07 * p_sentiment_arousal
+            )
 
-        # === ENERGY (personalized) ===
-        depression_modifier = max(0.5, 1.0 - (p_dep / 200.0))
-        energy = (
-            0.30 * p_rms +
-            0.25 * p_speech_rate +
-            0.20 * p_f0_std +
-            0.15 * (100.0 - p_spectral_entropy) +
-            0.10 * (depression_modifier * 100.0)
-        )
-
-        # === CALM (personalized, HNR + Phase 2 valence/arousal) ===
+        # === CALM (personalized, rebalanced March 2026) ===
         speech_rate_steadiness = 100.0 - p_speech_rate_dev
         if has_linguistic:
             calm = (
-                0.27 * (100.0 - p_anx) +
-                0.22 * (100.0 - p_f0_std) +
-                0.13 * p_hnr +
-                0.13 * speech_rate_steadiness +
-                0.12 * (100.0 - p_spectral_entropy) +
-                0.07 * (100.0 - p_valence_stress) +
-                0.06 * (100.0 - p_sentiment_arousal)
+                0.18 * (100.0 - p_anx) +
+                0.17 * (100.0 - p_f0_std) +
+                0.12 * p_hnr +
+                0.10 * speech_rate_steadiness +
+                0.08 * (100.0 - p_spectral_entropy) +
+                0.08 * (100.0 - p_valence_stress) +
+                0.07 * (100.0 - p_sentiment_arousal)
             )
+            if has_emotion:
+                calm += 0.20 * norm_emotion_calm
+            else:
+                calm += 0.10 * (100.0 - p_anx) + 0.10 * (100.0 - p_f0_std)
         else:
             calm = (
-                0.30 * (100.0 - p_anx) +
-                0.25 * (100.0 - p_f0_std) +
+                0.28 * (100.0 - p_anx) +
+                0.22 * (100.0 - p_f0_std) +
                 0.15 * p_hnr +
                 0.15 * speech_rate_steadiness +
-                0.15 * (100.0 - p_spectral_entropy)
+                0.10 * (100.0 - p_spectral_entropy) +
+                0.10 * (100.0 - p_sentiment_arousal)
             )
 
         # === WELLBEING (personalized, HNR replaces jitter) ===

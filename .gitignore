@@ -50,3 +50,25 @@ Gemini_Generated_Image*.png
 *.mp4
 *.mov
 *.mp3
+
+# Large binary files
+*.dmg
+*.zip
+*.mov
+*.mp4
+*.pptx
+*.xlsx
+*.docx
+*.pyc
+
+# Development/build artifacts
+.wrangler/
+.claude/
+__pycache__/
+*.egg-info/
+
+# App bundles
+*.app/
+
+# Sensitive
+.env

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 @router.get("/clinical-preview")
 async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
-    """Return stress trend data, grove participation, and flagged health events for the Reports tab."""
+    """Return stress trend data and flagged health events for the Reports tab."""
     db = deps.db
     if db is None:
         return {"has_data": False}
@@ -46,16 +46,6 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
         "tense_pct": round(total_tense / total_time * 100, 1),
         "stressed_pct": round(total_stressed / total_time * 100, 1),
     }
-
-    # Grove participation
-    grove_data = []
-    try:
-        from backend.engagement import EngagementTracker
-        tracker = EngagementTracker(db)
-        grove = tracker.compute_grove()
-        grove_data = grove.get("calendar", []) if grove else []
-    except Exception as e:
-        logger.warning(f"Failed to compute grove: {e}")
 
     # Flagged health events from echoes
     flagged_events = []
@@ -103,14 +93,6 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
         """Average a list, skipping None values. Returns None if empty."""
         clean = [v for v in values if v is not None]
         return round(sum(clean) / len(clean), 2) if clean else None
-
-    # Acoustic summary
-    acoustic_summary = {
-        "avg_f0": _safe_avg([r.get("f0_mean") for r in readings]),
-        "avg_hnr": _safe_avg([r.get("hnr") for r in readings]),
-        "avg_speech_rate": _safe_avg([r.get("speech_rate") for r in readings]),
-        "avg_alpha_ratio": _safe_avg([r.get("alpha_ratio") for r in readings]),
-    }
 
     # Linguistic summary
     linguistic_summary = {
@@ -221,9 +203,7 @@ async def clinical_preview(days: int = Query(default=90, ge=7, le=365)):
         "total_readings": sum(s.get("reading_count", 0) or 0 for s in summaries),
         "stress_trend": stress_trend,
         "zone_summary": zone_summary,
-        "grove_calendar": grove_data[:days],
         "flagged_events": flagged_events[:20],
-        "acoustic_summary": acoustic_summary,
         "linguistic_summary": linguistic_summary,
         "depression_anxiety": depression_anxiety,
         "week_over_week": week_over_week,

@@ -40,6 +40,16 @@ def setup_model_cache():
             if src.exists() and not dst.exists():
                 logger.info(f"  Copying {src.name}...")
                 shutil.copytree(src, dst)
+        # Copy bundled Whisper model to its expected cache location
+        # (openai-whisper uses ~/.cache/whisper/, NOT HF_HOME)
+        whisper_src = bundled / 'whisper' / 'base.pt'
+        whisper_cache = Path.home() / '.cache' / 'whisper'
+        whisper_dst = whisper_cache / 'base.pt'
+        if whisper_src.exists() and not whisper_dst.exists():
+            logger.info("  Copying Whisper model to cache...")
+            whisper_cache.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(whisper_src, whisper_dst)
+
         cache_dir.mkdir(parents=True, exist_ok=True)
         sentinel.touch()
         logger.info("Model cache ready.")

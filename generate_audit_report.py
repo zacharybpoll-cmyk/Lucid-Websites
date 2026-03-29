@@ -307,7 +307,7 @@ API_LOC = [
 
 FRONTEND_JS_LOC = [
     ("app.js", 3949), ("gauges.js", 1165), ("onboarding.js", 921), ("lab.js", 857),
-    ("active_assessment.js", 701), ("sculptor.js", 550), ("trends.js", 550),
+    ("active_assessment.js", 701), ("trends.js", 550),
     ("reports.js", 494), ("anxiety_timeline.js", 414), ("correlation.js", 268),
     ("bridge.js", 255), ("timeline.js", 215), ("layout.js", 147), ("grove.js", 130),
     ("voice_profile.js", 111), ("engagement.js", 50), ("audio-processor.js", 26),
@@ -315,7 +315,7 @@ FRONTEND_JS_LOC = [
 
 FRONTEND_CSS_LOC = [
     ("main.css", 3038), ("engagement.css", 2404), ("lab.css", 826),
-    ("active_assessment.css", 744), ("reports.css", 428), ("sculptor.css", 167),
+    ("active_assessment.css", 744), ("reports.css", 428),
     ("trends.css", 120), ("voice_profile.css", 118), ("anxiety_timeline.css", 76),
     ("correlation.css", 40), ("gauges.css", 10), ("timeline.css", 1),
 ]

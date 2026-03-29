@@ -93,9 +93,7 @@ class Database:
                 time_in_steady_min REAL,
                 time_in_calm_min REAL,
                 total_speech_min REAL,
-                total_meetings INTEGER,
-                burnout_risk REAL,
-                resilience_score REAL
+                total_meetings INTEGER
             )
         """)
 
@@ -418,6 +416,9 @@ class Database:
             ("echoes", "tier", "TEXT DEFAULT 'standard'"),
             # Linguistic Echo: post-recording insight callout
             ("readings", "linguistic_echo", "TEXT"),
+            # Emotion analysis (emotion2vec+, Rec 6.3)
+            ("readings", "emotion_class", "TEXT"),
+            ("readings", "emotion_confidence", "REAL"),
         ]
         for table, col, coltype in migrate_columns:
             try:
@@ -597,6 +598,8 @@ class Database:
         """Verify database connection is alive."""
         try:
             with self.lock:
+                if self.conn is None:
+                    return False
                 self.conn.execute("SELECT 1")
             return True
         except sqlite3.Error as e:
@@ -860,8 +863,6 @@ class Database:
                 'time_in_calm_min': sum(1 for r in readings if r.get('zone') == 'calm') * 5,
                 'total_speech_min': sum(r.get('speech_duration_sec') or 0 for r in readings) / 60,
                 'total_meetings': sum(r.get('meeting_detected') or 0 for r in readings),
-                'burnout_risk': None,
-                'resilience_score': None,
                 # Next-gen averages (fall back to legacy score names for old readings)
                 'avg_wellbeing': safe_avg('wellbeing_score') or safe_avg('mood_score'),
                 'avg_activation': safe_avg('activation_score') or safe_avg('energy_score'),
@@ -876,16 +877,16 @@ class Database:
                 INSERT OR REPLACE INTO daily_summaries (
                     date, avg_depression, avg_anxiety, avg_stress, avg_mood, avg_energy, avg_calm,
                     peak_stress, time_in_stressed_min, time_in_tense_min, time_in_steady_min,
-                    time_in_calm_min, total_speech_min, total_meetings, burnout_risk, resilience_score,
+                    time_in_calm_min, total_speech_min, total_meetings,
                     avg_wellbeing, avg_activation, avg_depression_risk, avg_anxiety_risk, avg_emotional_stability
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, ?, ?, ?)
             """, (
                 summary['date'], summary['avg_depression'], summary['avg_anxiety'],
                 summary['avg_stress'], summary['avg_mood'], summary['avg_energy'],
                 summary['avg_calm'], summary['peak_stress'], summary['time_in_stressed_min'],
                 summary['time_in_tense_min'], summary['time_in_steady_min'],
                 summary['time_in_calm_min'], summary['total_speech_min'],
-                summary['total_meetings'], summary['burnout_risk'], summary['resilience_score'],
+                summary['total_meetings'],
                 summary['avg_wellbeing'], summary['avg_activation'],
                 summary['avg_depression_risk'], summary['avg_anxiety_risk'],
                 summary['avg_emotional_stability'],
@@ -1059,42 +1060,6 @@ class Database:
             cursor = self.conn.cursor()
             cursor.execute("DELETE FROM briefings WHERE date = ? AND type = ?", (date_str, type))
             self.conn.commit()
-
-    # ============ Grove Methods ============
-
-    def get_grove_trees(self, limit: int = 90) -> List[Dict[str, Any]]:
-        with self.lock:
-            cursor = self.conn.cursor()
-            cursor.execute("SELECT * FROM grove ORDER BY date DESC LIMIT ?", (limit,))
-            return [dict(row) for row in cursor.fetchall()]
-
-    def add_grove_tree(self, date_str: str, state: str = 'growing', stage: int = 1):
-        with self.lock:
-            cursor = self.conn.cursor()
-            cursor.execute("""
-                INSERT OR IGNORE INTO grove (date, tree_state, growth_stage)
-                VALUES (?, ?, ?)
-            """, (date_str, state, stage))
-            self.conn.commit()
-
-    def update_grove_tree(self, date_str: str, state: str = None, stage: int = None, revived: int = None):
-        with self.lock:
-            cursor = self.conn.cursor()
-            updates = []
-            params = []
-            if state is not None:
-                updates.append("tree_state = ?")
-                params.append(state)
-            if stage is not None:
-                updates.append("growth_stage = ?")
-                params.append(stage)
-            if revived is not None:
-                updates.append("revived = ?")
-                params.append(revived)
-            if updates:
-                params.append(date_str)
-                cursor.execute(f"UPDATE grove SET {', '.join(updates)} WHERE date = ?", params)
-                self.conn.commit()
 
     # ============ User State Methods ============
 
@@ -1469,18 +1434,32 @@ class Database:
 
     def save_speaker_profile(self, embedding: bytes, embedding_dim: int,
                              num_samples: int, threshold: float):
-        """Save or update the speaker profile."""
+        """Save or update the speaker profile.
+
+        Uses UPDATE if a default profile exists, INSERT otherwise.
+        Avoids DELETE+INSERT which triggers ON DELETE CASCADE and wipes
+        enrollment_samples.
+        """
         with self.lock:
             now = datetime.now().isoformat()
             cursor = self.conn.cursor()
-            # Delete any existing default profile
-            cursor.execute("DELETE FROM speaker_profiles WHERE name = 'default'")
-            cursor.execute("""
-                INSERT INTO speaker_profiles
-                    (name, embedding, embedding_dim, num_enrollment_samples,
-                     enrollment_completed, similarity_threshold, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 1, ?, ?, ?)
-            """, ('default', embedding, embedding_dim, num_samples, threshold, now, now))
+            # Check for existing profile (including incomplete placeholders)
+            cursor.execute("SELECT id FROM speaker_profiles WHERE name = 'default' LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                cursor.execute("""
+                    UPDATE speaker_profiles
+                    SET embedding = ?, embedding_dim = ?, num_enrollment_samples = ?,
+                        enrollment_completed = 1, similarity_threshold = ?, updated_at = ?
+                    WHERE id = ?
+                """, (embedding, embedding_dim, num_samples, threshold, now, row[0]))
+            else:
+                cursor.execute("""
+                    INSERT INTO speaker_profiles
+                        (name, embedding, embedding_dim, num_enrollment_samples,
+                         enrollment_completed, similarity_threshold, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 1, ?, ?, ?)
+                """, ('default', embedding, embedding_dim, num_samples, threshold, now, now))
             self.conn.commit()
 
     def update_speaker_centroid(self, embedding: bytes):

@@ -103,13 +103,11 @@ const labView = (() => {
 
     const CATEGORIES = [
         { id: 'mental_health', label: 'Mental Health' },
-        { id: 'acoustic',     label: 'Acoustic'      },
         { id: 'linguistic',   label: 'Linguistic'    },
     ];
 
     const CATEGORY_TITLES = {
         mental_health: 'Mental Biomarkers',
-        acoustic: 'Acoustic Biomarkers',
         linguistic: 'Linguistic Biomarkers',
     };
 
@@ -407,22 +405,23 @@ const labView = (() => {
         if (!canvas) return;
 
         // DPR-aware sizing for crisp Retina rendering
-        const dpr     = window.devicePixelRatio || 1;
-        const cssSize = 240;
-        canvas.style.width  = cssSize + 'px';
-        canvas.style.height = cssSize + 'px';
-        canvas.width  = cssSize * dpr;
-        canvas.height = cssSize * dpr;
+        const dpr      = window.devicePixelRatio || 1;
+        const cssWidth = 360;
+        const cssHeight = 280;
+        canvas.style.width  = cssWidth + 'px';
+        canvas.style.height = cssHeight + 'px';
+        canvas.width  = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
 
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr);
 
-        const cx  = cssSize / 2;
-        const cy  = cssSize / 2;
-        const r   = 60;
+        const cx  = 195;
+        const cy  = cssHeight / 2;
+        const r   = 85;
         const n   = dimensions.length;
 
-        ctx.clearRect(0, 0, cssSize, cssSize);
+        ctx.clearRect(0, 0, cssWidth, cssHeight);
 
         if (n < 3) {
             // Not enough dimensions — draw a placeholder ring
@@ -435,7 +434,7 @@ const labView = (() => {
             ctx.font = `${10}px Inter, sans-serif`;
             ctx.fillStyle = '#c8cfd8';
             ctx.textAlign = 'center';
-            ctx.fillText('More data needed', cx, cy + 4);
+            ctx.fillText('More data needed', cssWidth / 2, cssHeight / 2 + 4);
             return;
         }
 
@@ -498,8 +497,8 @@ const labView = (() => {
         ctx.fillStyle = '#8C96A0';
         dimensions.forEach((d, i) => {
             const angle = angleFor(i);
-            const lx = cx + Math.cos(angle) * (r + 15);
-            const ly = cy + Math.sin(angle) * (r + 15) + 3;
+            const lx = cx + Math.cos(angle) * (r + 20);
+            const ly = cy + Math.sin(angle) * (r + 20) + 3;
             // Align labels so they don't clip at canvas edges
             const cosA = Math.cos(angle);
             if (cosA < -0.2) {

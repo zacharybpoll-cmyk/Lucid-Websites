@@ -49,6 +49,10 @@ class AnalyticsEngine:
 
         # Anonymous user ID
         self._user_id: Optional[str] = None
+        self._is_first_launch: bool = False
+
+        # Session timing
+        self._session_start: float = time.time()
 
         # Flush thread
         self._shutdown = threading.Event()
@@ -75,8 +79,9 @@ class AnalyticsEngine:
             existing = self._db.get_user_state('anonymous_user_id', '')
             if existing:
                 return existing
-        # Generate new UUID
+        # Generate new UUID — this is a first launch
         new_id = str(uuid.uuid4())
+        self._is_first_launch = True
         if self._db:
             self._db.set_user_state('anonymous_user_id', new_id)
         logger.info(f"Generated anonymous analytics ID: {new_id[:8]}...")
@@ -96,8 +101,19 @@ class AnalyticsEngine:
         # Register user on first start
         self._register_user()
 
+        # Fire first_launch event if this is a new install
+        if self._is_first_launch:
+            self.track("first_launch", {
+                "app_version": self.app_version,
+                "os_version": self.os_version,
+            })
+
     def stop(self):
         """Stop flush thread and do a final flush."""
+        # Track session duration
+        duration = round(time.time() - self._session_start)
+        self.track("session_end", {"duration_seconds": duration})
+
         self._shutdown.set()
         if self._flush_thread and self._flush_thread.is_alive():
             self._flush_thread.join(timeout=5)
@@ -105,6 +121,13 @@ class AnalyticsEngine:
         self._flush()
         self._client.close()
         logger.info("Analytics engine stopped")
+
+    def track_onboarding(self, step_name: str, step_number: int):
+        """Track onboarding step completion."""
+        self.track("onboarding_step", {
+            "step_name": step_name,
+            "step_number": step_number,
+        })
 
     def track(self, event_type: str, payload: Optional[Dict[str, Any]] = None):
         """Enqueue an analytics event."""

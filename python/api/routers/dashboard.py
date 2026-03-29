@@ -1,5 +1,5 @@
 """
-Dashboard layout, engagement, export, grove, waypoints, rings, beacon, meeting toggle.
+Dashboard layout, engagement, export, rings, beacon, meeting toggle.
 """
 import logging
 import time
@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta
 from api import dependencies as deps
 from api.exceptions import DatabaseNotReady, ServiceNotReady
 from api.schemas import (
-    MeetingToggleRequest, ReviveRequest, LayoutRequest,
+    MeetingToggleRequest, LayoutRequest,
 )
 from backend.engagement import EngagementTracker
 
@@ -48,7 +48,7 @@ async def get_engagement():
         summary['has_data'] = summary.get('total_readings', 0) > 0
     except Exception as e:
         logger.warning("Error computing engagement summary: %s", e)
-        summary = {'streaks': {}, 'milestones': [], 'has_data': False}
+        summary = {'milestones': [], 'has_data': False}
     return summary
 
 
@@ -120,45 +120,6 @@ async def toggle_meeting(request: MeetingToggleRequest):
         deps.orchestrator.set_meeting_active(request.active)
 
     return {"status": "ok", "meeting_active": request.active}
-
-
-@router.get("/api/grove")
-async def get_grove():
-    """Get grove state with trees"""
-    if deps.db is None:
-        raise DatabaseNotReady()
-
-    try:
-        tracker = _get_tracker()
-        return tracker.update_grove()
-    except Exception as e:
-        logger.warning("Error computing grove state: %s", e)
-        return {'trees': [], 'has_data': False}
-
-
-@router.post("/api/grove/revive")
-async def revive_tree(req: ReviveRequest):
-    """Use rainfall to revive a wilted tree"""
-    if deps.db is None:
-        raise DatabaseNotReady()
-    tracker = _get_tracker()
-    return tracker.revive_tree(req.date)
-
-
-@router.get("/api/waypoints")
-async def get_waypoints():
-    """Get waypoints progression"""
-    if deps.db is None:
-        raise DatabaseNotReady()
-
-    try:
-        tracker = _get_tracker()
-        result = tracker.compute_waypoints()
-        result['has_data'] = result.get('total_readings', 0) > 0
-        return result
-    except Exception as e:
-        logger.warning("Error in /api/waypoints: %s", e)
-        return {'waypoints': [], 'has_data': False}
 
 
 @router.get("/api/rings")

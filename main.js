@@ -218,10 +218,22 @@ function spawnPython() {
         }, delay);
       } else {
         console.error('[Python] Failed to restart after 3 attempts.');
-        dialog.showErrorBox(
-          'Lucid — Backend Error',
-          'The Lucid backend crashed and could not be restarted after 3 attempts.\nPlease restart the application.'
-        );
+        dialog.showMessageBox({
+          type: 'error',
+          title: 'Lucid — Backend Error',
+          message: 'The Lucid backend crashed and could not be restarted.',
+          detail: 'Would you like to restart the app or quit?',
+          buttons: ['Restart Lucid', 'Quit'],
+          defaultId: 0,
+        }).then(({ response }) => {
+          if (response === 0) {
+            pythonRestartCount = 0;
+            app.relaunch();
+            app.exit(0);
+          } else {
+            app.quit();
+          }
+        });
       }
     });
 
@@ -310,15 +322,31 @@ function showOnboarding() {
     },
   });
 
-  onboardingWindow.loadFile(path.join(getAppRoot(), 'src', 'onboarding', 'onboarding.html'));
+  onboardingWindow.loadURL(`${API_BASE}/static/onboarding/onboarding.html`);
 
-  onboardingWindow.once('ready-to-show', () => {
+  let onboardingShown = false;
+  const doShowOnboarding = () => {
+    if (onboardingShown) return;
+    onboardingShown = true;
     if (splashWindow) {
       splashWindow.close();
       splashWindow = null;
     }
     onboardingWindow.show();
+  };
+
+  onboardingWindow.once('ready-to-show', () => {
+    doShowOnboarding();
   });
+
+  // Fallback: force show after 10s if ready-to-show hasn't fired
+  // (external CDN resources like Google Fonts can delay ready-to-show)
+  setTimeout(() => {
+    if (!onboardingShown) {
+      console.warn('[Main] Onboarding ready-to-show timeout — forcing show');
+      doShowOnboarding();
+    }
+  }, 10000);
 
   onboardingWindow.on('closed', () => { onboardingWindow = null; });
 }

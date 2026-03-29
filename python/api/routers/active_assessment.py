@@ -37,10 +37,12 @@ async def active_status():
 
 @router.post("/api/active/stop")
 async def active_stop():
-    """Stop recording and run analysis."""
+    """Stop recording and run analysis (offloaded to thread pool to avoid blocking event loop)."""
     if deps.active_runner is None:
         raise HTTPException(status_code=503, detail="Active assessment not initialized")
-    result = deps.active_runner.stop_session()
+    import asyncio
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, deps.active_runner.stop_session)
     if 'error' in result:
         raise HTTPException(status_code=400, detail=result['error'])
     return result

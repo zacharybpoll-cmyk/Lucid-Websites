@@ -26,6 +26,9 @@ def _make_mock_db():
     db.get_readings_for_date.return_value = []
     db.get_today_readings.return_value = []
     db.batch_add_echoes.return_value = None
+    db.get_echoes_today_count.return_value = 0
+    db.get_echo_last_seen.return_value = None
+    db.get_echoes_today_by_tier.return_value = 0
     return db
 
 
@@ -433,8 +436,8 @@ class TestMultiWeekTrends:
         patterns = detector._detect_multi_week_trends(summaries)
         assert patterns == []
 
-    def test_burnout_trajectory_detected(self):
-        """Steadily rising stress over 4+ weeks should trigger burnout warning."""
+    def test_stress_rising_trajectory_detected(self):
+        """Steadily rising stress over 4+ weeks should trigger stress rising warning."""
         db = _make_mock_db()
         summaries = []
         # 5 weeks of data, stress rising ~5 points per week
@@ -447,9 +450,9 @@ class TestMultiWeekTrends:
         detector = PatternDetector(db)
         patterns = detector._detect_multi_week_trends(summaries)
 
-        burnout_patterns = [p for p in patterns if 'burnout' in p['pattern_type']]
-        assert len(burnout_patterns) >= 1
-        assert 'climbing' in burnout_patterns[0]['message'].lower()
+        rising_patterns = [p for p in patterns if 'stress_rising' in p['pattern_type']]
+        assert len(rising_patterns) >= 1
+        assert 'climbing' in rising_patterns[0]['message'].lower()
 
     def test_recovery_trajectory_detected(self):
         """Steadily declining stress over 4+ weeks should trigger recovery pattern."""
